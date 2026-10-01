@@ -1,7 +1,7 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import { verticalGradient } from "./gradient";
 import type { SceneLayout } from "./layout";
-import { between, pick, type Random } from "./random";
+import { between, pick, TAU, type Random } from "./random";
 import {
   drawShootingStar,
   nextShootingStarDelay,
@@ -10,9 +10,8 @@ import {
   type Point,
   type ShootingStarPlan,
 } from "./shootingStar";
-import type { TextureBag } from "./textures";
+import { createCanvas, type TextureBag } from "./textures";
 
-const TAU = Math.PI * 2;
 
 export interface Sky {
   /** Gradient, Milky Way, stars, moon, Venus and the shooting star. Sits behind everything. */
@@ -69,12 +68,7 @@ function bakeMilkyWay(
   rand: Random,
 ): Texture {
   const resolution = 0.5;
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * resolution));
-  canvas.height = Math.max(1, Math.round(skyHeight * resolution));
-  const g = canvas.getContext("2d");
-  if (!g) throw new Error("2D canvas is not available");
-  g.scale(resolution, resolution);
+  const { canvas, g } = createCanvas(width, skyHeight, resolution);
   g.translate(band.cx, band.cy);
   g.rotate(Math.atan2(band.dy, band.dx));
 

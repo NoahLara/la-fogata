@@ -1,5 +1,5 @@
 import type { Graphics } from "pixi.js";
-import { between, type Random } from "./random";
+import { between, clamp, type Random } from "./random";
 
 export interface Point {
   x: number;
@@ -43,7 +43,7 @@ export function distanceToSegment(p: Point, a: Point, b: Point): number {
   const along =
     lengthSquared === 0
       ? 0
-      : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared));
+      : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared, 0, 1);
   return Math.hypot(p.x - (a.x + dx * along), p.y - (a.y + dy * along));
 }
 

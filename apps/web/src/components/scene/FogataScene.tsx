@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { es } from "@/i18n/es";
+import type { FogataScene as Scene } from "@/scene/createScene";
 import { readDevFlags } from "@/scene/devFlags";
 
 /** Mounts the PixiJS scene. Pixi is imported inside the effect so it never loads on the server. */
@@ -12,7 +13,7 @@ export function FogataScene() {
     const host = hostRef.current;
     if (!host) return;
     let disposed = false;
-    let scene: { destroy(): void } | undefined;
+    let scene: Scene | undefined;
 
     // ?animal=<species> and ?shuffle are for looking at the scene in development; in production they do nothing.
     const { animal, shuffle } = readDevFlags(

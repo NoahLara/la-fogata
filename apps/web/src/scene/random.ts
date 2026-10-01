@@ -1,5 +1,7 @@
 export type Random = () => number;
 
+export const TAU = Math.PI * 2;
+
 /** Small seeded PRNG (mulberry32) so procedural scenery stays identical across resizes. */
 export function createRandom(seed: number): Random {
   let state = seed >>> 0;
