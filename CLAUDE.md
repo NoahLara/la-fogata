@@ -33,6 +33,7 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 
 ## Conventions
 
+- Default branch: master.
 - Everything in English: code, names, comments, commits, docs, PRs.
 - UI copy: Spanish by default. Keep every user-facing string in one i18n file so English can be added later.
 - Strict TypeScript. `any` is forbidden.
