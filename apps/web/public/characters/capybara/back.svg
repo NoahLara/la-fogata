@@ -1,19 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
 <defs>
-  <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.8" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -6"/></filter>
-  <mask id="silhouette" maskUnits="userSpaceOnUse" x="-64" y="-120" width="128" height="134"><g filter="url(#goo)"><ellipse cx="0" cy="-29" rx="35" ry="29" fill="#fff" /><rect x="-23" y="-92" width="46" height="36" rx="15" fill="#fff" /><circle cx="-18" cy="-95" r="4.8" fill="#fff" /><circle cx="18" cy="-95" r="4.8" fill="#fff" /></g></mask>
-  <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#c0975f"/><stop offset=".55" stop-color="#a07048"/><stop offset="1" stop-color="#7a5234"/></radialGradient>
+  <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -6"/></filter>
+  <mask id="silhouette" maskUnits="userSpaceOnUse" x="-64" y="-120" width="128" height="134"><g filter="url(#goo)"><ellipse cx="0" cy="-24" rx="38" ry="24" fill="#fff" /><ellipse cx="0" cy="-40" rx="29" ry="20" fill="#fff" /><rect x="-22" y="-84" width="44" height="40" rx="17" fill="#fff" /><circle cx="-16.5" cy="-85" r="4" fill="#fff" /><circle cx="16.5" cy="-85" r="4" fill="#fff" /></g></mask>
+  <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#bd8057"/><stop offset=".55" stop-color="#9d6340"/><stop offset="1" stop-color="#6a3f27"/></radialGradient>
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
 <rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
-<ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
-<ellipse cx="0" cy="-54" rx="24" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
-<rect x="-23" y="-92" width="46" height="8" rx="4" fill="#6a4528" opacity=".45" filter="url(#blur-lg)"/>
-<circle cx="-18" cy="-95" r="4.8" fill="#6a4528" filter="url(#edge)"/>
-<circle cx="18" cy="-95" r="4.8" fill="#6a4528" filter="url(#edge)"/>
-<ellipse cx="0" cy="-42" rx="26" ry="14" fill="#6a4528" opacity=".25" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-4" rx="36" ry="9" fill="#3f2517" opacity=".3" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-30" rx="32" ry="19" fill="#76492f" opacity=".75" filter="url(#blur-lg)"/>
+<circle cx="-16.5" cy="-85" r="4.2" fill="#6a3f27" filter="url(#edge)"/>
+<circle cx="16.5" cy="-85" r="4.2" fill="#6a3f27" filter="url(#edge)"/>
 </g>
 </g></svg>
