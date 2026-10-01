@@ -1,10 +1,7 @@
 import type { Graphics } from "pixi.js";
-import { between, clamp, type Random } from "./random";
-
-export interface Point {
-  x: number;
-  y: number;
-}
+import type { Point } from "./layout";
+import { between, clamp, toRadians } from "./math";
+import type { Random } from "./random";
 
 /** A circle the shooting star must stay clear of, such as the moon. */
 export interface Keepout extends Point {
@@ -19,7 +16,7 @@ export interface ShootingStarPlan {
 }
 
 /** The part of the sky a shooting star may cross. */
-export interface SkyBounds {
+interface SkyBounds {
   width: number;
   top: number;
   bottom: number;
@@ -41,9 +38,7 @@ export function distanceToSegment(p: Point, a: Point, b: Point): number {
   const dy = b.y - a.y;
   const lengthSquared = dx * dx + dy * dy;
   const along =
-    lengthSquared === 0
-      ? 0
-      : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared, 0, 1);
+    lengthSquared === 0 ? 0 : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared, 0, 1);
   return Math.hypot(p.x - (a.x + dx * along), p.y - (a.y + dy * along));
 }
 
@@ -60,7 +55,7 @@ export function planShootingStar(
 ): ShootingStarPlan | undefined {
   for (let i = 0; i < tries; i++) {
     const length = between(rand, 0.14, 0.28) * bounds.width;
-    const angle = between(rand, 12, 48) * (Math.PI / 180);
+    const angle = toRadians(between(rand, 12, 48));
     const direction = rand() < 0.5 ? -1 : 1;
     const from = {
       x: between(rand, 0.05, 0.95) * bounds.width,

@@ -1,6 +1,6 @@
-export type Random = () => number;
+import { randomInt } from "./math";
 
-export const TAU = Math.PI * 2;
+export type Random = () => number;
 
 /** Small seeded PRNG (mulberry32) so procedural scenery stays identical across resizes. */
 export function createRandom(seed: number): Random {
@@ -14,24 +14,16 @@ export function createRandom(seed: number): Random {
   };
 }
 
-export function between(rand: Random, min: number, max: number): number {
-  return min + rand() * (max - min);
-}
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 /** A random element of a non-empty list. */
 export function pick<T>(rand: Random, items: readonly T[]): T {
-  return items[Math.floor(rand() * items.length)] as T;
+  return items[randomInt(rand, 0, items.length - 1)] as T;
 }
 
 /** A shuffled copy of `items` (Fisher-Yates). */
 export function shuffled<T>(items: readonly T[], rand: Random): T[] {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
+    const j = randomInt(rand, 0, i);
     const a = result[i] as T;
     result[i] = result[j] as T;
     result[j] = a;

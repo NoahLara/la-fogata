@@ -1,8 +1,8 @@
 import { Sprite } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, pick, TAU, type Random } from "./random";
+import { between, clamp, randomInt, smoothstep, TAU } from "./math";
+import { pick, type Random } from "./random";
 import { createCanvas, type TextureBag } from "./textures";
-
 
 /** The baked ground. Everything here is drawn once per build; only `lit` changes, in alpha. */
 export interface Ground {
@@ -28,11 +28,6 @@ const MAX_PIXELS = 3_000_000;
 function surface(width: number, height: number): Surface {
   const resolution = Math.min(1, Math.sqrt(MAX_PIXELS / (width * height)));
   return { ...createCanvas(width, height, resolution), resolution };
-}
-
-function smoothstep(from: number, to: number, value: number): number {
-  const t = clamp((value - from) / (to - from), 0, 1);
-  return t * t * (3 - 2 * t);
 }
 
 /** An ellipse that fades out from its center by the given `[offset, color]` stops. */
@@ -317,7 +312,7 @@ function paintTufts(g: CanvasRenderingContext2D, t: Terrain, rand: Random): void
       tuft.x,
       tuft.y,
       between(rand, 6, 14) * s,
-      3 + Math.floor(rand() * 5),
+      randomInt(rand, 3, 7),
       Math.max(0.7, 1.2 * s),
       grassColor(tuft.depth, rand()),
     );
@@ -343,7 +338,7 @@ function paintForeground(
       x,
       height,
       h,
-      2 + Math.floor(rand() * 3),
+      randomInt(rand, 2, 4),
       Math.max(1.5, 2 * u),
       rand() < 0.5 ? "#04050a" : "#06080b",
     );

@@ -2,7 +2,8 @@ import { Container, Graphics, Sprite } from "pixi.js";
 import { bakeGround, type Ground } from "./ground";
 import { verticalGradient } from "./gradient";
 import type { SceneLayout } from "./layout";
-import { between, clamp, createRandom, type Random } from "./random";
+import { between, clamp } from "./math";
+import { createRandom, type Random } from "./random";
 import { createSky } from "./sky";
 import type { TextureBag } from "./textures";
 

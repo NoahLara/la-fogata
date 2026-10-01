@@ -1,9 +1,9 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, createRandom, pick, TAU, type Random } from "./random";
+import { between, clamp, TAU } from "./math";
+import { createRandom, pick, type Random } from "./random";
 import { createTeepee } from "./teepee";
 import type { TextureBag } from "./textures";
-
 
 /**
  * Colours along a flame tongue's life: a pale base, then yellow, orange, and a deep red-orange at the tip.
@@ -196,9 +196,7 @@ export function createFire(
     // instead of rising as one column. A few stay near the middle, under where the logs cross.
     const gaps = teepee.gapAngles;
     const inGap = gaps.length > 0 && rand() < 0.75;
-    const angle = inGap
-      ? pick(rand, gaps) + between(rand, -0.14, 0.14)
-      : rand() * TAU;
+    const angle = inGap ? pick(rand, gaps) + between(rand, -0.14, 0.14) : rand() * TAU;
     const radius = inGap ? teepee.baseRadius * between(rand, 0.62, 0.8) : between(rand, 0, 7) * u;
     const tongue: Tongue = {
       sprite,

@@ -1,13 +1,18 @@
-import { Container, Sprite, type Renderer } from "pixi.js";
+import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
 import { SPECIES, SPECIES_SCALE, type Species, type SpriteArt, type View } from "./characters";
 import type { FireLight } from "./fire";
-import { capNearScales, seatPosition, type SceneLayout } from "./layout";
+import {
+  capNearScales,
+  directionToFire,
+  seatPosition,
+  type SceneLayout,
+  type SeatPosition,
+} from "./layout";
+import { evaluateCurve, VIEW_LIGHTING, type ViewLighting } from "./lighting";
 import { bakeLogArt, LOG, type LogArt } from "./log";
-import { between, clamp, createRandom } from "./random";
-import type { TextureBag } from "./textures";
-
-/** The rim on characters is thin and hugs the edge; near characters, which are backlit, get a slightly wider one. */
-const RIM = { far: { fade: 2.2, lean: 1 }, near: { fade: 3, lean: 1.2 } } as const;
+import { between, clamp, toRadians } from "./math";
+import { createRandom } from "./random";
+import { OVERLAY_COLORS, type TextureBag } from "./textures";
 
 interface SeatSpec {
   /** Angle on the seat ellipse; 90° is the point closest to the viewer. */
@@ -78,7 +83,7 @@ interface Seated {
   /** Thin warm light along the edges facing the fire. */
   rim: Sprite;
   shadow: Sprite;
-  back: boolean;
+  lighting: ViewLighting;
   /** -1 when the art is mirrored for a seat on the left of the fire, otherwise 1. */
   flip: 1 | -1;
   scale: number;
@@ -93,6 +98,43 @@ interface Seated {
   log?: { body: Sprite; rim: Sprite };
 }
 
+interface Placed {
+  spec: SeatSpec;
+  index: number;
+  seat: SeatPosition;
+}
+
+/** What every seat is built from, fixed for one scene build. */
+interface BuildContext {
+  renderer: Renderer;
+  layout: SceneLayout;
+  textures: TextureBag;
+  sprites: SpriteArt;
+  pixelsPerUnit: number;
+}
+
+const ringScaleFor = (spec: SeatSpec) => (spec.view === "back" ? 1 : FAR_RING_SCALE);
+
+/** Seat positions, back to front, so nearer characters are drawn over farther ones. */
+function placeSeats(layout: SceneLayout): Placed[] {
+  const positions = capNearScales(
+    SEATS.map((spec) => seatPosition(layout, spec.degrees, ringScaleFor(spec))),
+  );
+  return SEATS.map((spec, index) => ({ spec, index, seat: positions[index] }))
+    .flatMap((entry) => (entry.seat ? [{ ...entry, seat: entry.seat }] : []))
+    .sort((a, b) => a.seat.y - b.seat.y);
+}
+
+/**
+ * The animal that sits in a seat. If the wanted one has no art (a file that failed to load), any animal that
+ * does sits there instead. With no art at all the seat stays empty.
+ */
+function resolveSpecies(sprites: SpriteArt, wanted: Species | undefined): Species | undefined {
+  return wanted && sprites.has(wanted)
+    ? wanted
+    : SPECIES.find((candidate) => sprites.has(candidate));
+}
+
 /**
  * Where a log lies and how it looks. The log follows the circle around the fire, so its axis is the tangent
  * of the seat ellipse. It is sheared, not rotated, so it still lies flat: its ends move up or down while
@@ -103,7 +145,7 @@ function logPlacement(
   degrees: number,
   ringScale: number,
 ): { skew: number; stretch: number } {
-  const angle = (degrees * Math.PI) / 180;
+  const angle = toRadians(degrees);
   const tx = -Math.sin(angle);
   const ty = Math.cos(angle) * (layout.ry / (layout.rx * ringScale));
   let slope = Math.atan2(ty, tx);
@@ -115,250 +157,218 @@ function logPlacement(
   return { skew, stretch: clamp(Math.hypot(tx, ty) / Math.cos(skew), 0.88, 1) };
 }
 
-export function createSeats(
-  renderer: Renderer,
-  layout: SceneLayout,
-  textures: TextureBag,
-  fire: FireLight,
-  sprites: SpriteArt,
-  assignment: readonly Species[] = DEFAULT_ASSIGNMENT,
-): Seats {
+/** Everything about a seated character except the log and the shadows. */
+function buildCharacter(
+  { renderer, layout, textures, sprites, pixelsPerUnit }: BuildContext,
+  { spec, index, seat }: Placed,
+  species: Species,
+) {
   const { cx, cy, rx, u, characterHeight } = layout;
-  const pixelsPerUnit = (characterHeight / 100) * renderer.resolution;
+  const lighting = VIEW_LIGHTING[spec.view];
+  const scale = seat.scale * SPECIES_SCALE[species];
+  const k = (characterHeight / 100) * scale;
+  const art = sprites.art(species, spec.view);
+  // The side art faces left. Seats on the left of the fire face right, so they use it mirrored.
+  const flip: 1 | -1 = art.directional && seat.x < cx ? -1 : 1;
+  // On a log the character sits into it, so it is raised by less than the log's height.
+  const charY = seat.y - (spec.log ? LOG.seatHeight * k : 0);
 
-  const shadows = new Container();
-  const contactShadows = new Container();
-  const far = new Container();
-  const near = new Container();
-  const seated: Seated[] = [];
-  let logArt: LogArt | undefined;
+  const toFire = directionToFire({ x: seat.x, y: charY - 55 * k }, { x: cx, y: cy - 45 * u });
+  // Direction to the fire in the art's own space: mirrored art sees the fire on its other side.
+  const towardFire = { x: flip * toFire.x, y: toFire.y };
+  const distance = Math.min(1.6, toFire.length / Math.max(rx, 1));
+  const anchor = { x: art.originX / art.width, y: art.originY / art.height };
+  const centerX = art.originX;
+  const centerY = art.originY - 55;
 
-  const ringScaleFor = (spec: SeatSpec) => (spec.view === "back" ? 1 : FAR_RING_SCALE);
-  const positions = capNearScales(
-    SEATS.map((spec) => seatPosition(layout, spec.degrees, ringScaleFor(spec))),
-  );
-  const placed = SEATS.map((spec, index) => ({ spec, index, seat: positions[index] }))
-    .flatMap((entry) => (entry.seat ? [{ ...entry, seat: entry.seat }] : []))
-    .sort((a, b) => a.seat.y - b.seat.y);
+  const body = new Sprite(art.texture);
+  body.anchor.set(anchor.x, anchor.y);
+  body.setSize(art.width, art.height);
 
-  for (const { spec, index, seat } of placed) {
-    // If the wanted animal has no art (a file that failed to load), any animal that does sits there instead.
-    // With no art at all the seat stays empty.
-    const wanted = assignment[index];
-    const species =
-      wanted && sprites.has(wanted) ? wanted : SPECIES.find((candidate) => sprites.has(candidate));
-    if (!species) continue;
-    // Seen from behind means backlit: near-black with a bright rim. It is the view that decides this, not how
-    // far the seat is from the fire line, so the seats beside the fire are lit by it.
-    const back = spec.view === "back";
-    const ringScale = ringScaleFor(spec);
-    const scale = seat.scale * SPECIES_SCALE[species];
-    const k = (characterHeight / 100) * scale;
-    const art = sprites.art(species, spec.view);
-    // The side art faces left. Seats on the left of the fire face right, so they use it mirrored.
-    const flip: 1 | -1 = art.directional && seat.x < cx ? -1 : 1;
-    // On a log the character sits into it, so it is raised by less than the log's height.
-    const charY = seat.y - (spec.log ? LOG.seatHeight * k : 0);
+  const masks: Sprite[] = [];
+  /** An overlay clipped to the character's silhouette. */
+  const overlay = (texture: Texture) => {
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(anchor.x, anchor.y);
+    sprite.setSize(art.width, art.height);
+    const silhouette = new Sprite(art.texture);
+    silhouette.anchor.set(anchor.x, anchor.y);
+    silhouette.setSize(art.width, art.height);
+    sprite.setMask({ mask: silhouette });
+    masks.push(silhouette);
+    return sprite;
+  };
 
-    const dx = cx - seat.x;
-    const dy = cy - 45 * u - (charY - 55 * k);
-    const length = Math.hypot(dx, dy) || 1;
-    // Direction to the fire in the art's own space: mirrored art sees the fire on its other side.
-    const towardFire = { x: (flip * dx) / length, y: dy / length };
-    const distance = Math.min(1.6, length / Math.max(rx, 1));
-    const anchor = { x: art.originX / art.width, y: art.originY / art.height };
-    const centerX = art.originX;
-    const centerY = art.originY - 55;
-
-    const body = new Sprite(art.texture);
-    body.anchor.set(anchor.x, anchor.y);
-    body.setSize(art.width, art.height);
-
-    const masks: Sprite[] = [];
-    /** Clips an overlay to the character's silhouette. */
-    const clipToSilhouette = (overlay: Sprite) => {
-      overlay.anchor.set(anchor.x, anchor.y);
-      overlay.setSize(art.width, art.height);
-      const silhouette = new Sprite(art.texture);
-      silhouette.anchor.set(anchor.x, anchor.y);
-      silhouette.setSize(art.width, art.height);
-      overlay.setMask({ mask: silhouette });
-      masks.push(silhouette);
-    };
-
-    // The fire does all the work: a warm light that fades smoothly across the whole body from the side facing it
-    // (laid over the colours rather than added to them, so dark markings warm up too and nothing glows like a hole), deep shadow on the far side, and a
-    // thin warm rim hugging the edges that face it. All of it points along the line from the seat to the fire.
-    const lit = new Sprite(
-      textures.rimLight(art.width, art.height, pixelsPerUnit, {
+  // The fire does all the work: a warm light that fades smoothly across the whole body from the side facing it
+  // (laid over the colours rather than added to them, so dark markings warm up too and nothing glows like a hole), deep shadow on the far side, and a
+  // thin warm rim hugging the edges that face it. All of it points along the line from the seat to the fire.
+  const lit = overlay(
+    textures.gradientOverlay(
+      art.width,
+      art.height,
+      pixelsPerUnit,
+      {
         x0: centerX + towardFire.x * 62,
         y0: centerY + towardFire.y * 62,
         x1: centerX - towardFire.x * 56,
         y1: centerY - towardFire.y * 56,
-      }),
-    );
-    clipToSilhouette(lit);
-
-    const shade = new Sprite(
-      textures.sideShade(art.width, art.height, pixelsPerUnit, {
+      },
+      OVERLAY_COLORS.light,
+    ),
+  );
+  const shade = overlay(
+    textures.gradientOverlay(
+      art.width,
+      art.height,
+      pixelsPerUnit,
+      {
         x0: centerX - towardFire.x * 44,
         y0: centerY - towardFire.y * 44,
         x1: centerX + towardFire.x * 4,
         y1: centerY + towardFire.y * 4,
-      }),
-    );
-    clipToSilhouette(shade);
+      },
+      OVERLAY_COLORS.shade,
+    ),
+  );
 
-    const rim = new Sprite(
-      textures.edgeRim(
-        renderer,
-        art.texture,
-        art.width,
-        towardFire,
-        back ? RIM.near.fade : RIM.far.fade,
-        back ? RIM.near.lean : RIM.far.lean,
-      ),
-    );
-    rim.anchor.set(anchor.x, anchor.y);
-    rim.setSize(art.width, art.height);
+  const rim = new Sprite(
+    textures.edgeRim(
+      renderer,
+      art.texture,
+      art.width,
+      towardFire,
+      lighting.rimFade,
+      lighting.rimLean,
+    ),
+  );
+  rim.anchor.set(anchor.x, anchor.y);
+  rim.setSize(art.width, art.height);
 
-    const container = new Container();
-    container.position.set(seat.x, charY);
-    // Each character leans a little toward the fire (the head more than the hips) and is built slightly
-    // differently, so they don't look like clones. Deterministic per seat.
-    const rnd = createRandom(index * 977 + 13);
-    const leanDirection = Math.abs(dx) > 8 ? Math.sign(dx) : rnd() < 0.5 ? -1 : 1;
-    const variation = {
-      skewX: -leanDirection * between(rnd, 0.03, 0.09) * (0.5 + 0.5 * Math.abs(towardFire.x)),
-      rotation: between(rnd, -0.025, 0.025),
-      width: between(rnd, 0.95, 1.06),
-      height: between(rnd, 0.96, 1.05),
-    };
-    container.skew.set(variation.skewX, 0);
-    container.rotation = variation.rotation;
-    container.scale.set(flip * k * variation.width, k * variation.height);
-    container.addChild(body, lit, shade, rim);
-    // Masks must be in the scene graph.
-    for (const mask of masks) container.addChild(mask);
+  const container = new Container();
+  container.position.set(seat.x, charY);
+  // Each character leans a little toward the fire (the head more than the hips) and is built slightly
+  // differently, so they don't look like clones. Deterministic per seat.
+  const rnd = createRandom(index * 977 + 13);
+  const dx = cx - seat.x;
+  const leanDirection = Math.abs(dx) > 8 ? Math.sign(dx) : rnd() < 0.5 ? -1 : 1;
+  const variation = {
+    skewX: -leanDirection * between(rnd, 0.03, 0.09) * (0.5 + 0.5 * Math.abs(towardFire.x)),
+    rotation: between(rnd, -0.025, 0.025),
+    width: between(rnd, 0.95, 1.06),
+    height: between(rnd, 0.96, 1.05),
+  };
+  container.skew.set(variation.skewX, 0);
+  container.rotation = variation.rotation;
+  container.scale.set(flip * k * variation.width, k * variation.height);
+  container.addChild(body, lit, shade, rim);
+  // Masks must be in the scene graph.
+  for (const mask of masks) container.addChild(mask);
 
-    const layer = seat.y < cy ? far : near;
+  return { container, body, lit, shade, rim, lighting, flip, scale, k, distance, variation };
+}
 
-    // The log goes in first so the character sits into it. It follows the circle around the fire and is
-    // lit like the fire's own logs: an edge light toward the fire that flickers with it.
-    let log: Seated["log"];
-    let logSkew = 0;
-    let logStretch = 1;
-    if (spec.log) {
-      logArt ??= bakeLogArt(renderer, pixelsPerUnit);
-      const logAnchor = { x: logArt.originX / logArt.width, y: logArt.originY / logArt.height };
-      const logDx = cx - seat.x;
-      const logDy = cy - 45 * u - (seat.y - 10 * k);
-      const logLength = Math.hypot(logDx, logDy) || 1;
-      const logToward = { x: logDx / logLength, y: logDy / logLength };
-      ({ skew: logSkew, stretch: logStretch } = logPlacement(layout, spec.degrees, ringScale));
+/**
+ * The log under a seat. It goes in first so the character sits into it. It follows the circle around the fire
+ * and is lit like the fire's own logs: an edge light toward the fire that flickers with it.
+ */
+function buildLog(
+  { renderer, layout, textures }: BuildContext,
+  logArt: LogArt,
+  { spec, seat }: Placed,
+  k: number,
+) {
+  const { cx, cy, u } = layout;
+  const anchor = { x: logArt.originX / logArt.width, y: logArt.originY / logArt.height };
+  const toFire = directionToFire({ x: seat.x, y: seat.y - 10 * k }, { x: cx, y: cy - 45 * u });
+  const { skew, stretch } = logPlacement(layout, spec.degrees, ringScaleFor(spec));
 
-      const logBody = new Sprite(logArt.texture);
-      logBody.anchor.set(logAnchor.x, logAnchor.y);
-      logBody.setSize(logArt.width, logArt.height);
-      const logRim = new Sprite(
-        textures.edgeRim(renderer, logArt.texture, logArt.width, logToward),
-      );
-      logRim.anchor.set(logAnchor.x, logAnchor.y);
-      logRim.setSize(logArt.width, logArt.height);
-      // Where the character presses into the top of the log.
-      const topShade = new Sprite(
-        textures.radial([
-          [0, 1],
-          [1, 0],
-        ]),
-      );
-      topShade.anchor.set(0.5);
-      topShade.tint = 0x050308;
-      topShade.alpha = 0.5;
-      topShade.position.set(0, -LOG.thickness + 1);
-      topShade.setSize(54, 9);
+  const body = new Sprite(logArt.texture);
+  body.anchor.set(anchor.x, anchor.y);
+  body.setSize(logArt.width, logArt.height);
+  const rim = new Sprite(textures.edgeRim(renderer, logArt.texture, logArt.width, toFire));
+  rim.anchor.set(anchor.x, anchor.y);
+  rim.setSize(logArt.width, logArt.height);
+  // Where the character presses into the top of the log.
+  const topShade = new Sprite(
+    textures.radial([
+      [0, 1],
+      [1, 0],
+    ]),
+  );
+  topShade.anchor.set(0.5);
+  topShade.tint = 0x050308;
+  topShade.alpha = 0.5;
+  topShade.position.set(0, -LOG.thickness + 1);
+  topShade.setSize(54, 9);
 
-      const logContainer = new Container();
-      logContainer.position.set(seat.x, seat.y);
-      logContainer.scale.set(k * logStretch, k);
-      logContainer.skew.set(0, logSkew);
-      logContainer.addChild(logBody, logRim, topShade);
-      layer.addChild(logContainer);
-      log = { body: logBody, rim: logRim };
-    }
-    layer.addChild(container);
+  const container = new Container();
+  container.position.set(seat.x, seat.y);
+  container.scale.set(k * stretch, k);
+  container.skew.set(0, skew);
+  container.addChild(body, rim, topShade);
+  return { container, log: { body, rim }, skew, stretch };
+}
 
-    // A long, soft cast shadow: it fades out gradually instead of ending at an edge.
-    const shadow = new Sprite(
-      textures.radial([
-        [0, 0.9],
-        [0.5, 0.45],
-        [1, 0],
-      ]),
-    );
-    shadow.anchor.set(0.5);
-    shadow.tint = 0x020208;
-    shadows.addChild(shadow);
+/** The shadow a seat casts away from the fire, and the contact shadow under its character (or its log). */
+function buildShadows(
+  textures: TextureBag,
+  { spec, seat }: Placed,
+  k: number,
+  logSkew: number,
+  logStretch: number,
+) {
+  // A long, soft cast shadow: it fades out gradually instead of ending at an edge.
+  const shadow = new Sprite(
+    textures.radial([
+      [0, 0.9],
+      [0.5, 0.45],
+      [1, 0],
+    ]),
+  );
+  shadow.anchor.set(0.5);
+  shadow.tint = 0x020208;
 
-    const contact = new Sprite(
-      textures.radial([
-        [0, 1],
-        [0.6, 0.45],
-        [1, 0],
-      ]),
-    );
-    contact.anchor.set(0.5);
-    contact.tint = 0x020208;
-    contact.alpha = 0.6;
-    contact.position.set(seat.x, seat.y - k);
-    // Under the log when there is one, following its slope; otherwise under the character.
-    if (spec.log) {
-      contact.rotation = logSkew;
-      contact.setSize((LOG.length + 12) * k * logStretch * Math.cos(logSkew), 22 * k);
-    } else {
-      contact.setSize(76 * k, 20 * k);
-    }
-    contactShadows.addChild(contact);
-
-    seated.push({
-      container,
-      body,
-      lit,
-      shade,
-      rim,
-      shadow,
-      back,
-      flip,
-      scale,
-      x: seat.x,
-      y: seat.y,
-      distance,
-      seed: index * 17.3,
-      variation,
-      log,
-    });
+  const contact = new Sprite(
+    textures.radial([
+      [0, 1],
+      [0.6, 0.45],
+      [1, 0],
+    ]),
+  );
+  contact.anchor.set(0.5);
+  contact.tint = 0x020208;
+  contact.alpha = 0.6;
+  contact.position.set(seat.x, seat.y - k);
+  // Under the log when there is one, following its slope; otherwise under the character.
+  if (spec.log) {
+    contact.rotation = logSkew;
+    contact.setSize((LOG.length + 12) * k * logStretch * Math.cos(logSkew), 22 * k);
+  } else {
+    contact.setSize(76 * k, 20 * k);
   }
-  shadows.addChild(contactShadows);
+  return { shadow, contact };
+}
 
-  const update = (time: number, reduced: boolean) => {
+function createSeatUpdater(
+  seated: readonly Seated[],
+  fire: FireLight,
+  layout: SceneLayout,
+): Seats["update"] {
+  const { cx, cy, u, characterHeight } = layout;
+  return (time, reduced) => {
     const intensity = fire.intensity;
     for (const s of seated) {
       // Near characters are almost black against the fire; far ones are lit by it.
       const light = clamp(fire.light, 0.4, 1.4);
-      s.body.tint = nightTint(
-        s.back
-          ? clamp(0.94 - (intensity - 1) * 0.04, 0.86, 0.96)
-          : clamp(0.46 + s.distance * 0.1 - (intensity - 1) * 0.1, 0.3, 0.6),
-      );
-      s.lit.alpha = (s.back ? 0.2 : 0.6) * light * (1 - s.distance * 0.2);
-      s.shade.alpha = s.back ? 0.55 : 1;
-      s.rim.alpha = clamp((s.back ? 1.1 : 0.7) * light * (1 - s.distance * 0.2), 0, 1);
+      const falloff = 1 - s.distance * 0.2;
+      s.body.tint = nightTint(evaluateCurve(s.lighting.bodyTint, s.distance, intensity));
+      s.lit.alpha = s.lighting.litAlpha * light * falloff;
+      s.shade.alpha = s.lighting.shadeAlpha;
+      s.rim.alpha = clamp(s.lighting.rimAlpha * light * falloff, 0, 1);
 
       if (s.log) {
-        s.log.body.tint = nightTint(
-          s.back ? 0.5 : clamp(0.2 + s.distance * 0.18 - (intensity - 1) * 0.1, 0.08, 0.45),
-        );
-        s.log.rim.alpha = clamp(clamp(fire.light, 0.4, 1.4) * (1 - s.distance * 0.25), 0, 1);
+        s.log.body.tint = nightTint(evaluateCurve(s.lighting.logTint, s.distance, intensity));
+        s.log.rim.alpha = clamp(light * (1 - s.distance * 0.25), 0, 1);
       }
 
       const breath = reduced ? 0 : Math.sin(time * 1.8 + s.seed) * 0.018;
@@ -384,6 +394,70 @@ export function createSeats(
       s.shadow.alpha = clamp(0.28 + 0.22 * light, 0.2, 0.55);
     }
   };
+}
+
+export function createSeats(
+  renderer: Renderer,
+  layout: SceneLayout,
+  textures: TextureBag,
+  fire: FireLight,
+  sprites: SpriteArt,
+  assignment: readonly Species[] = DEFAULT_ASSIGNMENT,
+): Seats {
+  const context: BuildContext = {
+    renderer,
+    layout,
+    textures,
+    sprites,
+    pixelsPerUnit: (layout.characterHeight / 100) * renderer.resolution,
+  };
+  const shadows = new Container();
+  const contactShadows = new Container();
+  const far = new Container();
+  const near = new Container();
+  const seated: Seated[] = [];
+  let logArt: LogArt | undefined;
+
+  for (const placed of placeSeats(layout)) {
+    const species = resolveSpecies(sprites, assignment[placed.index]);
+    if (!species) continue;
+    const { spec, index, seat } = placed;
+    const character = buildCharacter(context, placed, species);
+    const layer = seat.y < layout.cy ? far : near;
+
+    let log: ReturnType<typeof buildLog> | undefined;
+    if (spec.log) {
+      logArt ??= bakeLogArt(renderer, context.pixelsPerUnit);
+      log = buildLog(context, logArt, placed, character.k);
+      layer.addChild(log.container);
+    }
+    layer.addChild(character.container);
+
+    const cast = buildShadows(textures, placed, character.k, log?.skew ?? 0, log?.stretch ?? 1);
+    shadows.addChild(cast.shadow);
+    contactShadows.addChild(cast.contact);
+
+    seated.push({
+      container: character.container,
+      body: character.body,
+      lit: character.lit,
+      shade: character.shade,
+      rim: character.rim,
+      shadow: cast.shadow,
+      lighting: character.lighting,
+      flip: character.flip,
+      scale: character.scale,
+      x: seat.x,
+      y: seat.y,
+      distance: character.distance,
+      seed: index * 17.3,
+      variation: character.variation,
+      log: log?.log,
+    });
+  }
+  shadows.addChild(contactShadows);
+
+  const update = createSeatUpdater(seated, fire, layout);
   update(0, true);
 
   return {

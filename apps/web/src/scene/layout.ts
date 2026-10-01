@@ -1,3 +1,5 @@
+import { toRadians } from "./math";
+
 export interface Insets {
   top: number;
   bottom: number;
@@ -66,11 +68,24 @@ export function seatPosition(
   degrees: number,
   horizontalScale = 1,
 ): SeatPosition {
-  const angle = (degrees * Math.PI) / 180;
+  const angle = toRadians(degrees);
   const x = layout.cx + layout.rx * horizontalScale * Math.cos(angle);
   const y = layout.cy + layout.ry * Math.sin(angle);
   const depth = (y - (layout.cy - layout.ry)) / (2 * layout.ry);
   return { x, y, scale: 0.74 + 0.3 * depth, near: Math.sin(angle) > 0.05 };
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** Unit vector from `from` to `to` and the distance between them. Coincident points give a zero vector and a length of 1. */
+export function directionToFire(from: Point, to: Point): Point & { length: number } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  return { x: dx / length, y: dy / length, length };
 }
 
 /** Near characters may be at most this much bigger than the biggest far one, so the near side doesn't tower. */

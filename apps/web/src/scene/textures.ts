@@ -1,7 +1,7 @@
 import { ImageSource, Texture, type Renderer } from "pixi.js";
-import { TAU } from "./random";
+import { TAU } from "./math";
 
-export type GradientStop = readonly [offset: number, alpha: number];
+type GradientStop = readonly [offset: number, alpha: number];
 
 /** A canvas of `width` x `height` local units at `resolution` pixels per unit, with its context already scaled. */
 export function createCanvas(width: number, height: number, resolution: number) {
@@ -121,39 +121,39 @@ function vignetteTexture(
   });
 }
 
-/**
- * Warm light falling on a character from the fire, as an orange gradient.
- * Starts at (x0, y0) fully opaque and fades to (x1, y1). Size and coordinates are in the sprite's local units.
- */
-function rimLightTexture(
-  width: number,
-  height: number,
-  resolution: number,
-  line: { x0: number; y0: number; x1: number; y1: number },
-): Texture {
-  return canvasTexture(width, height, resolution, (g) => {
-    const gradient = g.createLinearGradient(line.x0, line.y0, line.x1, line.y1);
-    gradient.addColorStop(0, "rgba(255,165,70,1)");
-    gradient.addColorStop(1, "rgba(255,150,70,0)");
-    g.fillStyle = gradient;
-    g.fillRect(0, 0, width, height);
-  });
+interface GradientLine {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
 }
 
+interface OverlayColors {
+  readonly from: string;
+  readonly to: string;
+}
+
+/** The two overlays a fire puts on a character: warm light on the side facing it, night shade on the side facing away. */
+export const OVERLAY_COLORS = {
+  light: { from: "rgba(255,165,70,1)", to: "rgba(255,150,70,0)" },
+  shade: { from: "rgba(6,7,18,.85)", to: "rgba(6,7,18,0)" },
+} as const;
+
 /**
- * Darkening for the side of a turned character that faces away from the fire.
- * Opaque night color at (x0, y0), fading to nothing at (x1, y1). Size and coordinates are in local units.
+ * A linear gradient over a whole sprite: `colors.from` at (x0, y0) fading to `colors.to` at (x1, y1).
+ * Size and coordinates are in the sprite's local units.
  */
-function sideShadeTexture(
+function gradientOverlayTexture(
   width: number,
   height: number,
   resolution: number,
-  line: { x0: number; y0: number; x1: number; y1: number },
+  line: GradientLine,
+  colors: OverlayColors,
 ): Texture {
   return canvasTexture(width, height, resolution, (g) => {
     const gradient = g.createLinearGradient(line.x0, line.y0, line.x1, line.y1);
-    gradient.addColorStop(0, "rgba(6,7,18,.85)");
-    gradient.addColorStop(1, "rgba(6,7,18,0)");
+    gradient.addColorStop(0, colors.from);
+    gradient.addColorStop(1, colors.to);
     g.fillStyle = gradient;
     g.fillRect(0, 0, width, height);
   });
@@ -285,22 +285,14 @@ export class TextureBag {
     return this.adopt(vignetteTexture(width, height, cx, cy, inner, outer));
   }
 
-  rimLight(
+  gradientOverlay(
     width: number,
     height: number,
     resolution: number,
-    line: { x0: number; y0: number; x1: number; y1: number },
+    line: GradientLine,
+    colors: OverlayColors,
   ): Texture {
-    return this.adopt(rimLightTexture(width, height, resolution, line));
-  }
-
-  sideShade(
-    width: number,
-    height: number,
-    resolution: number,
-    line: { x0: number; y0: number; x1: number; y1: number },
-  ): Texture {
-    return this.adopt(sideShadeTexture(width, height, resolution, line));
+    return this.adopt(gradientOverlayTexture(width, height, resolution, line, colors));
   }
 
   edgeRim(

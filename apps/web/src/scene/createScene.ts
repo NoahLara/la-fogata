@@ -12,7 +12,7 @@ export interface FogataScene {
   destroy(): void;
 }
 
-export interface SceneOptions {
+interface SceneOptions {
   /** Accessible name for the canvas. */
   label: string;
   /** Space reserved for UI at the top and bottom of the host. */
