@@ -20,7 +20,7 @@ export const SPECIES: readonly Species[] = [
  */
 export const SPECIES_SCALE: Record<Species, number> = {
   panda: 1,
-  cat: 1,
+  cat: 0.92,
   owl: 0.88,
   fox: 1,
   capybara: 1,
