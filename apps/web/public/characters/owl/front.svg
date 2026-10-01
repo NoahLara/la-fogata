@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+  <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -6"/></filter>
+  <mask id="silhouette" maskUnits="userSpaceOnUse" x="-64" y="-120" width="128" height="134"><g filter="url(#goo)"><ellipse cx="0" cy="-36" rx="30" ry="36" fill="#fff" /><ellipse cx="0" cy="-62" rx="25" ry="30" fill="#fff" /><polygon points="-22,-84 -24,-106 -9,-91" fill="#fff" /><polygon points="22,-84 24,-106 9,-91" fill="#fff" /><ellipse cx="-9" cy="-1.5" rx="5.5" ry="3.2" fill="#fff" /><ellipse cx="9" cy="-1.5" rx="5.5" ry="3.2" fill="#fff" /></g></mask>
+  <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#b48a62"/><stop offset=".55" stop-color="#92694a"/><stop offset="1" stop-color="#5f4430"/></radialGradient>
+  <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
+  <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+</defs>
+<g transform="translate(256 472) scale(4)">
+<g mask="url(#silhouette)">
+<rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
+<ellipse cx="0" cy="-5" rx="28" ry="12" fill="#3f2c1e" opacity=".28" filter="url(#blur-lg)"/>
+<ellipse cx="-9.5" cy="-69" rx="11" ry="12.5" fill="#d0a878" opacity=".55" filter="url(#blur-lg)"/>
+<ellipse cx="9.5" cy="-69" rx="11" ry="12.5" fill="#d0a878" opacity=".55" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-34" rx="16" ry="27" fill="#e0c49c" opacity=".95" filter="url(#blur-lg)"/>
+<path d="M-15.4,-52 L-13,-49.9 L-10.6,-52" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-8.9,-52 L-6.5,-49.9 L-4.1,-52" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-2.4,-52 L0,-49.9 L2.4,-52" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M4.1,-52 L6.5,-49.9 L8.9,-52" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M10.6,-52 L13,-49.9 L15.4,-52" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-12.2,-43 L-9.8,-40.9 L-7.4,-43" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-5.7,-43 L-3.3,-40.9 L-0.9,-43" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M0.8,-43 L3.2,-40.9 L5.6,-43" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M7.3,-43 L9.7,-40.9 L12.1,-43" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M13.8,-43 L16.2,-40.9 L18.6,-43" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-15.4,-34 L-13,-31.9 L-10.6,-34" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-8.9,-34 L-6.5,-31.9 L-4.1,-34" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-2.4,-34 L0,-31.9 L2.4,-34" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M4.1,-34 L6.5,-31.9 L8.9,-34" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M10.6,-34 L13,-31.9 L15.4,-34" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-12.2,-25 L-9.8,-22.9 L-7.4,-25" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-5.7,-25 L-3.3,-22.9 L-0.9,-25" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M0.8,-25 L3.2,-22.9 L5.6,-25" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M7.3,-25 L9.7,-22.9 L12.1,-25" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M13.8,-25 L16.2,-22.9 L18.6,-25" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-15.4,-16 L-13,-13.9 L-10.6,-16" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-8.9,-16 L-6.5,-13.9 L-4.1,-16" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M-2.4,-16 L0,-13.9 L2.4,-16" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M4.1,-16 L6.5,-13.9 L8.9,-16" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<path d="M10.6,-16 L13,-13.9 L15.4,-16" fill="none" stroke="#a8865c" stroke-width=".6" stroke-opacity=".3" stroke-linecap="round"/>
+<polygon points="-22,-84 -24,-106 -13,-95" fill="#573c28" />
+<polygon points="22,-84 24,-106 13,-95" fill="#573c28" />
+<ellipse cx="-25" cy="-37" rx="9" ry="30" transform="rotate(6 -25 -37)" fill="#573c28" filter="url(#edge)"/>
+<ellipse cx="-24" cy="-12" rx="7" ry="8" transform="rotate(4 -24 -12)" fill="#47301f" filter="url(#edge)"/>
+<ellipse cx="25" cy="-37" rx="9" ry="30" transform="rotate(-6 25 -37)" fill="#573c28" filter="url(#edge)"/>
+<ellipse cx="24" cy="-12" rx="7" ry="8" transform="rotate(-4 24 -12)" fill="#47301f" filter="url(#edge)"/>
+<ellipse cx="-9" cy="-1.5" rx="5.5" ry="3.2" fill="#6a5036" filter="url(#edge)"/>
+<ellipse cx="9" cy="-1.5" rx="5.5" ry="3.2" fill="#6a5036" filter="url(#edge)"/>
+</g>
+</g></svg>
