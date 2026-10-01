@@ -1,10 +1,9 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, createRandom, type Random } from "./random";
+import { between, clamp, createRandom, pick, TAU, type Random } from "./random";
 import { createTeepee } from "./teepee";
 import type { TextureBag } from "./textures";
 
-const TAU = Math.PI * 2;
 
 /**
  * Colours along a flame tongue's life: a pale base, then yellow, orange, and a deep red-orange at the tip.
@@ -89,7 +88,6 @@ export interface Fire {
   /** Big additive halo. Goes over the near characters' feet but under the foreground. */
   glow: Sprite;
   state: FireLight;
-  setIntensity(intensity: number): void;
   update(dt: number, time: number, reduced: boolean): void;
 }
 
@@ -199,7 +197,7 @@ export function createFire(
     const gaps = teepee.gapAngles;
     const inGap = gaps.length > 0 && rand() < 0.75;
     const angle = inGap
-      ? (gaps[Math.floor(rand() * gaps.length)] ?? 0) + between(rand, -0.14, 0.14)
+      ? pick(rand, gaps) + between(rand, -0.14, 0.14)
       : rand() * TAU;
     const radius = inGap ? teepee.baseRadius * between(rand, 0.62, 0.8) : between(rand, 0, 7) * u;
     const tongue: Tongue = {
@@ -383,9 +381,6 @@ export function createFire(
     body,
     glow,
     state,
-    setIntensity(intensity) {
-      state.intensity = intensity;
-    },
     update,
   };
 }

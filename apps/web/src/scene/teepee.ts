@@ -1,8 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, type Random } from "./random";
+import { between, clamp, TAU, type Random } from "./random";
 
-const TAU = Math.PI * 2;
 const LOG_COUNT = 5;
 
 export interface Teepee {

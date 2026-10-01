@@ -1,9 +1,8 @@
 import { Sprite } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, pick, type Random } from "./random";
-import type { TextureBag } from "./textures";
+import { between, clamp, pick, TAU, type Random } from "./random";
+import { createCanvas, type TextureBag } from "./textures";
 
-const TAU = Math.PI * 2;
 
 /** The baked ground. Everything here is drawn once per build; only `lit` changes, in alpha. */
 export interface Ground {
@@ -28,13 +27,7 @@ const MAX_PIXELS = 3_000_000;
 
 function surface(width: number, height: number): Surface {
   const resolution = Math.min(1, Math.sqrt(MAX_PIXELS / (width * height)));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * resolution));
-  canvas.height = Math.max(1, Math.round(height * resolution));
-  const g = canvas.getContext("2d");
-  if (!g) throw new Error("2D canvas is not available");
-  g.scale(resolution, resolution);
-  return { canvas, g, resolution };
+  return { ...createCanvas(width, height, resolution), resolution };
 }
 
 function smoothstep(from: number, to: number, value: number): number {

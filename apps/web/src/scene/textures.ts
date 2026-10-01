@@ -1,6 +1,18 @@
 import { ImageSource, Texture, type Renderer } from "pixi.js";
+import { TAU } from "./random";
 
 export type GradientStop = readonly [offset: number, alpha: number];
+
+/** A canvas of `width` x `height` local units at `resolution` pixels per unit, with its context already scaled. */
+export function createCanvas(width: number, height: number, resolution: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * resolution));
+  canvas.height = Math.max(1, Math.round(height * resolution));
+  const g = canvas.getContext("2d");
+  if (!g) throw new Error("2D canvas is not available");
+  g.scale(resolution, resolution);
+  return { canvas, g };
+}
 
 function canvasTexture(
   width: number,
@@ -8,12 +20,7 @@ function canvasTexture(
   resolution: number,
   draw: (g: CanvasRenderingContext2D) => void,
 ): Texture {
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * resolution));
-  canvas.height = Math.max(1, Math.round(height * resolution));
-  const g = canvas.getContext("2d");
-  if (!g) throw new Error("2D canvas is not available");
-  g.scale(resolution, resolution);
+  const { canvas, g } = createCanvas(width, height, resolution);
   draw(g);
   return new Texture({ source: new ImageSource({ resource: canvas, resolution }) });
 }
@@ -91,7 +98,7 @@ function glintTexture(): Texture {
     core.addColorStop(1, "rgba(255,255,255,0)");
     g.fillStyle = core;
     g.beginPath();
-    g.arc(0, 0, s * 0.16, 0, Math.PI * 2);
+    g.arc(0, 0, s * 0.16, 0, TAU);
     g.fill();
   });
 }
@@ -152,7 +159,6 @@ function sideShadeTexture(
   });
 }
 
-/** How far the backlight reaches in from the edge, and how far its falloff leans toward the fire, in local units. */
 /** Defaults for `edgeRim`: how far the light reaches in from the edge, and how far its falloff leans toward the fire. */
 const RIM_FADE = 3.4;
 const RIM_LEAN = 1.6;
@@ -192,7 +198,7 @@ function edgeRimTexture(
     [1, 12],
   ] as const) {
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
+      const angle = (i / count) * TAU;
       offsets.push([Math.cos(angle) * ring * fade, Math.sin(angle) * ring * fade]);
     }
   }
