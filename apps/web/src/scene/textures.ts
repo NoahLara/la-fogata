@@ -63,6 +63,39 @@ function flameTongueTexture(): Texture {
   });
 }
 
+/**
+ * A four-point star glint, white so it can be tinted: two thin spikes crossing at a small bright core,
+ * each fading to nothing at its tip. 64 px square.
+ */
+function glintTexture(): Texture {
+  const s = 64;
+  return canvasTexture(s, s, 1, (g) => {
+    g.translate(s / 2, s / 2);
+    for (const turn of [0, Math.PI / 2]) {
+      g.save();
+      g.rotate(turn);
+      const spike = g.createLinearGradient(-s / 2, 0, s / 2, 0);
+      spike.addColorStop(0, "rgba(255,255,255,0)");
+      spike.addColorStop(0.5, "rgba(255,255,255,1)");
+      spike.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = spike;
+      g.beginPath();
+      g.moveTo(-s / 2, 0);
+      g.quadraticCurveTo(0, -s * 0.04, s / 2, 0);
+      g.quadraticCurveTo(0, s * 0.04, -s / 2, 0);
+      g.fill();
+      g.restore();
+    }
+    const core = g.createRadialGradient(0, 0, 0, 0, 0, s * 0.16);
+    core.addColorStop(0, "rgba(255,255,255,1)");
+    core.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = core;
+    g.beginPath();
+    g.arc(0, 0, s * 0.16, 0, Math.PI * 2);
+    g.fill();
+  });
+}
+
 /** Darkening toward the edges, centered on (cx, cy). Not cached: depends on layout. */
 function vignetteTexture(
   width: number,
@@ -221,6 +254,18 @@ export class TextureBag {
     const hit = this.radials.get("flame-tongue");
     if (hit) return hit;
     return this.adopt(flameTongueTexture(), "flame-tongue");
+  }
+
+  /** A four-point glint (see `glintTexture`). Cached. */
+  glint(): Texture {
+    const hit = this.radials.get("glint");
+    if (hit) return hit;
+    return this.adopt(glintTexture(), "glint");
+  }
+
+  /** Takes a canvas drawn elsewhere, baked at `resolution` pixels per unit. The texture is released with the bag. */
+  fromCanvas(canvas: HTMLCanvasElement, resolution = 1): Texture {
+    return this.adopt(new Texture({ source: new ImageSource({ resource: canvas, resolution }) }));
   }
 
   vignette(

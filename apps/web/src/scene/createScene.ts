@@ -124,7 +124,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const dt = Math.min(0.05, ticker.deltaMS / 1000);
     time += dt;
     current.fire.update(dt, time, reduced);
-    current.background.update(time, reduced);
+    current.background.update(time, reduced, current.fire.state.light);
     current.seats.update(time, reduced);
   });
 

@@ -1,42 +1,22 @@
-import {
-  Container,
-  FillGradient,
-  Graphics,
-  Particle,
-  ParticleContainer,
-  Sprite,
-  Texture,
-} from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
+import { bakeGround, type Ground } from "./ground";
+import { verticalGradient } from "./gradient";
 import type { SceneLayout } from "./layout";
-import { between, createRandom, type Random } from "./random";
+import { between, clamp, createRandom, type Random } from "./random";
+import { createSky } from "./sky";
 import type { TextureBag } from "./textures";
-
-const TAU = Math.PI * 2;
-
-interface Star {
-  particle: Particle;
-  alpha: number;
-  speed: number;
-  phase: number;
-}
 
 export interface Background {
   /** Sky, stars, moon, trees and ground. Sits behind everything. */
   back: Container;
   /** Vignette and foreground grass. Sits in front of everything. */
   front: Container;
-  update(time: number, reduced: boolean): void;
+  /** `light` is the fire's current flicker, 1 at rest: the ground near it brightens and dims with it. */
+  update(time: number, reduced: boolean, light?: number): void;
 }
 
-function verticalGradient(stops: readonly (readonly [number, string])[]): FillGradient {
-  return new FillGradient({
-    type: "linear",
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 1 },
-    colorStops: stops.map(([offset, color]) => ({ offset, color })),
-    textureSpace: "local",
-  });
-}
+/** How strongly the firelit copy of the ground shows at a flicker of 1. */
+const LIT_ALPHA = 0.5;
 
 function pine(g: Graphics, x: number, base: number, h: number, w: number, color: number): void {
   const tiers = 5;
@@ -57,49 +37,8 @@ function pine(g: Graphics, x: number, base: number, h: number, w: number, color:
   g.poly(points).fill(color);
 }
 
-function buildSky(layout: SceneLayout, textures: TextureBag): Container {
-  const { width, horizon, u, sceneTop } = layout;
-  const sky = new Container();
-  sky.addChild(
-    new Graphics().rect(0, 0, width, horizon + 4).fill(
-      verticalGradient([
-        [0, "#05060f"],
-        [0.6, "#0d1027"],
-        [1, "#1b1d3a"],
-      ]),
-    ),
-  );
-
-  const mx = width * 0.84;
-  const my = Math.max(sceneTop + 40 * u, 70);
-  const mr = Math.max(10, 18 * u);
-  const halo = new Sprite(
-    textures.radial([
-      [0, 1],
-      [1, 0],
-    ]),
-  );
-  halo.anchor.set(0.5);
-  halo.position.set(mx, my);
-  halo.width = halo.height = mr * 14;
-  halo.tint = 0xdcd7f0;
-  halo.alpha = 0.16;
-  sky.addChild(halo);
-
-  const moon = new Graphics().circle(mx, my, mr).fill(0xebe5d4);
-  for (const [a, b, r] of [
-    [-0.3, -0.2, 0.22],
-    [0.25, 0.15, 0.16],
-    [-0.05, 0.4, 0.12],
-  ] as const) {
-    moon.circle(mx + a * mr, my + b * mr, r * mr).fill({ color: 0xaaa096, alpha: 0.32 });
-  }
-  sky.addChild(moon);
-  return sky;
-}
-
-function buildLand(layout: SceneLayout, rand: Random): Container {
-  const { width, height, horizon, u, cx, rx } = layout;
+function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Container {
+  const { width, horizon, u, cx, rx } = layout;
   const land = new Container();
   land.addChild(
     new Graphics().rect(0, horizon - 70 * u, width, 80 * u).fill(
@@ -109,14 +48,7 @@ function buildLand(layout: SceneLayout, rand: Random): Container {
       ]),
     ),
   );
-  land.addChild(
-    new Graphics().rect(0, horizon, width, height - horizon).fill(
-      verticalGradient([
-        [0, "#0f1120"],
-        [1, "#06070c"],
-      ]),
-    ),
-  );
+  land.addChild(ground.soil, ground.lit);
 
   const trees = new Graphics();
   let x = -20;
@@ -141,11 +73,12 @@ function buildLand(layout: SceneLayout, rand: Random): Container {
       pine(trees, px, horizon + between(rand, 60, 110) * u, h, h * 0.46, 0x06070f);
     }
   }
-  land.addChild(trees);
+  // The grass at the tree line stands in front of the trees' bases.
+  land.addChild(trees, ground.tufts);
   return land;
 }
 
-function buildFront(layout: SceneLayout, rand: Random, textures: TextureBag): Container {
+function buildFront(layout: SceneLayout, textures: TextureBag, ground: Ground): Container {
   const { width, height, cx, cy, u } = layout;
   const front = new Container();
   const vignette = new Sprite(
@@ -160,71 +93,29 @@ function buildFront(layout: SceneLayout, rand: Random, textures: TextureBag): Co
   );
   vignette.width = width;
   vignette.height = height;
-  front.addChild(vignette);
-
-  const grass = new Graphics();
-  for (let x = 0; x < width; x += 5) {
-    if (x > width * 0.22 && x < width * 0.78) continue;
-    const h = between(rand, 12, 40) * u;
-    const lean = between(rand, -10, 10) * u;
-    grass
-      .moveTo(x, height)
-      .quadraticCurveTo(x + lean * 0.3, height - h * 0.6, x + lean, height - h);
-  }
-  grass.stroke({ width: Math.max(1.5, 2 * u), color: 0x04050a, cap: "round" });
-  front.addChild(grass);
+  front.addChild(vignette, ground.foreground);
   return front;
-}
-
-function buildStars(
-  layout: SceneLayout,
-  rand: Random,
-): { container: ParticleContainer; stars: Star[] } {
-  const { width, horizon, u } = layout;
-  const container = new ParticleContainer({
-    texture: Texture.WHITE,
-    dynamicProperties: { color: true },
-  });
-  const stars: Star[] = [];
-  const count = Math.min(260, Math.floor((width * horizon) / 2600));
-  for (let i = 0; i < count; i++) {
-    const size = rand() < 0.85 ? between(rand, 0.6, 1.2) : between(rand, 1.3, 2);
-    const particle = new Particle({
-      texture: Texture.WHITE,
-      x: rand() * width,
-      y: rand() * Math.max(10, horizon - 30 * u),
-      scaleX: size / Texture.WHITE.width,
-      scaleY: size / Texture.WHITE.height,
-      tint: 0xebe8ff,
-    });
-    container.addParticle(particle);
-    stars.push({
-      particle,
-      alpha: between(rand, 0.35, 0.95),
-      speed: between(rand, 0.6, 2.2),
-      phase: rand() * TAU,
-    });
-  }
-  return { container, stars };
 }
 
 export function createBackground(layout: SceneLayout, textures: TextureBag): Background {
   const rand = createRandom(20240601);
+  // The trees were laid out from the same random stream as the old stars, 7 draws per star. Skipping them
+  // keeps every tree where it was.
+  const oldStars = Math.min(260, Math.floor((layout.width * layout.horizon) / 2600));
+  for (let i = 0; i < oldStars * 7; i++) rand();
+
+  const ground = bakeGround(layout, textures, createRandom(33011));
+  const sky = createSky(layout, textures, createRandom(70013));
   const back = new Container();
-  back.addChild(buildSky(layout, textures));
-  const { container: starLayer, stars } = buildStars(layout, rand);
-  back.addChild(starLayer);
-  back.addChild(buildLand(layout, rand));
-  const front = buildFront(layout, rand, textures);
+  back.addChild(sky.container, buildLand(layout, rand, ground));
+  const front = buildFront(layout, textures, ground);
 
-  const setStars = (time: number, reduced: boolean) => {
-    for (const star of stars) {
-      star.particle.alpha = reduced
-        ? star.alpha
-        : star.alpha * (0.6 + 0.4 * Math.sin(time * star.speed + star.phase));
-    }
+  return {
+    back,
+    front,
+    update(time, reduced, light = 1) {
+      sky.update(time, reduced);
+      ground.lit.alpha = LIT_ALPHA * clamp(light, 0, 1.4);
+    },
   };
-  setStars(0, true);
-
-  return { back, front, update: setStars };
 }

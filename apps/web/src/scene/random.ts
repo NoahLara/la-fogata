@@ -19,6 +19,12 @@ export function between(rand: Random, min: number, max: number): number {
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
+
+/** A random element of a non-empty list. */
+export function pick<T>(rand: Random, items: readonly T[]): T {
+  return items[Math.floor(rand() * items.length)] as T;
+}
+
 /** A shuffled copy of `items` (Fisher-Yates). */
 export function shuffled<T>(items: readonly T[], rand: Random): T[] {
   const result = [...items];
