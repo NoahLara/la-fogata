@@ -1,0 +1,9 @@
+node_modules
+.next
+.turbo
+.wrangler
+dist
+.env*
+!.env.example
+*.tsbuildinfo
+.DS_Store

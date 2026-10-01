@@ -1,0 +1,7 @@
+{
+  "name": "fogata-realtime",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "durable_objects": { "bindings": [{ "name": "Campfire", "class_name": "Campfire" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Campfire"] }],
+}

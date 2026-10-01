@@ -53,4 +53,13 @@ Don't start a phase until the previous one is done. For large changes, propose a
 
 ## Commands
 
-(Filled in when the monorepo is created in phase 1.)
+Requires Node >= 22 (`.nvmrc`) and pnpm (`corepack enable`).
+
+- `pnpm install`: install all workspaces.
+- `pnpm dev`: run web (http://localhost:3000) and realtime (http://localhost:8787) via Turborepo.
+- `pnpm build` / `pnpm lint` / `pnpm typecheck` / `pnpm test`: run the task in every workspace.
+- `pnpm format`: Prettier over the repo.
+- One workspace only: `pnpm --filter @fogata/web dev`, `pnpm --filter @fogata/realtime dev`, `pnpm --filter @fogata/shared test`.
+- Done check: `pnpm lint && pnpm typecheck && pnpm test`.
+
+Workspaces: `@fogata/web` (apps/web), `@fogata/realtime` (apps/realtime), `@fogata/shared` (packages/shared, consumed as TS source). Shared config: `tsconfig.base.json`, `eslint.config.mjs`, `.prettierrc`.
