@@ -264,7 +264,7 @@ export class TextureBag {
   }
 
   /** Takes ownership of a texture made elsewhere. */
-  adopt(texture: Texture, radialKey?: string): Texture {
+  private adopt(texture: Texture, radialKey?: string): Texture {
     this.owned.push(texture);
     if (radialKey) this.radials.set(radialKey, texture);
     return texture;

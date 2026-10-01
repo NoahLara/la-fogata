@@ -1,6 +1,6 @@
 import { Application, Container } from "pixi.js";
 import { createBackground, type Background } from "./background";
-import { SPECIES, SpriteArt, type ArtMode, type Species } from "./characters";
+import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { computeLayout, type Insets } from "./layout";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
@@ -17,8 +17,6 @@ export interface SceneOptions {
   label: string;
   /** Space reserved for UI at the top and bottom of the host. */
   insets?: Insets;
-  /** "sprites" uses illustrations from /public/characters where they exist; "drawn" forces the shapes drawn in code. */
-  art?: ArtMode;
   /** Randomizes who sits where, once per scene. For checking every animal in every seat. */
   shuffle?: boolean;
   /** Puts this species in every seat, to see it from every angle. Takes precedence over `shuffle`. Ignored if it isn't a species. */
@@ -77,7 +75,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     resolution: Math.min(window.devicePixelRatio || 1, 2),
   });
 
-  const sprites = options.art === "drawn" ? SpriteArt.empty() : await SpriteArt.load(SPECIES);
+  const sprites = await SpriteArt.load(SPECIES);
 
   // Fixed for the life of the scene, so a resize doesn't reshuffle everyone.
   const only = SPECIES.find((species) => species === options.animal);

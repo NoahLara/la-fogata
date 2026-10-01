@@ -7,7 +7,7 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 ## Product (MVP)
 
 - A campfire is a room of at most 7 people. When it's full, a new one opens automatically.
-- Characters: little animals only (the prototype's "souls" mode is not part of the product). People on your side are seen from behind; people across the fire face you.
+- Characters: little animals only (the prototype's "souls" mode is not part of the product). Everyone faces the fire: people on your side are seen from behind, people beside it in profile, people across it head-on. See "Art and scene" below.
 - The 7 animals: panda, cat, owl, fox, capybara, rabbit, bear. One of each per campfire (7 seats, 7 animals). If your animal is taken, you get a free one.
 - The fire grows with each connected person.
 - Sparks: phrases of at most 120 characters. They expire after 6 hours. They are moderated before being shown.
@@ -30,6 +30,19 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 - `apps/realtime`: Cloudflare Workers + Durable Objects with PartyKit (`partyserver` on the server, `partysocket` on the client). One Durable Object per campfire.
 - `packages/shared`: WebSocket event types and schemas with zod.
 - Persistence: Supabase (Postgres) only for reports and aggregated metrics. Presence lives in the Durable Object's memory.
+
+## Art and scene
+
+The scene is PixiJS in `apps/web/src/scene/`. The prototype's drawn characters are gone; the look is below.
+
+- **Faceless silhouettes lit by the fire.** No eyes, mouth or paws. An animal is recognized by its outline (ears, tail, body shape) and a few soft colour masses. Keep the outline one smooth merged shape.
+- **Art per species:** `apps/web/public/characters/<species>/{front,back,side}.svg` (webp or png also work). 512x512, transparent, 4 px per local unit, feet origin at pixel (256, 472). `front` and `back` are required; `side` is optional. The side art faces left and is mirrored for seats on the left of the fire; a species without one shows its front there. Keep the species' size differences in `SPECIES_SCALE`, not in the art.
+- **Lighting is done by the engine from the seat's position, never baked into the art:** a warm gradient on the side facing the fire, shadow on the far side, and a thin warm rim hugging the edge. Seats seen from behind are almost black, backlit, with a bright rim. The art's own colours stay neutral and soft.
+- **Any species must work in any seat.** People join in any order. A seat decides the view, the lighting, the log and the lean; the species decides only the art and its size. Never special-case a species in `seats.ts`.
+- **Seat layout** (angles around the fire, 90° is nearest the viewer): back view at 65° and 115°, side view at 165° and 15°, front view at 225°, 255° and 300°; logs at 115°, 225° and 300°. The ring is asymmetric on purpose, so no seat is directly behind the flames, and the fire sits at its centre. Seats other than the back-view ones are squeezed to 80% sideways.
+- **Everyone sits on something:** a character's feet (the bottom of its body) touch the ground line at the art's origin, or its log when it has one. A tail lying in front of the feet may reach a little below it. Don't let art float above the origin.
+- **The fire** is a symmetric teepee of five thick logs that cross near the top, with flame tongues climbing through the gaps. Keep it mirror-symmetric, or the flames lean to one side.
+- **Dev-only URL flags**, read by `readDevFlags` and ignored in production builds: `?animal=<species>` puts one species in every seat; `?shuffle` randomizes who sits where.
 
 ## Conventions
 

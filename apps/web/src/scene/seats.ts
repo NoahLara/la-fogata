@@ -1,11 +1,5 @@
 import { Container, Sprite, type Renderer } from "pixi.js";
-import {
-  CharacterArtSet,
-  SPECIES_SCALE,
-  type Species,
-  type SpriteArt,
-  type View,
-} from "./characters";
+import { SPECIES, SPECIES_SCALE, type Species, type SpriteArt, type View } from "./characters";
 import type { FireLight } from "./fire";
 import { capNearScales, seatPosition, type SceneLayout } from "./layout";
 import { bakeLogArt, LOG, type LogArt } from "./log";
@@ -131,7 +125,6 @@ export function createSeats(
 ): Seats {
   const { cx, cy, rx, u, characterHeight } = layout;
   const pixelsPerUnit = (characterHeight / 100) * renderer.resolution;
-  const characters = new CharacterArtSet(renderer, pixelsPerUnit, sprites);
 
   const shadows = new Container();
   const contactShadows = new Container();
@@ -149,16 +142,19 @@ export function createSeats(
     .sort((a, b) => a.seat.y - b.seat.y);
 
   for (const { spec, index, seat } of placed) {
-    // An animal without art (only possible with the drawn fallback, which has the panda alone) sits as the panda.
-    const wanted = assignment[index] ?? "panda";
-    const species = characters.has(wanted) ? wanted : "panda";
+    // If the wanted animal has no art (a file that failed to load), any animal that does sits there instead.
+    // With no art at all the seat stays empty.
+    const wanted = assignment[index];
+    const species =
+      wanted && sprites.has(wanted) ? wanted : SPECIES.find((candidate) => sprites.has(candidate));
+    if (!species) continue;
     // Seen from behind means backlit: near-black with a bright rim. It is the view that decides this, not how
     // far the seat is from the fire line, so the seats beside the fire are lit by it.
     const back = spec.view === "back";
     const ringScale = ringScaleFor(spec);
     const scale = seat.scale * SPECIES_SCALE[species];
     const k = (characterHeight / 100) * scale;
-    const art = characters.get(species, spec.view);
+    const art = sprites.art(species, spec.view);
     // The side art faces left. Seats on the left of the fire face right, so they use it mirrored.
     const flip: 1 | -1 = art.directional && seat.x < cx ? -1 : 1;
     // On a log the character sits into it, so it is raised by less than the log's height.
@@ -396,7 +392,6 @@ export function createSeats(
     near,
     update,
     destroy() {
-      characters.destroy();
       logArt?.texture.destroy(true);
     },
   };

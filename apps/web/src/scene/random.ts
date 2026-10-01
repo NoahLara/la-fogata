@@ -19,11 +19,6 @@ export function between(rand: Random, min: number, max: number): number {
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
-
-export function lerp(from: number, to: number, t: number): number {
-  return from + (to - from) * t;
-}
-
 /** A shuffled copy of `items` (Fisher-Yates). */
 export function shuffled<T>(items: readonly T[], rand: Random): T[] {
   const result = [...items];

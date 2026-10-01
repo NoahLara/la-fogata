@@ -39,7 +39,8 @@ function along(from: { x: number; y: number }, to: { x: number; y: number }, t: 
 /**
  * Builds the fire's logs: 5 thick logs leaning against each other in a cone. Each has bark, a lighter cut end at
  * the bottom, a charred tip and glowing cracks and embers along its lower part, as if it were lit from inside.
- * Lengths, angles and thicknesses vary a little.
+ * It is mirror-symmetric about the vertical axis through the fire: a log at the front and two mirrored pairs. That
+ * keeps the flames, which show through the gaps, evenly spread on both sides instead of leaning to one.
  */
 export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   const { cx, cy, u } = layout;
@@ -51,10 +52,29 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   const crossingHeight = between(rand, 78, 90) * u;
   const thetas: number[] = [];
   let radiusSum = 0;
+  // Angles around the fire, in degrees, with the group each log belongs to: front centre, then two mirrored pairs.
+  const LOGS = [
+    { degrees: 90, group: 0 },
+    { degrees: 162, group: 1 },
+    { degrees: 18, group: 1 },
+    { degrees: 234, group: 2 },
+    { degrees: 306, group: 2 },
+  ] as const;
+  // Logs in a group share their size, so a mirrored pair really is a mirror image.
+  const groups = [0, 1, 2].map(() => ({
+    baseRadius: between(rand, 38, 45) * u,
+    crossingY: crossingHeight * between(rand, 0.94, 1.06),
+    stick: between(rand, 0.26, 0.36),
+    baseWidth: between(rand, 21, 25) * u,
+    tipRatio: between(rand, 0.4, 0.52),
+  }));
 
   for (let i = 0; i < LOG_COUNT; i++) {
-    const theta = (i / LOG_COUNT) * TAU + 0.3 + between(rand, -0.12, 0.12);
-    const baseRadius = between(rand, 38, 45) * u;
+    const log = LOGS[i];
+    const params = groups[log?.group ?? 0];
+    if (!log || !params) continue;
+    const theta = (log.degrees * Math.PI) / 180;
+    const baseRadius = params.baseRadius;
     thetas.push(theta);
     radiusSum += baseRadius;
     const base = {
@@ -63,11 +83,8 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
     };
     // Every log passes through about the same crossing point near the top, and sticks out a little past it
     // on the other side, so the logs cross each other instead of all meeting at one point.
-    const crossing = {
-      x: cx + between(rand, -10, 10) * u,
-      y: cy - crossingHeight * between(rand, 0.92, 1.08),
-    };
-    const stick = between(rand, 0.26, 0.36);
+    const crossing = { x: cx, y: cy - params.crossingY };
+    const stick = params.stick;
     const tip = {
       x: crossing.x + (crossing.x - base.x) * stick,
       y: crossing.y + (crossing.y - base.y) * stick,
@@ -78,8 +95,8 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
     const dy = tip.y - base.y;
     const length = Math.hypot(dx, dy);
     const normal = { x: -dy / length, y: dx / length };
-    const baseWidth = between(rand, 21, 25) * u;
-    const tipWidth = baseWidth * between(rand, 0.4, 0.52);
+    const baseWidth = params.baseWidth;
+    const tipWidth = baseWidth * params.tipRatio;
     const widthAt = (t: number) => baseWidth + (tipWidth - baseWidth) * t;
     const edge = (t: number, side: number) => {
       const point = along(base, tip, t);
