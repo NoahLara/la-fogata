@@ -18,26 +18,27 @@ const RIM = { far: { fade: 2.2, lean: 1 }, near: { fade: 3, lean: 1.2 } } as con
 interface SeatSpec {
   /** Angle on the seat ellipse; 90° is the point closest to the viewer. */
   degrees: number;
-  /** How the seat is seen: near seats show their back, the seat straight across and its neighbours their front, the outer far seats a profile. */
+  /** How the seat is seen: from behind (near seats), in profile (beside the fire) or head-on (far seats). */
   view: View;
   /** Sits on a log instead of the ground. */
   log?: boolean;
 }
 
 /**
- * Seven seats: two near ones (seen from behind) and five far ones. The far seats to the sides, at 200° and
- * 340°, are seen in profile, turned toward the fire; the other far seats face the viewer. Three seats have a
- * log (one near, two far). A seat knows nothing about who sits in it: the seat decides the view, the
- * lighting, the log and the lean, and the species only decides the art, so any animal works in any seat.
+ * Seven seats around the fire, in an asymmetric ring so no seat is directly behind the flames:
+ * two near seats seen from behind (65°, 115°), two beside the fire seen in profile and turned toward it
+ * (165°, 15°), and three far seats facing the viewer (225°, 255°, 300°). Three seats have a log (one near,
+ * two far). A seat knows nothing about who sits in it: the seat decides the view, the lighting, the log and
+ * the lean, and the species only decides the art, so any animal works in any seat.
  */
 export const SEATS: readonly SeatSpec[] = [
-  { degrees: 60, view: "back" },
-  { degrees: 120, view: "back", log: true },
-  { degrees: 200, view: "side", log: true },
-  { degrees: 235, view: "front" },
-  { degrees: 270, view: "front" },
-  { degrees: 305, view: "front", log: true },
-  { degrees: 340, view: "side" },
+  { degrees: 65, view: "back" },
+  { degrees: 115, view: "back", log: true },
+  { degrees: 165, view: "side" },
+  { degrees: 15, view: "side" },
+  { degrees: 225, view: "front", log: true },
+  { degrees: 255, view: "front" },
+  { degrees: 300, view: "front", log: true },
 ];
 
 /** Who sits where, by seat index. People join in any order, so this is just one possible arrangement. */
@@ -51,7 +52,7 @@ export const DEFAULT_ASSIGNMENT: readonly Species[] = [
   "bear",
 ];
 
-/** The side seats sit closer to the fire: the far part of the ring is squeezed sideways by this much. Near seats stay put. */
+/** Every seat except the ones seen from behind sits closer to the fire sideways: the ring is squeezed by this much there. */
 const FAR_RING_SCALE = 0.8;
 
 const NIGHT = { r: 8, g: 9, b: 24 };
@@ -139,10 +140,9 @@ export function createSeats(
   const seated: Seated[] = [];
   let logArt: LogArt | undefined;
 
-  const ringScaleFor = (degrees: number) =>
-    seatPosition(layout, degrees).near ? 1 : FAR_RING_SCALE;
+  const ringScaleFor = (spec: SeatSpec) => (spec.view === "back" ? 1 : FAR_RING_SCALE);
   const positions = capNearScales(
-    SEATS.map((spec) => seatPosition(layout, spec.degrees, ringScaleFor(spec.degrees))),
+    SEATS.map((spec) => seatPosition(layout, spec.degrees, ringScaleFor(spec))),
   );
   const placed = SEATS.map((spec, index) => ({ spec, index, seat: positions[index] }))
     .flatMap((entry) => (entry.seat ? [{ ...entry, seat: entry.seat }] : []))
@@ -152,8 +152,10 @@ export function createSeats(
     // An animal without art (only possible with the drawn fallback, which has the panda alone) sits as the panda.
     const wanted = assignment[index] ?? "panda";
     const species = characters.has(wanted) ? wanted : "panda";
-    const back = seat.near;
-    const ringScale = ringScaleFor(spec.degrees);
+    // Seen from behind means backlit: near-black with a bright rim. It is the view that decides this, not how
+    // far the seat is from the fire line, so the seats beside the fire are lit by it.
+    const back = spec.view === "back";
+    const ringScale = ringScaleFor(spec);
     const scale = seat.scale * SPECIES_SCALE[species];
     const k = (characterHeight / 100) * scale;
     const art = characters.get(species, spec.view);

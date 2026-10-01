@@ -36,6 +36,9 @@ const TONGUE_HEIGHT = 128;
 
 interface Tongue {
   sprite: Sprite;
+  /** Where around the fire the tongue climbs (as for the seats), and how far from the centre it starts. */
+  angle: number;
+  radius: number;
   x: number;
   y: number;
   /** Rise speed, px/s. */
@@ -191,16 +194,26 @@ export function createFire(
     const strength = Math.sqrt(state.intensity);
     const sprite = new Sprite(tongueTexture);
     sprite.anchor.set(0.5, 0.97);
+    // Most tongues climb through one of the gaps between two logs, so the fire shows through the logs
+    // instead of rising as one column. A few stay near the middle, under where the logs cross.
+    const gaps = teepee.gapAngles;
+    const inGap = gaps.length > 0 && rand() < 0.75;
+    const angle = inGap
+      ? (gaps[Math.floor(rand() * gaps.length)] ?? 0) + between(rand, -0.14, 0.14)
+      : rand() * TAU;
+    const radius = inGap ? teepee.baseRadius * between(rand, 0.62, 0.8) : between(rand, 0, 7) * u;
     const tongue: Tongue = {
       sprite,
-      // From inside the cone, on the ember bed, so they rise between the logs.
-      x: cx + between(rand, -24, 24) * u * strength,
-      y: cy + between(rand, -2, 4) * u,
+      angle,
+      radius,
+      x: cx,
+      y: cy,
       speed: between(rand, 26, 56) * u,
       life: 0,
       max: between(rand, 0.55, 1.05),
-      width: between(rand, 26, 44) * u * strength,
-      height: between(rand, 95, 160) * u * strength,
+      width: between(rand, 22, 38) * u * strength,
+      // The few that stay in the middle are taller, so a little flame licks up past the crossing.
+      height: between(rand, 95, 160) * u * strength * (inGap ? 1 : 1.2),
       phase: rand() * TAU,
     };
     tongues.push(tongue);
@@ -282,9 +295,12 @@ export function createFire(
         continue;
       }
       const p = t.life / t.max;
-      // Rises slowly, drifts toward the axis and sways; grows quickly and then thins out and shortens.
-      t.y -= t.speed * dt;
-      t.x += (cx - t.x) * 1.4 * dt + Math.sin(time * 6 + t.phase) * 10 * u * dt * swing;
+      // Climbs along the surface of the cone: the further up, the closer to the middle, like the logs themselves.
+      const rise = t.speed * t.life;
+      const reach = t.radius * clamp(1 - rise / teepee.crossing, 0, 1);
+      const sway = Math.sin(time * 6 + t.phase) * 3 * u * swing;
+      t.x = cx + Math.cos(t.angle) * reach + sway;
+      t.y = cy + 2 * u + Math.sin(t.angle) * reach * 0.32 - rise;
       const grow = Math.sin(Math.min(1, p * 1.15) * Math.PI * 0.5);
       const fade = 1 - p * p;
       t.sprite.position.set(t.x, t.y);
@@ -292,11 +308,12 @@ export function createFire(
         ((t.width * (1 - p * 0.45)) / TONGUE_WIDTH) * (0.6 + 0.4 * grow),
         ((t.height * grow * (0.55 + 0.45 * fade)) / TONGUE_HEIGHT) * (0.9 + 0.2 * state.flick),
       );
-      t.sprite.rotation = Math.sin(time * 5 + t.phase) * 0.14 * swing;
+      const lean = clamp((cx - t.x) / Math.max(1, t.height * 0.9), -0.45, 0.45);
+      t.sprite.rotation = lean + Math.sin(time * 5 + t.phase) * 0.1 * swing;
       t.sprite.tint =
         TONGUE_COLORS[Math.min(TONGUE_COLORS.length - 1, (p * TONGUE_COLORS.length) | 0)] ??
         0xff6420;
-      t.sprite.alpha = clamp(0.62 * fade * (p < 0.08 ? p / 0.08 : 1), 0, 1);
+      t.sprite.alpha = clamp(0.8 * fade * (p < 0.08 ? p / 0.08 : 1), 0, 1);
     }
     for (let i = embers.length - 1; i >= 0; i--) {
       const e = embers[i];

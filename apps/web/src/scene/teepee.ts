@@ -14,6 +14,15 @@ export interface Teepee {
   bed: Container;
   /** Height of the logs' tips above the ground, so the flames and smoke can be sized to the structure. */
   height: number;
+  /** Height at which the logs cross, above the ground. */
+  crossing: number;
+  /** Average radius of the ring the logs stand on. */
+  baseRadius: number;
+  /**
+   * The angle (around the fire, as for the seats) of each gap between two neighbouring logs. The flames
+   * come out through these.
+   */
+  gapAngles: readonly number[];
   update(time: number, flick: number, swing: number): void;
 }
 
@@ -39,24 +48,38 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   const bed = new Container();
   const burning: Burning[] = [];
   let tallest = 0;
+  const crossingHeight = between(rand, 78, 90) * u;
+  const thetas: number[] = [];
+  let radiusSum = 0;
 
   for (let i = 0; i < LOG_COUNT; i++) {
     const theta = (i / LOG_COUNT) * TAU + 0.3 + between(rand, -0.12, 0.12);
     const baseRadius = between(rand, 38, 45) * u;
+    thetas.push(theta);
+    radiusSum += baseRadius;
     const base = {
       x: cx + Math.cos(theta) * baseRadius,
       y: cy + Math.sin(theta) * baseRadius * 0.32 + 2 * u,
     };
-    const height = between(rand, 74, 100) * u;
-    const tip = { x: cx + between(rand, -15, 15) * u, y: cy - height };
-    tallest = Math.max(tallest, height);
+    // Every log passes through about the same crossing point near the top, and sticks out a little past it
+    // on the other side, so the logs cross each other instead of all meeting at one point.
+    const crossing = {
+      x: cx + between(rand, -10, 10) * u,
+      y: cy - crossingHeight * between(rand, 0.92, 1.08),
+    };
+    const stick = between(rand, 0.26, 0.36);
+    const tip = {
+      x: crossing.x + (crossing.x - base.x) * stick,
+      y: crossing.y + (crossing.y - base.y) * stick,
+    };
+    tallest = Math.max(tallest, cy - tip.y);
 
     const dx = tip.x - base.x;
     const dy = tip.y - base.y;
     const length = Math.hypot(dx, dy);
     const normal = { x: -dy / length, y: dx / length };
     const baseWidth = between(rand, 21, 25) * u;
-    const tipWidth = baseWidth * between(rand, 0.55, 0.7);
+    const tipWidth = baseWidth * between(rand, 0.4, 0.52);
     const widthAt = (t: number) => baseWidth + (tipWidth - baseWidth) * t;
     const edge = (t: number, side: number) => {
       const point = along(base, tip, t);
@@ -79,7 +102,10 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
         edge(0, -1).x,
         edge(0, -1).y,
       ])
-      .fill(0x3a2518);
+      .fill(0x2b1a11);
+    // The tip is tapered and rounded.
+    const tipPoint = along(base, tip, 1);
+    body.circle(tipPoint.x, tipPoint.y, tipWidth * 0.5).fill(0x2b1a11);
     // A lighter edge along one side and darker furrows across it.
     body
       .moveTo(edge(0.02, 0.62).x, edge(0.02, 0.62).y)
@@ -96,29 +122,24 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
       body.moveTo(start.x, start.y).lineTo(end.x, end.y);
     }
     body.stroke({ width: Math.max(0.8, u * 0.9), color: 0x1e120b, alpha: 0.65, cap: "round" });
-    // Charred tip: black, with a ragged lower edge.
-    const charStart = between(rand, 0.72, 0.8);
-    const char = [edge(charStart, 1), edge(1, 1), edge(1, -1), edge(charStart + 0.02, -1)];
-    const mid = edge(charStart - 0.04, between(rand, -0.3, 0.3));
-    body
-      .poly([
-        char[0]!.x,
-        char[0]!.y,
-        mid.x,
-        mid.y,
-        char[3]!.x,
-        char[3]!.y,
-        char[2]!.x,
-        char[2]!.y,
-        char[1]!.x,
-        char[1]!.y,
-      ])
-      .fill({ color: 0x100907, alpha: 0.93 });
-    // A rounded charred cap, so the tip isn't a flat block.
-    const cap = along(base, tip, 1);
-    body
-      .ellipse(cap.x, cap.y, tipWidth * 0.5, tipWidth * 0.3)
-      .fill({ color: 0x100907, alpha: 0.95 });
+    // Slightly charred toward the tip: translucent layers starting at different points and all ending at the
+    // round tip, so the black deepens gradually and there is no hard edge or notch.
+    for (let k = 0; k < 8; k++) {
+      const from = 0.5 + k * 0.058;
+      body
+        .poly([
+          edge(from, 1).x,
+          edge(from, 1).y,
+          edge(1, 1).x,
+          edge(1, 1).y,
+          edge(1, -1).x,
+          edge(1, -1).y,
+          edge(from, -1).x,
+          edge(from, -1).y,
+        ])
+        .fill({ color: 0x100907, alpha: 0.13 });
+      body.circle(tipPoint.x, tipPoint.y, tipWidth * 0.5).fill({ color: 0x100907, alpha: 0.13 });
+    }
     // Lighter cut end at the bottom, where the log meets the ground.
     body.ellipse(base.x, base.y, baseWidth * 0.55, baseWidth * 0.3).fill(0x9a7048);
     body.ellipse(base.x, base.y, baseWidth * 0.36, baseWidth * 0.19).fill(0x7a5236);
@@ -134,9 +155,9 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
       centre.push(point.x, point.y);
     }
     glow.poly(centre, false).stroke({
-      width: baseWidth * 0.55,
+      width: baseWidth * 0.3,
       color: 0xff5a14,
-      alpha: 0.2,
+      alpha: 0.1,
       cap: "round",
       join: "round",
     });
@@ -213,5 +234,20 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   };
   update(0, 0.5, 0);
 
-  return { back, front, bed, height: tallest, update };
+  const sorted = [...thetas].sort((a, b) => a - b);
+  const gapAngles = sorted.map((angle, i) => {
+    const next = sorted[(i + 1) % sorted.length] ?? angle;
+    return (angle + (i + 1 < sorted.length ? next : next + TAU)) / 2;
+  });
+
+  return {
+    back,
+    front,
+    bed,
+    height: tallest,
+    crossing: crossingHeight,
+    baseRadius: radiusSum / LOG_COUNT,
+    gapAngles,
+    update,
+  };
 }
