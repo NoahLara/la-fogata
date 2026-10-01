@@ -7,7 +7,7 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 ## Product (MVP)
 
 - A campfire is a room of at most 7 people. When it's full, a new one opens automatically.
-- Characters: little animals (default) or souls. People on your side are seen from behind; people across the fire face you.
+- Characters: little animals only (the prototype's "souls" mode is not part of the product). People on your side are seen from behind; people across the fire face you.
 - The 7 animals: panda, cat, owl, fox, capybara, rabbit, bear. One of each per campfire (7 seats, 7 animals). If your animal is taken, you get a free one.
 - The fire grows with each connected person.
 - Sparks: phrases of at most 120 characters. They expire after 6 hours. They are moderated before being shown.

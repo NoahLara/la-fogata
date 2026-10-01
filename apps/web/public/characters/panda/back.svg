@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+  <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4.2" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -6"/></filter>
+  <mask id="silhouette" maskUnits="userSpaceOnUse" x="-64" y="-120" width="128" height="134"><g filter="url(#goo)"><circle cx="0" cy="-75" r="25" fill="#fff" /><ellipse cx="0" cy="-56" rx="27" ry="32" fill="#fff" /><circle cx="0" cy="-31" r="31" fill="#fff" /><circle cx="-19" cy="-96" r="9" fill="#fff" /><circle cx="19" cy="-96" r="9" fill="#fff" /></g></mask>
+  <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#fbf7ec"/><stop offset=".55" stop-color="#e9e2d3"/><stop offset="1" stop-color="#c9bfad"/></radialGradient>
+  <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
+  <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+</defs>
+<g transform="translate(256 472) scale(4)">
+<g mask="url(#silhouette)">
+<rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
+<ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-52" rx="20" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-50" rx="20" ry="5" fill="#6a5f4f" opacity=".35" filter="url(#blur-lg)"/>
+<ellipse cx="-19.5" cy="-97" rx="10.8" ry="11.5" fill="#1b1920" />
+<ellipse cx="19.5" cy="-97" rx="10.8" ry="11.5" fill="#1b1920" />
+<ellipse cx="0" cy="-50" rx="30" ry="8" fill="#1b1920" filter="url(#edge)"/>
+<ellipse cx="-24" cy="-40" rx="10" ry="16" transform="rotate(12 -24 -40)" fill="#1b1920" filter="url(#edge)"/>
+<ellipse cx="24" cy="-40" rx="10" ry="16" transform="rotate(-12 24 -40)" fill="#1b1920" filter="url(#edge)"/>
+</g>
+</g></svg>
