@@ -1,4 +1,4 @@
-import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
+import { Container, Sprite, type Renderer } from "pixi.js";
 import { SPECIES, SPECIES_SCALE, type Species, type SpriteArt, type View } from "./characters";
 import type { FireLight } from "./fire";
 import {
@@ -12,7 +12,7 @@ import { evaluateCurve, VIEW_LIGHTING, type ViewLighting } from "./lighting";
 import { bakeLogArt, LOG, type LogArt } from "./log";
 import { between, clamp, toRadians } from "./math";
 import { createRandom } from "./random";
-import { OVERLAY_COLORS, type TextureBag } from "./textures";
+import { OVERLAY_COLORS, type GradientLine, type OverlayColors, type TextureBag } from "./textures";
 
 interface SeatSpec {
   /** Angle on the seat ellipse; 90° is the point closest to the viewer. */
@@ -185,17 +185,15 @@ function buildCharacter(
   body.anchor.set(anchor.x, anchor.y);
   body.setSize(art.width, art.height);
 
-  const masks: Sprite[] = [];
-  /** An overlay clipped to the character's silhouette. */
-  const overlay = (texture: Texture) => {
-    const sprite = new Sprite(texture);
+  // Clipped the way a Pixi mask of the art would: by its red channel, so dark markings take less light.
+  const clip = textures.redMask(renderer, art.texture);
+  /** An overlay already clipped to the character. */
+  const overlay = (line: GradientLine, colors: OverlayColors) => {
+    const sprite = new Sprite(
+      textures.gradientOverlay(art.width, art.height, pixelsPerUnit, line, colors, clip),
+    );
     sprite.anchor.set(anchor.x, anchor.y);
     sprite.setSize(art.width, art.height);
-    const silhouette = new Sprite(art.texture);
-    silhouette.anchor.set(anchor.x, anchor.y);
-    silhouette.setSize(art.width, art.height);
-    sprite.setMask({ mask: silhouette });
-    masks.push(silhouette);
     return sprite;
   };
 
@@ -203,32 +201,22 @@ function buildCharacter(
   // (laid over the colours rather than added to them, so dark markings warm up too and nothing glows like a hole), deep shadow on the far side, and a
   // thin warm rim hugging the edges that face it. All of it points along the line from the seat to the fire.
   const lit = overlay(
-    textures.gradientOverlay(
-      art.width,
-      art.height,
-      pixelsPerUnit,
-      {
-        x0: centerX + towardFire.x * 62,
-        y0: centerY + towardFire.y * 62,
-        x1: centerX - towardFire.x * 56,
-        y1: centerY - towardFire.y * 56,
-      },
-      OVERLAY_COLORS.light,
-    ),
+    {
+      x0: centerX + towardFire.x * 62,
+      y0: centerY + towardFire.y * 62,
+      x1: centerX - towardFire.x * 56,
+      y1: centerY - towardFire.y * 56,
+    },
+    OVERLAY_COLORS.light,
   );
   const shade = overlay(
-    textures.gradientOverlay(
-      art.width,
-      art.height,
-      pixelsPerUnit,
-      {
-        x0: centerX - towardFire.x * 44,
-        y0: centerY - towardFire.y * 44,
-        x1: centerX + towardFire.x * 4,
-        y1: centerY + towardFire.y * 4,
-      },
-      OVERLAY_COLORS.shade,
-    ),
+    {
+      x0: centerX - towardFire.x * 44,
+      y0: centerY - towardFire.y * 44,
+      x1: centerX + towardFire.x * 4,
+      y1: centerY + towardFire.y * 4,
+    },
+    OVERLAY_COLORS.shade,
   );
 
   const rim = new Sprite(
@@ -261,8 +249,6 @@ function buildCharacter(
   container.rotation = variation.rotation;
   container.scale.set(flip * k * variation.width, k * variation.height);
   container.addChild(body, lit, shade, rim);
-  // Masks must be in the scene graph.
-  for (const mask of masks) container.addChild(mask);
 
   return { container, body, lit, shade, rim, lighting, flip, scale, k, distance, variation };
 }

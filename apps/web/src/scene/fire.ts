@@ -1,6 +1,7 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite } from "pixi.js";
 import type { SceneLayout } from "./layout";
 import { between, clamp, TAU } from "./math";
+import { createPool } from "./pool";
 import { createRandom, pick, type Random } from "./random";
 import { createTeepee } from "./teepee";
 import type { TextureBag } from "./textures";
@@ -182,6 +183,13 @@ export function createFire(
 
   const state: FireLight = { intensity: initialIntensity, flick: 0.5, light: 1 };
   const tongues: Tongue[] = [];
+  // Tongues come and go dozens of times a second, so their sprites are reused. A released one stays in the
+  // layer, hidden; the layer is additive, so the order of its children makes no difference.
+  const tongueSprites = createPool(() => {
+    const sprite = new Sprite(tongueTexture);
+    sprite.anchor.set(0.5, 0.97);
+    return sprite;
+  });
   const embers: Ember[] = [];
   const smoke: Smoke[] = [];
   let tongueBudget = 0;
@@ -190,8 +198,9 @@ export function createFire(
 
   const spawnTongue = () => {
     const strength = Math.sqrt(state.intensity);
-    const sprite = new Sprite(tongueTexture);
-    sprite.anchor.set(0.5, 0.97);
+    const { item: sprite, isNew } = tongueSprites.acquire();
+    if (isNew) tongueLayer.addChild(sprite);
+    sprite.visible = true;
     // Most tongues climb through one of the gaps between two logs, so the fire shows through the logs
     // instead of rising as one column. A few stay near the middle, under where the logs cross.
     const gaps = teepee.gapAngles;
@@ -213,7 +222,6 @@ export function createFire(
       phase: rand() * TAU,
     };
     tongues.push(tongue);
-    tongueLayer.addChild(sprite);
   };
 
   const spawnEmber = () => {
@@ -285,8 +293,8 @@ export function createFire(
       if (!t) continue;
       t.life += dt;
       if (t.life >= t.max) {
-        tongueLayer.removeChild(t.sprite);
-        t.sprite.destroy();
+        t.sprite.visible = false;
+        tongueSprites.release(t.sprite);
         tongues.splice(i, 1);
         continue;
       }

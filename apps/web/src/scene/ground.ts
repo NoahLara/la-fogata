@@ -1,4 +1,5 @@
 import { Sprite } from "pixi.js";
+import { ellipseCrop } from "./crop";
 import type { SceneLayout } from "./layout";
 import { between, clamp, randomInt, smoothstep, TAU } from "./math";
 import { pick, type Random } from "./random";
@@ -358,10 +359,34 @@ export function bakeGround(layout: SceneLayout, textures: TextureBag, rand: Rand
 
   // The lit copy: the soil, kept only near the fire. Tinted warm and added over the soil, it brings out
   // whatever is lighter in the dirt, the pebbles and the leaves.
-  const lit = surface(width, soilHeight);
-  lit.g.drawImage(soil.canvas, 0, 0, width, soilHeight);
+  // Nothing outside the ellipse survives, so only the block of pixels around it is kept.
+  const litRx = rx * 1.3 + 40 * u;
+  const litRy = ry * 2 + 30 * u;
+  const litCrop = ellipseCrop(
+    terrain.fireX,
+    terrain.fireY,
+    litRx,
+    litRy,
+    soil.resolution,
+    soil.canvas.width,
+    soil.canvas.height,
+  );
+  const lit = { ...createCanvas(litCrop.width, litCrop.height, 1), resolution: soil.resolution };
+  lit.g.drawImage(
+    soil.canvas,
+    litCrop.x,
+    litCrop.y,
+    litCrop.width,
+    litCrop.height,
+    0,
+    0,
+    litCrop.width,
+    litCrop.height,
+  );
   lit.g.globalCompositeOperation = "destination-in";
-  softEllipse(lit.g, terrain.fireX, terrain.fireY, rx * 1.3 + 40 * u, ry * 2 + 30 * u, [
+  lit.g.translate(-litCrop.x, -litCrop.y);
+  lit.g.scale(soil.resolution, soil.resolution);
+  softEllipse(lit.g, terrain.fireX, terrain.fireY, litRx, litRy, [
     [0, "rgba(0,0,0,1)"],
     [0.4, "rgba(0,0,0,.6)"],
     [1, "rgba(0,0,0,0)"],
@@ -374,14 +399,29 @@ export function bakeGround(layout: SceneLayout, textures: TextureBag, rand: Rand
   const foreground = surface(width, foregroundHeight);
   paintForeground(foreground.g, rand, width, foregroundHeight, u);
 
-  const sprite = (from: Surface, spriteWidth: number, spriteHeight: number, y: number): Sprite => {
+  const sprite = (
+    from: Surface,
+    spriteWidth: number,
+    spriteHeight: number,
+    y: number,
+    x = 0,
+  ): Sprite => {
     const result = new Sprite(textures.fromCanvas(from.canvas, from.resolution));
     result.width = spriteWidth;
     result.height = spriteHeight;
-    result.position.set(0, y);
+    result.position.set(x, y);
     return result;
   };
-  const litSprite = sprite(lit, width, soilHeight, horizon);
+  // Sprites span the whole canvas; the cropped one spans the same pixels it was cut from.
+  const unitsPerPixelX = width / soil.canvas.width;
+  const unitsPerPixelY = soilHeight / soil.canvas.height;
+  const litSprite = sprite(
+    lit,
+    litCrop.width * unitsPerPixelX,
+    litCrop.height * unitsPerPixelY,
+    horizon + litCrop.y * unitsPerPixelY,
+    litCrop.x * unitsPerPixelX,
+  );
   litSprite.tint = 0xff9440;
   litSprite.blendMode = "add";
   return {

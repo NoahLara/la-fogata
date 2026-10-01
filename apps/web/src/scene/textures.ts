@@ -121,14 +121,14 @@ function vignetteTexture(
   });
 }
 
-interface GradientLine {
+export interface GradientLine {
   x0: number;
   y0: number;
   x1: number;
   y1: number;
 }
 
-interface OverlayColors {
+export interface OverlayColors {
   readonly from: string;
   readonly to: string;
 }
@@ -141,7 +141,8 @@ export const OVERLAY_COLORS = {
 
 /**
  * A linear gradient over a whole sprite: `colors.from` at (x0, y0) fading to `colors.to` at (x1, y1).
- * Size and coordinates are in the sprite's local units.
+ * Size and coordinates are in the sprite's local units. With `clip` (a canvas whose alpha is the mask, see
+ * `TextureBag.redMask`), the overlay is multiplied by that alpha, so it needs no mask at draw time.
  */
 function gradientOverlayTexture(
   width: number,
@@ -149,6 +150,7 @@ function gradientOverlayTexture(
   resolution: number,
   line: GradientLine,
   colors: OverlayColors,
+  clip?: HTMLCanvasElement,
 ): Texture {
   return canvasTexture(width, height, resolution, (g) => {
     const gradient = g.createLinearGradient(line.x0, line.y0, line.x1, line.y1);
@@ -156,6 +158,11 @@ function gradientOverlayTexture(
     gradient.addColorStop(1, colors.to);
     g.fillStyle = gradient;
     g.fillRect(0, 0, width, height);
+    if (!clip) return;
+    // The art is drawn much larger than this overlay, so a good downscale keeps the edge as smooth as the mask was.
+    g.imageSmoothingQuality = "high";
+    g.globalCompositeOperation = "destination-in";
+    g.drawImage(clip, 0, 0, width, height);
   });
 }
 
@@ -173,14 +180,12 @@ const RIM_LEAN = 1.6;
  * `width` is the character's frame width in local units; `fade` and `lean` are in local units too.
  */
 function edgeRimTexture(
-  renderer: Renderer,
-  source: Texture,
+  art: HTMLCanvasElement,
   width: number,
   towardFire: { x: number; y: number },
   fade: number,
   lean: number,
 ): Texture {
-  const art = renderer.extract.canvas(source) as HTMLCanvasElement;
   const pixelsPerUnit = art.width / width;
   const layer = () => {
     const canvas = document.createElement("canvas");
@@ -246,6 +251,45 @@ function edgeRimTexture(
 export class TextureBag {
   private readonly owned: Texture[] = [];
   private readonly radials = new Map<string, Texture>();
+  private readonly silhouettes = new Map<Texture, HTMLCanvasElement>();
+  private readonly redMasks = new Map<Texture, HTMLCanvasElement>();
+
+  /** The pixels of `source`, read back once and shared by everything that needs its silhouette. Treat as read-only. */
+  silhouette(renderer: Renderer, source: Texture): HTMLCanvasElement {
+    const hit = this.silhouettes.get(source);
+    if (hit) return hit;
+    const canvas = renderer.extract.canvas(source) as HTMLCanvasElement;
+    this.silhouettes.set(source, canvas);
+    return canvas;
+  }
+
+  /**
+   * What a Pixi mask made from `source` multiplies by: Pixi masks use the red channel (times alpha), not alpha
+   * alone, so dark parts of the art let through little of whatever is masked. Returned as a white canvas whose
+   * alpha is that value, for clipping an overlay with `destination-in`. Treat as read-only.
+   */
+  redMask(renderer: Renderer, source: Texture): HTMLCanvasElement {
+    const hit = this.redMasks.get(source);
+    if (hit) return hit;
+    const art = this.silhouette(renderer, source);
+    const canvas = document.createElement("canvas");
+    canvas.width = art.width;
+    canvas.height = art.height;
+    const context = canvas.getContext("2d");
+    const read = art.getContext("2d");
+    if (!context || !read) throw new Error("2D canvas is not available");
+    const image = read.getImageData(0, 0, art.width, art.height);
+    const pixels = image.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const red = pixels[i] as number;
+      const alpha = pixels[i + 3] as number;
+      pixels[i] = pixels[i + 1] = pixels[i + 2] = 255;
+      pixels[i + 3] = Math.round((red * alpha) / 255);
+    }
+    context.putImageData(image, 0, 0);
+    this.redMasks.set(source, canvas);
+    return canvas;
+  }
 
   /** White radial falloff, `size` px square. Tint it and scale it to taste. Cached per stop list. */
   radial(stops: readonly GradientStop[], size = 128): Texture {
@@ -291,8 +335,9 @@ export class TextureBag {
     resolution: number,
     line: GradientLine,
     colors: OverlayColors,
+    clip?: HTMLCanvasElement,
   ): Texture {
-    return this.adopt(gradientOverlayTexture(width, height, resolution, line, colors));
+    return this.adopt(gradientOverlayTexture(width, height, resolution, line, colors, clip));
   }
 
   edgeRim(
@@ -303,7 +348,9 @@ export class TextureBag {
     fade = RIM_FADE,
     lean = RIM_LEAN,
   ): Texture {
-    return this.adopt(edgeRimTexture(renderer, source, width, towardFire, fade, lean));
+    return this.adopt(
+      edgeRimTexture(this.silhouette(renderer, source), width, towardFire, fade, lean),
+    );
   }
 
   /** Takes ownership of a texture made elsewhere. */
@@ -317,5 +364,7 @@ export class TextureBag {
     for (const texture of this.owned) texture.destroy(true);
     this.owned.length = 0;
     this.radials.clear();
+    this.silhouettes.clear();
+    this.redMasks.clear();
   }
 }
