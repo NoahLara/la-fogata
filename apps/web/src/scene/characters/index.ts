@@ -24,7 +24,7 @@ export const SPECIES_SCALE: Record<Species, number> = {
   owl: 0.88,
   fox: 1,
   capybara: 1,
-  rabbit: 0.88,
+  rabbit: 0.8,
   bear: 1.1,
 };
 
