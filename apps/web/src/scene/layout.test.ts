@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { capNearScales, computeLayout, NEAR_SCALE_RATIO, seatPosition } from "./layout";
+import {
+  capNearScales,
+  computeLayout,
+  directionToFire,
+  NEAR_SCALE_RATIO,
+  seatPosition,
+} from "./layout";
 
 const none = { top: 0, bottom: 0 };
 
@@ -70,5 +76,26 @@ describe("capNearScales", () => {
   it("returns the seats as they are when there is no far side", () => {
     const nearOnly = [seatPosition(layout, 90)];
     expect(capNearScales(nearOnly)).toEqual(nearOnly);
+  });
+});
+
+describe("directionToFire", () => {
+  it("returns a unit vector toward the fire and the distance to it", () => {
+    const toward = directionToFire({ x: 0, y: 0 }, { x: 3, y: -4 });
+    expect(toward.length).toBe(5);
+    expect(toward.x).toBeCloseTo(0.6, 12);
+    expect(toward.y).toBeCloseTo(-0.8, 12);
+    expect(Math.hypot(toward.x, toward.y)).toBeCloseTo(1, 12);
+  });
+
+  it("points the other way when the fire is on the other side", () => {
+    const left = directionToFire({ x: 10, y: 5 }, { x: 0, y: 5 });
+    expect(left.x).toBe(-1);
+    expect(left.y).toBe(0);
+  });
+
+  it("does not divide by zero when the seat is at the fire", () => {
+    const here = directionToFire({ x: 4, y: 4 }, { x: 4, y: 4 });
+    expect(here).toEqual({ x: 0, y: 0, length: 1 });
   });
 });

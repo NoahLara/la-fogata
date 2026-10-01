@@ -1,5 +1,5 @@
 /** Query parameters for looking at the scene during development. They do nothing in a production build. */
-export interface DevFlags {
+interface DevFlags {
   /** `?animal=<species>`: put this species in every seat. */
   animal?: string;
   /** `?shuffle`: randomize who sits where. */

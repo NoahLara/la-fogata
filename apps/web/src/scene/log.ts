@@ -1,5 +1,6 @@
 import { Graphics, Rectangle, type Renderer, type Texture } from "pixi.js";
-import { between, createRandom } from "./random";
+import { between } from "./math";
+import { createRandom } from "./random";
 
 const LENGTH = 84;
 const THICKNESS = 22;

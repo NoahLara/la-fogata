@@ -1,5 +1,6 @@
 import { Application, Container } from "pixi.js";
 import { createBackground, type Background } from "./background";
+import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { computeLayout, type Insets } from "./layout";
@@ -12,7 +13,7 @@ export interface FogataScene {
   destroy(): void;
 }
 
-export interface SceneOptions {
+interface SceneOptions {
   /** Accessible name for the canvas. */
   label: string;
   /** Space reserved for UI at the top and bottom of the host. */
@@ -24,6 +25,9 @@ export interface SceneOptions {
 }
 
 const NIGHT = "#0b0d1a";
+
+/** How long the size of the host must stay put before the scene is rebuilt for it. */
+const RESIZE_SETTLE_MS = 150;
 
 interface Built {
   root: Container;
@@ -99,11 +103,15 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   let reduced = prefersReducedMotion();
   let time = 0;
   let current: Built | undefined;
+  let builtWidth = 0;
+  let builtHeight = 0;
 
   const rebuild = () => {
     const width = Math.max(1, host.clientWidth);
     const height = Math.max(1, host.clientHeight);
     app.renderer.resize(width, height);
+    builtWidth = width;
+    builtHeight = height;
     if (current) {
       app.stage.removeChild(current.root);
       current.root.destroy({ children: true });
@@ -128,10 +136,16 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     current.seats.update(time, reduced);
   });
 
-  let pending = 0;
+  // Building the scene bakes every texture, so while the host is being resized only the canvas follows it
+  // and the scene is laid out again once the size has settled.
+  const rebuildWhenSettled = debounce(rebuild, RESIZE_SETTLE_MS);
   const observer = new ResizeObserver(() => {
-    cancelAnimationFrame(pending);
-    pending = requestAnimationFrame(rebuild);
+    const width = Math.max(1, host.clientWidth);
+    const height = Math.max(1, host.clientHeight);
+    // The observer also reports the size the scene was just built for.
+    if (width === builtWidth && height === builtHeight) return;
+    app.renderer.resize(width, height);
+    rebuildWhenSettled();
   });
   observer.observe(host);
 
@@ -142,7 +156,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
 
   return {
     destroy() {
-      cancelAnimationFrame(pending);
+      rebuildWhenSettled.cancel();
       observer.disconnect();
       stopWatchingMotion();
       app.destroy({ removeView: true }, { children: true });

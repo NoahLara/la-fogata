@@ -1,17 +1,16 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import { verticalGradient } from "./gradient";
-import type { SceneLayout } from "./layout";
-import { between, pick, TAU, type Random } from "./random";
+import type { Point, SceneLayout } from "./layout";
+import { between, TAU } from "./math";
+import { pick, type Random } from "./random";
 import {
   drawShootingStar,
   nextShootingStarDelay,
   planShootingStar,
   type Keepout,
-  type Point,
   type ShootingStarPlan,
 } from "./shootingStar";
 import { createCanvas, type TextureBag } from "./textures";
-
 
 export interface Sky {
   /** Gradient, Milky Way, stars, moon, Venus and the shooting star. Sits behind everything. */

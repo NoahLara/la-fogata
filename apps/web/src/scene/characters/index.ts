@@ -1,17 +1,9 @@
 import { Assets, type Texture } from "pixi.js";
 
 /** The 7 animals, one per seat. */
-export type Species = "panda" | "cat" | "owl" | "fox" | "capybara" | "rabbit" | "bear";
+export const SPECIES = ["panda", "cat", "owl", "fox", "capybara", "rabbit", "bear"] as const;
 
-export const SPECIES: readonly Species[] = [
-  "panda",
-  "cat",
-  "owl",
-  "fox",
-  "capybara",
-  "rabbit",
-  "bear",
-];
+export type Species = (typeof SPECIES)[number];
 
 /**
  * How big each animal is, relative to a nominal 1 (the bear is the biggest at 1.15, the panda 90% of that). This is the species' only say in how it sits: the seat decides
@@ -41,7 +33,7 @@ export type View = "front" | "back" | "side";
  * A character image plus where its feet are. Sizes are in the characters' local units
  * (the animals are about 106 units tall, with the origin at the feet).
  */
-export interface CharacterArt {
+interface CharacterArt {
   texture: Texture;
   width: number;
   height: number;

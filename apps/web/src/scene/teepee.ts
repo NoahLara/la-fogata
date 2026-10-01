@@ -1,10 +1,11 @@
 import { Container, Graphics } from "pixi.js";
 import type { SceneLayout } from "./layout";
-import { between, clamp, TAU, type Random } from "./random";
+import { between, clamp, TAU, toRadians } from "./math";
+import type { Random } from "./random";
 
 const LOG_COUNT = 5;
 
-export interface Teepee {
+interface Teepee {
   /** Logs on the far side of the fire. They go behind the flames. */
   back: Container;
   /** Logs on the near side. They go in front of the flames, so the fire has depth. */
@@ -72,7 +73,7 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
     const log = LOGS[i];
     const params = groups[log?.group ?? 0];
     if (!log || !params) continue;
-    const theta = (log.degrees * Math.PI) / 180;
+    const theta = toRadians(log.degrees);
     const baseRadius = params.baseRadius;
     thetas.push(theta);
     radiusSum += baseRadius;

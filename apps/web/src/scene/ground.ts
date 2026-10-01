@@ -1,8 +1,9 @@
 import { Sprite } from "pixi.js";
+import { ellipseCrop } from "./crop";
 import type { SceneLayout } from "./layout";
-import { between, clamp, pick, TAU, type Random } from "./random";
+import { between, clamp, randomInt, smoothstep, TAU } from "./math";
+import { pick, type Random } from "./random";
 import { createCanvas, type TextureBag } from "./textures";
-
 
 /** The baked ground. Everything here is drawn once per build; only `lit` changes, in alpha. */
 export interface Ground {
@@ -28,11 +29,6 @@ const MAX_PIXELS = 3_000_000;
 function surface(width: number, height: number): Surface {
   const resolution = Math.min(1, Math.sqrt(MAX_PIXELS / (width * height)));
   return { ...createCanvas(width, height, resolution), resolution };
-}
-
-function smoothstep(from: number, to: number, value: number): number {
-  const t = clamp((value - from) / (to - from), 0, 1);
-  return t * t * (3 - 2 * t);
 }
 
 /** An ellipse that fades out from its center by the given `[offset, color]` stops. */
@@ -317,7 +313,7 @@ function paintTufts(g: CanvasRenderingContext2D, t: Terrain, rand: Random): void
       tuft.x,
       tuft.y,
       between(rand, 6, 14) * s,
-      3 + Math.floor(rand() * 5),
+      randomInt(rand, 3, 7),
       Math.max(0.7, 1.2 * s),
       grassColor(tuft.depth, rand()),
     );
@@ -343,7 +339,7 @@ function paintForeground(
       x,
       height,
       h,
-      2 + Math.floor(rand() * 3),
+      randomInt(rand, 2, 4),
       Math.max(1.5, 2 * u),
       rand() < 0.5 ? "#04050a" : "#06080b",
     );
@@ -363,10 +359,34 @@ export function bakeGround(layout: SceneLayout, textures: TextureBag, rand: Rand
 
   // The lit copy: the soil, kept only near the fire. Tinted warm and added over the soil, it brings out
   // whatever is lighter in the dirt, the pebbles and the leaves.
-  const lit = surface(width, soilHeight);
-  lit.g.drawImage(soil.canvas, 0, 0, width, soilHeight);
+  // Nothing outside the ellipse survives, so only the block of pixels around it is kept.
+  const litRx = rx * 1.3 + 40 * u;
+  const litRy = ry * 2 + 30 * u;
+  const litCrop = ellipseCrop(
+    terrain.fireX,
+    terrain.fireY,
+    litRx,
+    litRy,
+    soil.resolution,
+    soil.canvas.width,
+    soil.canvas.height,
+  );
+  const lit = { ...createCanvas(litCrop.width, litCrop.height, 1), resolution: soil.resolution };
+  lit.g.drawImage(
+    soil.canvas,
+    litCrop.x,
+    litCrop.y,
+    litCrop.width,
+    litCrop.height,
+    0,
+    0,
+    litCrop.width,
+    litCrop.height,
+  );
   lit.g.globalCompositeOperation = "destination-in";
-  softEllipse(lit.g, terrain.fireX, terrain.fireY, rx * 1.3 + 40 * u, ry * 2 + 30 * u, [
+  lit.g.translate(-litCrop.x, -litCrop.y);
+  lit.g.scale(soil.resolution, soil.resolution);
+  softEllipse(lit.g, terrain.fireX, terrain.fireY, litRx, litRy, [
     [0, "rgba(0,0,0,1)"],
     [0.4, "rgba(0,0,0,.6)"],
     [1, "rgba(0,0,0,0)"],
@@ -379,14 +399,29 @@ export function bakeGround(layout: SceneLayout, textures: TextureBag, rand: Rand
   const foreground = surface(width, foregroundHeight);
   paintForeground(foreground.g, rand, width, foregroundHeight, u);
 
-  const sprite = (from: Surface, spriteWidth: number, spriteHeight: number, y: number): Sprite => {
+  const sprite = (
+    from: Surface,
+    spriteWidth: number,
+    spriteHeight: number,
+    y: number,
+    x = 0,
+  ): Sprite => {
     const result = new Sprite(textures.fromCanvas(from.canvas, from.resolution));
     result.width = spriteWidth;
     result.height = spriteHeight;
-    result.position.set(0, y);
+    result.position.set(x, y);
     return result;
   };
-  const litSprite = sprite(lit, width, soilHeight, horizon);
+  // Sprites span the whole canvas; the cropped one spans the same pixels it was cut from.
+  const unitsPerPixelX = width / soil.canvas.width;
+  const unitsPerPixelY = soilHeight / soil.canvas.height;
+  const litSprite = sprite(
+    lit,
+    litCrop.width * unitsPerPixelX,
+    litCrop.height * unitsPerPixelY,
+    horizon + litCrop.y * unitsPerPixelY,
+    litCrop.x * unitsPerPixelX,
+  );
   litSprite.tint = 0xff9440;
   litSprite.blendMode = "add";
   return {
