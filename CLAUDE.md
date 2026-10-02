@@ -37,6 +37,8 @@ La Fogata is quietly inspired by Christian faith. It never says so; the meaning 
 - Venus, the morning star (Revelation 22:16)
 - Petitions as stars: "Look up at the sky and count the stars" (Genesis 15:5)
 - Handing over a burden: casting your anxiety on Him (1 Peter 5:7); "Cast your burden on the Lord" (Psalm 55:22)
+- Psalm 141:2: the petition rising with the smoke (let my prayer be set before you like incense)
+- Matthew 7:7: Pídelo (ask and it will be given to you)
 - The shooting star: an answered prayer
 
 Rules: never preach, no religious vocabulary in the default UI, everyone is welcome whatever they believe, Scripture only when the user asks for it.
@@ -95,11 +97,20 @@ The look is a night scene with warm light. Tokens live in the Tailwind `@theme` 
 
 ## Phases
 
+The web experience is built first, against the in-memory services (`apps/web/src/data`), so every gesture can be seen and tested before there is a server. Realtime comes after.
+
 1. Static scene ✅ (scene, animals, arrival and leave animations, wood)
-2. Realtime: many campfires, presence, shared wood, distant campfires
-3. Petition stars: rotating sky, pray, answered, find my stars, storage and expiry
-4. Hand over a burden, a word from the fire, sound
-5. Launch: moderation, crisis flow, About page, deploy, README
+2. Web experience on in-memory services. Left to build, in order:
+   - burden ✅
+   - petition ritual: leave a petition and watch it become a star in your own sky
+   - star interactions: rotating sky, tap a star, "Estoy contigo", answered stars
+   - a word from the fire
+   - distant campfires and the alone state
+   - sound
+   - the About page
+3. Realtime: many campfires, presence, shared wood, other people's petitions in one shared sky
+4. Persistence: Supabase for petitions, prayer counts, reports and metrics
+5. Launch: moderation, crisis flow, deploy, README
 
 Don't start a phase until the previous one is done. For large changes, propose a plan before editing.
 

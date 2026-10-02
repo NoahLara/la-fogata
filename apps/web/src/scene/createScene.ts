@@ -3,6 +3,7 @@ import { createBackground, type Background } from "./background";
 import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
+import { createLightEffects, type LightEffects } from "./lightEffect";
 import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
 import { easeToward } from "./math";
 import { computeLayout, type Insets, type SceneLayout } from "./layout";
@@ -49,6 +50,16 @@ export interface FogataScene {
    */
   handOverBurden(id: string, request: BurdenRequest): BurdenResult;
   /**
+   * Has someone leave a petition: the same errand and the same note as a burden, and the note burns the same way.
+   * Then a small golden light is born in the flames, rises with the smoke, glides to its spot in the sky and
+   * settles there as the petition's star. Nothing written is ever here: only the petition's id. `onDone` is
+   * called when they are sitting again and the star has settled. With reduced motion nobody walks and nothing
+   * flies: the note fades into the fire, then the star fades in.
+   */
+  offerPetition(id: string, request: PetitionRequest): BurdenResult;
+  /** Puts these petitions' stars in the sky, all at once: the visitor's own, when the page loads. Ones already there stay. */
+  setPetitionStars(ids: readonly string[]): void;
+  /**
    * Where the note is in someone's hands, in window coordinates, and how tall it is there: for the page to fly
    * a note to before the scene takes over. Nothing if they are not sitting down.
    */
@@ -63,6 +74,11 @@ export interface FogataScene {
 
 export interface BurdenRequest {
   onDone: () => void;
+}
+
+export interface PetitionRequest extends BurdenRequest {
+  /** Which petition becomes a star. */
+  petitionId: string;
 }
 
 export type BurdenResult = { status: "burning" } | { status: "not-seated" };
@@ -102,6 +118,7 @@ interface Built {
   seats: Seats;
   effects: WoodEffects;
   notes: NoteEffects;
+  lights: LightEffects;
   layout: SceneLayout;
   you: YouMarker;
   textures: TextureBag;
@@ -117,14 +134,16 @@ function build(
   onSeated: (id: string) => void,
   youLabel: string,
   fonts: SceneFonts,
+  petitionIds: readonly string[],
 ): Built {
   const layout = computeLayout(width, height, insets);
   const textures = new TextureBag();
-  const background = createBackground(layout, textures);
+  const background = createBackground(layout, textures, petitionIds);
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
   const effects = createWoodEffects(layout);
   const notes = createNoteEffects(layout, fire.noteLayer);
+  const lights = createLightEffects(layout, textures);
   const you = createYouMarker(layout, youLabel, fonts.ui);
 
   // Same draw order as the prototype: far people behind the fire, near people in front of it.
@@ -139,10 +158,11 @@ function build(
     seats.near,
     effects.container,
     notes.air,
+    lights.container,
     you.container,
     background.front,
   );
-  return { root, layout, background, fire, seats, effects, notes, you, textures };
+  return { root, layout, background, fire, seats, effects, notes, lights, you, textures };
 }
 
 export async function createScene(host: HTMLElement, options: SceneOptions): Promise<FogataScene> {
@@ -186,6 +206,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** The brief surge as a log lands, on top of the strength the fire settles at. */
   let flare = 0;
   const cooldowns = new WoodCooldowns();
+  /** The petitions that are stars in the sky, in the order they became stars: each keeps its spot across rebuilds. */
+  const petitionIds: string[] = [];
   /** Rituals in progress, each with what ends it at once. */
   const rituals = new Set<() => void>();
   // The visitor's own animal: when they sat down and when they last did something, in scene time.
@@ -211,6 +233,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       // A ritual cut off by the rebuild ends where it stands: everyone sits and the note is gone.
       for (const finish of [...rituals]) finish();
       current.notes.finishAll();
+      current.lights.finishAll();
       app.stage.removeChild(current.root);
       current.root.destroy({ children: true });
       current.seats.destroy();
@@ -229,6 +252,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       (id) => roster.markSeated(id),
       options.youLabel,
       options.fonts,
+      petitionIds,
     );
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
     // Let the fire burn for a few seconds before the first frame, so it is already going on load and
@@ -261,6 +285,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     current.fire.state.intensity = intensity + flare;
     current.effects.update(dt);
     current.notes.update(dt);
+    current.lights.update(dt);
     updateYou();
     current.fire.update(dt, time, reduced);
     current.background.update(time, reduced, current.fire.state.light);
@@ -284,6 +309,105 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     reduced = value;
     rebuild();
   });
+
+  /** What follows a note's burning, once it has burned: it starts and returns a way to end it at once. */
+  type AfterBurn = (done: () => void) => () => void;
+
+  /** A petition's light is born in the flames and becomes its star; with reduced motion the star just fades in. */
+  const becomeStar: (petitionId: string, done: () => void) => () => void = (petitionId, done) => {
+    const built = current;
+    if (!built) {
+      done();
+      return () => {};
+    }
+    const show = (mode: "bloom" | "fade") => {
+      if (!petitionIds.includes(petitionId)) petitionIds.push(petitionId);
+      built.background.addPetitionStar(petitionId, mode);
+    };
+    const hooks = { onArrive: () => show(reduced ? "fade" : "bloom"), onDone: done };
+    if (reduced) return built.lights.fade(hooks).finish;
+    const { cx, cy, u } = built.layout;
+    const flames = { x: cx, y: cy - 30 * u };
+    return built.lights.launch(flames, built.background.petitionSpot(petitionId), hooks).finish;
+  };
+
+  /**
+   * The ritual shared by a burden and a petition: they stand up, run the errand, put the note on the ember bed
+   * and walk back while it burns. A petition then has `after` carry on from the ashes.
+   */
+  const errand = (id: string, onDone: () => void, after?: AfterBurn): BurdenResult => {
+    const member = roster.members().find((entry) => entry.id === id);
+    if (!member || member.status !== "seated" || !current) return { status: "not-seated" };
+    const hand = current.seats.hand(id);
+    if (!hand) return { status: "not-seated" };
+
+    // The ritual is over when they are sitting again and everything after the note has finished, whichever comes last.
+    let seated = false;
+    let burned = false;
+    let follow = after;
+    let endAfter: (() => void) | undefined;
+    let ended = false;
+    const end = () => {
+      if (ended || !seated || !burned) return;
+      ended = true;
+      rituals.delete(abort);
+      onDone();
+    };
+    const hooks: NoteHooks = {
+      onLand: () => {
+        flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
+        current?.fire.burst(reduced ? 0 : 6);
+      },
+      onEmbers: (count) => current?.fire.burst(reduced ? 0 : count),
+      onDone: () => {
+        if (!follow) {
+          burned = true;
+          end();
+          return;
+        }
+        // The note is ash: what comes after is born from the flames.
+        endAfter = follow(() => {
+          burned = true;
+          end();
+        });
+      },
+    };
+    let note: NoteHandle | undefined;
+    const abort = () => {
+      seated = true;
+      note?.finish();
+      endAfter?.();
+      end();
+    };
+
+    if (reduced) {
+      // Nobody walks: the note is on the fire and fades into it.
+      seated = true;
+      note = current.notes.fadeIn(hand.x < current.layout.cx ? -1 : 1, hooks);
+      rituals.add(abort);
+      if (id === selfId) glowSince = time;
+      return { status: "burning" };
+    }
+    note = current.notes.carry(() => current?.seats.hand(id), hooks, Math.floor(time * 1000) >>> 0);
+    const started = current.seats.errand(id, {
+      // They stand on the opposite side of the fire from the way they face; the note goes to their side.
+      onRelease: (heading) => note?.release(heading === 1 ? -1 : 1),
+      onReturned: () => {
+        seated = true;
+        end();
+      },
+      onCancel: () => abort(),
+    });
+    if (!started) {
+      // The ritual never began, so nothing may follow it.
+      follow = undefined;
+      note.finish();
+      return { status: "not-seated" };
+    }
+    rituals.add(abort);
+    if (id === selfId) glowSince = time;
+    return { status: "burning" };
+  };
 
   return {
     seatCount: SEATS.length,
@@ -355,69 +479,16 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         height: NOTE_HEIGHT_UNITS * hand.scale,
       };
     },
-    handOverBurden(id, { onDone }) {
-      const member = roster.members().find((entry) => entry.id === id);
-      if (!member || member.status !== "seated" || !current) return { status: "not-seated" };
-      const hand = current.seats.hand(id);
-      if (!hand) return { status: "not-seated" };
-
-      // The ritual is over when they are sitting again and the note has burned, whichever comes last.
-      let seated = false;
-      let burned = false;
-      let ended = false;
-      const end = () => {
-        if (ended || !seated || !burned) return;
-        ended = true;
-        rituals.delete(abort);
-        onDone();
-      };
-      const hooks: NoteHooks = {
-        onLand: () => {
-          flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
-          current?.fire.burst(reduced ? 0 : 6);
-        },
-        onEmbers: (count) => current?.fire.burst(reduced ? 0 : count),
-        onDone: () => {
-          burned = true;
-          end();
-        },
-      };
-      let note: NoteHandle | undefined;
-      const abort = () => {
-        seated = true;
-        note?.finish();
-        end();
-      };
-
-      if (reduced) {
-        // Nobody walks: the note is on the fire and fades into it.
-        seated = true;
-        note = current.notes.fadeIn(hand.x < current.layout.cx ? -1 : 1, hooks);
-        rituals.add(abort);
-        if (id === selfId) glowSince = time;
-        return { status: "burning" };
+    handOverBurden: (id, { onDone }) => errand(id, onDone),
+    offerPetition(id, { petitionId, onDone }) {
+      return errand(id, onDone, (done) => becomeStar(petitionId, done));
+    },
+    setPetitionStars(ids) {
+      for (const id of ids) {
+        if (petitionIds.includes(id)) continue;
+        petitionIds.push(id);
+        current?.background.addPetitionStar(id, "instant");
       }
-      note = current.notes.carry(
-        () => current?.seats.hand(id),
-        hooks,
-        Math.floor(time * 1000) >>> 0,
-      );
-      const started = current.seats.errand(id, {
-        // They stand on the opposite side of the fire from the way they face; the note goes to their side.
-        onRelease: (heading) => note?.release(heading === 1 ? -1 : 1),
-        onReturned: () => {
-          seated = true;
-          end();
-        },
-        onCancel: () => abort(),
-      });
-      if (!started) {
-        note.finish();
-        return { status: "not-seated" };
-      }
-      rituals.add(abort);
-      if (id === selfId) glowSince = time;
-      return { status: "burning" };
     },
     woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),

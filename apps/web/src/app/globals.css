@@ -72,6 +72,14 @@ body {
   transition: filter 0.2s ease;
 }
 
+/* A gold edge marks a sheet that becomes a star. */
+.paper-sheet[data-edge="gold"] .paper-shape polygon {
+  stroke: var(--color-gold);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
 .paper-sheet[data-focused] .paper-shape {
   filter: drop-shadow(0 0 2px rgb(255 190 120 / 0.95)) drop-shadow(0 0 16px rgb(255 150 80 / 0.6))
     drop-shadow(0 18px 30px rgb(0 0 0 / 0.5));

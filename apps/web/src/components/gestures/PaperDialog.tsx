@@ -59,6 +59,7 @@ export function PaperDialog({
   copy,
   rules,
   edge = "none",
+  notice,
   onSubmit,
   getTarget,
   onLaunch,
@@ -69,8 +70,10 @@ export function PaperDialog({
   rules: PaperRules;
   /** A gold edge marks a sheet that becomes something more than ash. */
   edge?: "gold" | "none";
-  /** Called once with what was written, when it is handed over. Returns false if it can't be (then nothing happens). */
-  onSubmit: (text: string) => boolean;
+  /** Called once with what was written, when it is handed over. Resolves to false if it can't be (then nothing happens). */
+  onSubmit: (text: string) => boolean | Promise<boolean>;
+  /** Something to tell them on the sheet itself (a modal hides the rest of the page), such as why it was not taken. */
+  notice?: string | undefined;
   /** Where the folded note should land: the animal's paws, in window coordinates. */
   getTarget: () => NoteTarget | undefined;
   /** The note is at the paws: the scene takes it. Returns false if it could not. */
@@ -90,6 +93,8 @@ export function PaperDialog({
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const timers = useRef(new Set<number>());
   const started = useRef(false);
+  // `onSubmit` may take a moment: a second tap meanwhile does nothing.
+  const submitting = useRef(false);
   const launched = useRef(false);
   const abort = useRef(onAbort);
   useEffect(() => {
@@ -137,10 +142,20 @@ export function PaperDialog({
     setStage("folding");
   };
 
-  const submit = () => {
-    if (stage !== "writing" || !rules.canSubmit(text)) return;
+  const submit = async () => {
+    if (stage !== "writing" || submitting.current || !rules.canSubmit(text)) return;
     const written = text.trim();
-    if (!onSubmit(written)) return;
+    submitting.current = true;
+    let accepted = false;
+    try {
+      accepted = await onSubmit(written);
+    } catch (error) {
+      // Whatever went wrong, the sheet must not be left unable to try again.
+      console.error("Could not hand over the sheet", error);
+    } finally {
+      submitting.current = false;
+    }
+    if (!accepted) return;
     started.current = true;
     setStage("fading");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -240,6 +255,9 @@ export function PaperDialog({
             className={`h-5 self-end text-sm text-ink-soft tabular-nums ${FADE} ${fading ? "opacity-0" : ""}`}
           >
             {counterText}
+          </p>
+          <p role="status" className="text-center text-sm text-ink">
+            {notice}
           </p>
           {/* Said aloud only at a few points, not on every keystroke. */}
           <p role="status" className="sr-only">

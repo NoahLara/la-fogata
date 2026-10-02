@@ -37,12 +37,28 @@ export const es = {
     afterglow: "Ya no lo cargas a solas.",
   },
   petition: {
-    title: "Dejar una petición",
-    comingSoon: "Pronto podrás dejar una petición y verla subir desde el fuego hasta el cielo.",
+    title: "Pídelo",
+    helper: "Se volverá una estrella.",
+    // Faint, handwritten, on the first ruled line.
+    placeholder: "Escribe lo que pides…",
+    fieldLabel: "Lo que pides",
+    // Always shown. {count} of {max} used.
+    counter: "{count} de {max}",
+    // Said aloud at a few points. {remaining} characters left.
+    remaining: "Te quedan {remaining} caracteres.",
+    submit: "Elevar",
+    cancel: "Cancelar",
+    // Said, and shown, when the star has settled in the sky.
+    afterglow: "Ya brilla en tu cielo.",
+    // Instead of the form, when they have already left one today.
+    alreadyToday: "Ya elevaste una hoy. Mañana podrás pedir otra.",
   },
   help: {
     title: "Mereces apoyo ahora",
     body: "Lo que escribiste se quemó y nadie lo vio. Si estás pasando por algo muy difícil, hablar con una persona puede ayudar, y hay líneas de ayuda gratuitas en casi todos los países.",
+    // After a petition: it was never published, so nothing "burned".
+    bodyPetition:
+      "Lo que escribiste no salió de tu pantalla y nadie lo vio. Si estás pasando por algo muy difícil, hablar con una persona puede ayudar, y hay líneas de ayuda gratuitas en casi todos los países.",
     link: "Encontrar una línea de ayuda",
     back: "Volver a la fogata",
   },

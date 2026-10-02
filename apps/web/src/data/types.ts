@@ -87,6 +87,8 @@ export interface PetitionService {
   sky(): Promise<readonly Petition[]>;
   /** The visitor's own petitions that are still alive. */
   mine(): Promise<readonly Petition[]>;
+  /** Whether the visitor has already left all the petitions a day allows. */
+  dailyLimitReached(): Promise<boolean>;
   create(text: string): Promise<CreatePetitionResult>;
   /** The author marks it answered, with one optional line. */
   answer(id: string, note?: string): Promise<AnswerPetitionResult>;

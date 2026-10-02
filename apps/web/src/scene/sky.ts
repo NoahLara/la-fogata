@@ -1,7 +1,7 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import { verticalGradient } from "./gradient";
 import type { Point, SceneLayout } from "./layout";
-import { between, TAU } from "./math";
+import { between, smoothstep, TAU } from "./math";
 import { pick, type Random } from "./random";
 import {
   drawShootingStar,
@@ -10,12 +10,21 @@ import {
   type Keepout,
   type ShootingStarPlan,
 } from "./shootingStar";
+import { placeStar, starArea, type Tree } from "./petitionStars";
+import { skyGeometry } from "./skyGeometry";
 import { createCanvas, type TextureBag } from "./textures";
 
 export interface Sky {
   /** Gradient, Milky Way, stars, moon, Venus and the shooting star. Sits behind everything. */
   container: Container;
   update(time: number, reduced: boolean): void;
+  /** Where the star of this petition is, or will be, given the petition stars already in the sky. */
+  petitionSpot(id: string): Point;
+  /**
+   * Puts a petition's star in the sky at its spot. `bloom` is a star born as a light arrives; `fade` a star that
+   * fades in (reduced motion); `instant` one that was there all along.
+   */
+  addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
 }
 
 /** Star colors: mostly blue-white and white, a few warm. */
@@ -306,8 +315,31 @@ function twinkle(star: Twinkler, time: number): number {
   return star.alpha * (1 - star.amplitude * (0.5 - 0.5 * wave));
 }
 
-export function createSky(layout: SceneLayout, textures: TextureBag, rand: Random): Sky {
-  const { width, horizon, u, sceneTop } = layout;
+/** How long a petition star takes to fade in, and how long its bloom lasts. */
+const STAR_FADE_SECONDS = 1.5;
+const STAR_BLOOM_SECONDS = 1.5;
+const PETITION_WARM = 0xfff1dc;
+const PETITION_GLOW = 0xffd9a0;
+
+interface PetitionStar {
+  spot: Point;
+  glow: Sprite;
+  glint: Sprite;
+  core: Sprite;
+  mode: "bloom" | "fade" | "instant";
+  /** When it was born, in scene time; set on the first frame. */
+  born: number | undefined;
+  phase: number;
+}
+
+export function createSky(
+  layout: SceneLayout,
+  textures: TextureBag,
+  rand: Random,
+  petitionIds: readonly string[] = [],
+  trees: readonly Tree[] = [],
+): Sky {
+  const { width, horizon, u } = layout;
   const container = new Container();
   container.addChild(
     new Graphics().rect(0, 0, width, horizon + 4).fill(
@@ -320,14 +352,9 @@ export function createSky(layout: SceneLayout, textures: TextureBag, rand: Rando
   );
 
   // Moon, and Venus a little below and to its left.
-  const mx = width * 0.84;
-  const my = Math.max(sceneTop + 40 * u, 70);
-  const mr = Math.max(10, 18 * u);
-  const vx = Math.max(14, mx - mr * 4.3);
-  const vy = my + mr * 2.7;
-  const skyHeight = Math.max(40, horizon - 12 * u);
-  const moonZone: Keepout = { x: mx, y: my, radius: mr };
-  const venusZone: Keepout = { x: vx, y: vy, radius: mr * 1.5 };
+  const { moon: moonZone, venus: venusZone, skyHeight } = skyGeometry(layout);
+  const { x: mx, y: my, radius: mr } = moonZone;
+  const { x: vx, y: vy } = venusZone;
 
   const band = milkyWayBand(width, skyHeight);
   const haze = new Sprite(bakeMilkyWay(textures, band, width, skyHeight, rand));
@@ -394,8 +421,82 @@ export function createSky(layout: SceneLayout, textures: TextureBag, rand: Rando
   let nextAt = -1;
   let active: { plan: ShootingStarPlan; start: number } | undefined;
 
+  // Petition stars: a bit bigger than the bright stars, warm white, with a soft glow and a gentle pulse.
+  const petitionLayer = new Container();
+  // Under the shooting star, over the other stars.
+  container.addChildAt(petitionLayer, container.getChildIndex(meteor));
+  const area = starArea(layout, trees);
+  const petitionStars = new Map<string, PetitionStar>();
+  const glowTexture = textures.radial([
+    [0, 1],
+    [0.3, 0.4],
+    [1, 0],
+  ]);
+  const spotFor = (id: string): Point =>
+    petitionStars.get(id)?.spot ??
+    placeStar(
+      id,
+      area,
+      [...petitionStars.values()].map((star) => star.spot),
+    );
+  const addPetitionStar = (id: string, mode: PetitionStar["mode"]) => {
+    if (petitionStars.has(id)) return;
+    const spot = spotFor(id);
+    const scale = Math.max(0.85, u);
+    const glow = new Sprite(glowTexture);
+    glow.anchor.set(0.5);
+    glow.position.set(spot.x, spot.y);
+    glow.width = glow.height = 38 * scale;
+    glow.tint = PETITION_GLOW;
+    glow.blendMode = "add";
+    const glint = new Sprite(textures.glint());
+    glint.anchor.set(0.5);
+    glint.position.set(spot.x, spot.y);
+    glint.width = glint.height = 27 * scale;
+    glint.tint = PETITION_WARM;
+    glint.blendMode = "add";
+    const core = new Sprite(glowTexture);
+    core.anchor.set(0.5);
+    core.position.set(spot.x, spot.y);
+    core.width = core.height = 9 * scale;
+    core.tint = PETITION_WARM;
+    petitionLayer.addChild(glow, glint, core);
+    petitionStars.set(id, {
+      spot,
+      glow,
+      glint,
+      core,
+      mode,
+      born: undefined,
+      phase: (spot.x * 0.013 + spot.y * 0.007) % TAU,
+    });
+  };
+  for (const id of petitionIds) addPetitionStar(id, "instant");
+
+  const updatePetitionStars = (time: number, reduced: boolean) => {
+    const scale = Math.max(0.85, u);
+    for (const star of petitionStars.values()) {
+      star.born ??= time;
+      const age = time - star.born;
+      // Slower and wider than a twinkle: the star breathes.
+      const breath = reduced ? 0.9 : 0.9 + 0.1 * Math.sin(time * 0.9 + star.phase);
+      const arriving = star.mode === "instant" ? 1 : smoothstep(0, STAR_FADE_SECONDS, age);
+      // A soft bloom as the light settles into it, then the glow returns to its size.
+      const bloom =
+        star.mode === "bloom" && !reduced && age < STAR_BLOOM_SECONDS
+          ? Math.sin((Math.PI * age) / STAR_BLOOM_SECONDS)
+          : 0;
+      const alpha = star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving;
+      star.core.alpha = Math.min(1, alpha * (breath + 0.1));
+      star.glint.alpha = alpha * breath;
+      star.glow.alpha = alpha * (0.6 * breath + bloom * 0.45);
+      star.glow.scale.set(((38 * scale) / glowTexture.width) * (1 + bloom * 1.6));
+    }
+  };
+
   const update = (time: number, reduced: boolean) => {
     for (const star of stars.twinklers) star.apply(reduced ? star.alpha : twinkle(star, time));
+    updatePetitionStars(time, reduced);
 
     if (reduced) {
       if (active) meteor.clear();
@@ -422,5 +523,5 @@ export function createSky(layout: SceneLayout, textures: TextureBag, rand: Rando
   };
   update(0, true);
 
-  return { container, update };
+  return { container, update, petitionSpot: spotFor, addPetitionStar };
 }

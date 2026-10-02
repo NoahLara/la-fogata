@@ -4,10 +4,11 @@ import type { Random } from "@/scene/random";
 import { Emitter } from "./emitter";
 import type { KeyStore } from "./keyStore";
 import {
-  DAY,
   PETITION_ANSWER_MAX_LENGTH,
   PETITION_MAX_LENGTH,
+  PETITION_MIN_LENGTH,
   PETITIONS_PER_DAY,
+  petitionAvailableAt,
   PRAYERS_PER_SESSION,
 } from "./limits";
 import { isAlive, pickSky } from "./sky";
@@ -29,6 +30,8 @@ interface Options {
   newId: () => string;
   newKey: () => string;
   prayersPerSession?: number;
+  /** Petitions a day. Only development raises it, to test the ritual over and over. */
+  petitionsPerDay?: number;
 }
 
 interface Stored {
@@ -65,17 +68,17 @@ export class MemoryPetitions implements PetitionService, PrayerService {
       .map((record) => this.view(record));
   }
 
+  async dailyLimitReached(): Promise<boolean> {
+    return this.limitReached();
+  }
+
   async create(text: string): Promise<CreatePetitionResult> {
     const clean = text.trim();
-    if (!clean) return { status: "empty" };
+    if (burdenLength(clean) < PETITION_MIN_LENGTH) return { status: "empty" };
     if (burdenLength(clean) > PETITION_MAX_LENGTH) return { status: "too-long" };
     // Never published; the visitor is shown the help screen instead.
     if (hasRiskSignals(clean)) return { status: "risk" };
-    const now = this.options.now();
-    const today = [...this.records.values()].filter(
-      (record) => this.isMine(record) && now - record.createdAt < DAY,
-    );
-    if (today.length >= PETITIONS_PER_DAY) return { status: "daily-limit" };
+    if (this.limitReached()) return { status: "daily-limit" };
     const record = this.add(clean, this.ownerKey());
     const petition = this.view(record);
     this.events.emit({ type: "added", petition });
@@ -132,6 +135,19 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     };
     this.records.set(record.id, record);
     return record;
+  }
+
+  private limitReached(): boolean {
+    const now = this.options.now();
+    const mine = [...this.records.values()].filter((record) => this.isMine(record));
+    const perDay = this.options.petitionsPerDay ?? PETITIONS_PER_DAY;
+    return (
+      petitionAvailableAt(
+        mine.map((record) => record.createdAt),
+        now,
+        perDay,
+      ) > now
+    );
   }
 
   private living(): Stored[] {

@@ -1,9 +1,10 @@
 import { Container, Graphics, Sprite } from "pixi.js";
 import { bakeGround, type Ground } from "./ground";
 import { verticalGradient } from "./gradient";
-import type { SceneLayout } from "./layout";
+import type { Point, SceneLayout } from "./layout";
 import { between, clamp } from "./math";
 import { createRandom, type Random } from "./random";
+import type { Tree } from "./petitionStars";
 import { createSky } from "./sky";
 import type { TextureBag } from "./textures";
 
@@ -14,6 +15,10 @@ export interface Background {
   front: Container;
   /** `light` is the fire's current flicker, 1 at rest: the ground near it brightens and dims with it. */
   update(time: number, reduced: boolean, light?: number): void;
+  /** Where this petition's star is, or will be, in the sky. */
+  petitionSpot(id: string): Point;
+  /** Puts a petition's star in the sky: it blooms as a light arrives, fades in (reduced motion) or was always there. */
+  addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
 }
 
 /** How strongly the firelit copy of the ground shows at a flicker of 1. */
@@ -38,7 +43,13 @@ function pine(g: Graphics, x: number, base: number, h: number, w: number, color:
   g.poly(points).fill(color);
 }
 
-function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Container {
+/** The land and where its pines stand, so whatever hangs in the sky can keep clear of them. */
+interface Land {
+  container: Container;
+  trees: Tree[];
+}
+
+function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Land {
   const { width, horizon, u, cx, rx } = layout;
   const land = new Container();
   land.addChild(
@@ -52,16 +63,21 @@ function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Container
   land.addChild(ground.soil, ground.lit);
 
   const trees = new Graphics();
+  const standing: Tree[] = [];
+  const planted = (x: number, base: number, h: number, w: number, color: number) => {
+    pine(trees, x, base, h, w, color);
+    standing.push({ x, top: base - h, height: h, width: w });
+  };
   let x = -20;
   while (x < width + 40) {
     const h = between(rand, 70, 160) * u;
-    pine(trees, x, horizon + 8 * u, h, h * 0.42, 0x0e1229);
+    planted(x, horizon + 8 * u, h, h * 0.42, 0x0e1229);
     x += between(rand, 16, 32) * u;
   }
   x = -30;
   while (x < width + 40) {
     const h = between(rand, 90, 190) * u;
-    if (Math.abs(x - cx) > rx * 0.85) pine(trees, x, horizon + 24 * u, h, h * 0.44, 0x0a0c1c);
+    if (Math.abs(x - cx) > rx * 0.85) planted(x, horizon + 24 * u, h, h * 0.44, 0x0a0c1c);
     x += between(rand, 26, 46) * u;
   }
   for (const side of [-1, 1]) {
@@ -71,12 +87,12 @@ function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Container
           ? -30 * u + i * between(rand, 35, 65) * u
           : width + 30 * u - i * between(rand, 35, 65) * u;
       const h = between(rand, 220, 330) * u;
-      pine(trees, px, horizon + between(rand, 60, 110) * u, h, h * 0.46, 0x06070f);
+      planted(px, horizon + between(rand, 60, 110) * u, h, h * 0.46, 0x06070f);
     }
   }
   // The grass at the tree line stands in front of the trees' bases.
   land.addChild(trees, ground.tufts);
-  return land;
+  return { container: land, trees: standing };
 }
 
 function buildFront(layout: SceneLayout, textures: TextureBag, ground: Ground): Container {
@@ -98,7 +114,11 @@ function buildFront(layout: SceneLayout, textures: TextureBag, ground: Ground): 
   return front;
 }
 
-export function createBackground(layout: SceneLayout, textures: TextureBag): Background {
+export function createBackground(
+  layout: SceneLayout,
+  textures: TextureBag,
+  petitionIds: readonly string[] = [],
+): Background {
   const rand = createRandom(20240601);
   // The trees were laid out from the same random stream as the old stars, 7 draws per star. Skipping them
   // keeps every tree where it was.
@@ -106,14 +126,18 @@ export function createBackground(layout: SceneLayout, textures: TextureBag): Bac
   for (let i = 0; i < oldStars * 7; i++) rand();
 
   const ground = bakeGround(layout, textures, createRandom(33011));
-  const sky = createSky(layout, textures, createRandom(70013));
+  // The land comes first: the sky needs to know where the pines are. They don't share a random stream.
+  const land = buildLand(layout, rand, ground);
+  const sky = createSky(layout, textures, createRandom(70013), petitionIds, land.trees);
   const back = new Container();
-  back.addChild(sky.container, buildLand(layout, rand, ground));
+  back.addChild(sky.container, land.container);
   const front = buildFront(layout, textures, ground);
 
   return {
     back,
     front,
+    petitionSpot: sky.petitionSpot,
+    addPetitionStar: sky.addPetitionStar,
     update(time, reduced, light = 1) {
       sky.update(time, reduced);
       ground.lit.alpha = LIT_ALPHA * clamp(light, 0, 1.4);
