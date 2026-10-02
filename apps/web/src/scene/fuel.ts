@@ -15,6 +15,8 @@ export const FIRE = {
   burnSeconds: 100,
   /** The surge a log makes when it lands, which dies away in a second or two. */
   flarePerLog: 0.25,
+  /** A burden's paper makes a smaller surge than a log, and adds no fuel. */
+  flarePerBurden: 0.12,
 } as const;
 
 /** How long someone has to wait before they can throw another log. */

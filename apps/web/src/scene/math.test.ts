@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { between, clamp, easeToward, lerp, randomInt, smoothstep, TAU, toRadians } from "./math";
+import {
+  between,
+  clamp,
+  easeToward,
+  lerp,
+  mixColor,
+  randomInt,
+  smoothstep,
+  TAU,
+  toRadians,
+} from "./math";
 import { createRandom } from "./random";
 
 describe("clamp", () => {
@@ -81,5 +91,13 @@ describe("easeToward", () => {
     let stepped = 0;
     for (let i = 0; i < 60; i++) stepped = easeToward(stepped, 1, 1 / 60, 1);
     expect(stepped).toBeCloseTo(once, 10);
+  });
+});
+
+describe("mixColor", () => {
+  it("returns each end at 0 and 1, and the middle blend between", () => {
+    expect(mixColor(0x000000, 0xffffff, 0)).toBe(0x000000);
+    expect(mixColor(0x000000, 0xffffff, 1)).toBe(0xffffff);
+    expect(mixColor(0xff0000, 0x0000ff, 0.5)).toBe(0x800080);
   });
 });

@@ -11,7 +11,7 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 - The fire is small when the room is empty (embers and a low flame, never out) and grows a little with each connected person. Wood makes it big: each log adds fuel that burns down on its own, there is a ceiling, and each person can throw one log a minute (`WOOD_COOLDOWN_SECONDS`). Constants for the fire's size are in `apps/web/src/scene/fuel.ts`.
 - Three gestures only:
   1. Throw wood: shows you are present; the fire grows, and it slowly dies down when nobody adds wood. The thrower's animal swings an arm, a log flies into the fire and it flares. Visible to the whole room.
-  2. Hand over a burden: you write it and it burns in the fire. It happens 100% in the browser and is NEVER sent or stored.
+  2. Hand over a burden: you write it and it burns in the fire. It happens 100% in the browser and is NEVER sent or stored. On the page the paper folds twice like a letter and flies to your animal's paws, so its text is never rendered in the scene. Your animal then stands, walks to the stones, leans over them, puts the folded note on the ember bed and walks back while it burns like paper. Everyone in the room sees the same ritual for anyone (the same folded note, with nothing written on it); the text must never be part of any event.
   3. Leave a petition: it rises from the fire and becomes a star in the sky.
 - Petition stars:
   - One shared sky across all campfires. The sky slowly rotates, so different stars pass over time.
@@ -36,7 +36,7 @@ La Fogata is quietly inspired by Christian faith. It never says so; the meaning 
 - Seven seats: completeness; "where two or three gather" (Matthew 18:20)
 - Venus, the morning star (Revelation 22:16)
 - Petitions as stars: "Look up at the sky and count the stars" (Genesis 15:5)
-- Handing over a burden: casting your anxiety on Him (1 Peter 5:7)
+- Handing over a burden: casting your anxiety on Him (1 Peter 5:7); "Cast your burden on the Lord" (Psalm 55:22)
 - The shooting star: an answered prayer
 
 Rules: never preach, no religious vocabulary in the default UI, everyone is welcome whatever they believe, Scripture only when the user asks for it.
@@ -69,7 +69,18 @@ The scene is PixiJS in `apps/web/src/scene/`. The prototype's drawn characters a
 - **Everyone sits on something:** a character's feet (the bottom of its body) touch the ground line at the art's origin, or its log when it has one. A tail lying in front of the feet may reach a little below it. Don't let art float above the origin.
 - **The fire** is a symmetric teepee of three thick logs (one in front, a mirrored pair behind) that cross near the top, with flame tongues climbing through the gaps. Keep it mirror-symmetric, or the flames lean to one side.
 - **Sky and ground** are `sky.ts` and `ground.ts`. The static parts are baked into textures once per build (Milky Way, soil with pebbles, twigs and leaves, grass tufts, foreground grass), so per-frame work stays small. Only star twinkle, the shooting star and the flicker of the firelit copy of the soil change per frame. Stars come in three depth layers; Venus is steady (planets don't twinkle). The ambient shooting star (one every 40 to 60 s, none with `prefers-reduced-motion`) is planned by pure, tested code in `shootingStar.ts` and never crosses the moon or Venus.
-- **Dev-only URL flags**, read by `readDevFlags` and ignored in production builds: `?animal=<species>` puts one species in every seat; `?shuffle` randomizes who sits where.
+- **The burden ritual** has two halves. On the page (`BurdenDialog`, `FoldingNote`, `design/fold.ts`): the title and buttons fade, the sheet folds in half twice (CSS 3D, the writing fading as the first fold starts), then the folded note shrinks and flies to the animal's paws (`scene.notePlacement`) and the scene takes it. In the scene (`scene.handOverBurden(id)`, which works for any member id, so realtime can play it for others): the member runs an errand (`errand.ts`, `planErrand` in `walk.ts`): stand up, hop down off a log, turn, walk to a spot on a flank of the stones, lean over them, put the note on the ember bed (`fire.noteLayer`, in front of the back logs and behind the flames, so it shows from every seat), and walk back by the arrival machinery. The note (`noteEffects.ts`, `noteBurn.ts`) is a grid of cells that catch from the edges with noise, glow, char, curl and break into ash flakes that rise with the embers and smoke; the fire flares. The whole thing takes about 8 s from the button, and the gesture bar is disabled meanwhile. With reduced motion nobody folds or walks: the note fades into the fire with a soft glow.
+- **Dev-only URL flags**, read by `readDevFlags` and ignored in production builds: `?animal=<species>` puts one species in every seat; `?shuffle` randomizes who sits where; `?demo` adds buttons to make other animals arrive, leave or hand over a burden.
+
+## Design system
+
+The look is a night scene with warm light. Tokens live in the Tailwind `@theme` in `apps/web/src/app/globals.css`, which is the single source: components use the tokens (`bg-night`, `text-gold`, `font-title`), never raw hex values, and `src/design/contrast.test.ts` reads that file to check WCAG AA for every text pair.
+
+- **Fonts** (`next/font/google`, self-hosted at build time, so visitors never contact Google): **Fraunces** for titles (`font-title`), **Atkinson Hyperlegible Next** for UI and body text (`font-ui`, the default), **Caveat** for what people write by hand and on the paper that burns (`font-hand`).
+- **Colors:** `night` (sky, ground), `bark` and `bark-deep` (warm dark of buttons and dialogs), `ember` and `ember-soft` (the fire; primary actions), `gold` (warm light and text on dark surfaces; an answered star), `paper`, `paper-glow` and `paper-shade` (cream sheets), `ink`, `ink-soft` and `ink-faint` (dark brown written on paper; `ink-faint` only for placeholders).
+- **Radius and shadows:** `rounded-sheet`, `rounded-paper`; `shadow-paper` (lit from below by the fire), `shadow-ember` (glow on the primary action), `shadow-focus`.
+- **The paper rule:** whatever a person writes (a burden, later a petition) is written on a sheet of paper: warm cream, soft irregular edge (`paperOutline`), tilted about -1°, lit warmly from below; handwriting in `font-hand` and `ink` over faint ruled lines; no input borders; focus shown as a soft warm glow on the paper's edge. Text on paper is `ink` or `ink-soft`, never lighter. Anything else (menus, buttons on the scene, help screens) is `bark` with `gold` text.
+- **Text in the canvas:** only the small "you" label is drawn by Pixi, which draws text once, so its font is loaded (`document.fonts.load`) before the scene starts and read from the theme (`--font-ui`). What people write never goes into the canvas.
 
 ## Conventions
 

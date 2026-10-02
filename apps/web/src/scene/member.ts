@@ -17,11 +17,18 @@ import {
   type LeaveTimeline,
 } from "./seatState";
 import type { SeatSpec } from "./seatTable";
+import { errandFrame, leanAt, ERRAND, type ErrandTimeline } from "./errand";
 import { createIdle, type GestureDirector } from "./idle";
 import { partsFor } from "./parts";
 import { createSoftMesh, type SoftMesh } from "./softMesh";
 import { OVERLAY_COLORS, type TextureBag } from "./textures";
-import { pointAt, scaleRatioAt, type ArrivalPlan, type DeparturePlan } from "./walk";
+import {
+  pointAt,
+  scaleRatioAt,
+  type ArrivalPlan,
+  type DeparturePlan,
+  type ErrandPlan,
+} from "./walk";
 import { swingAt } from "./woodThrow";
 import { bobAt, exposureAt, fadeInAt, turnWidth, walkerTint } from "./walkerLook";
 import type { SeatPosition } from "./layout";
@@ -261,6 +268,33 @@ export interface MemberLayers {
 export interface Arrival {
   timeline: ArrivalTimeline;
   plan: ArrivalPlan;
+  /** Someone already in the light coming back from the fire: they neither fade in from the dark nor out of it. */
+  local?: boolean;
+}
+
+/** Everything about one errand to the fire and back that the seat decides. */
+export interface ErrandRun {
+  plan: ErrandPlan;
+  /** Standing up to the end of the lean. */
+  out: ErrandTimeline;
+  /** The way back, as an arrival. */
+  back: ArrivalTimeline;
+}
+
+export interface ErrandHooks {
+  /** The note leaves their hands, in the middle of the lean. `heading` is the way they face (toward the fire). */
+  onRelease: (heading: 1 | -1) => void;
+  /** They are sitting in their seat again. */
+  onReturned: () => void;
+  /** The errand was cut short (they left, or the scene was rebuilt); they are back in their seat. */
+  onCancel: () => void;
+}
+
+/** Where someone's hands are, and how big a unit is there. */
+export interface HandPosition {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 /** How someone first shows up: walking in, or with reduced motion fading in where they sit. */
@@ -283,6 +317,15 @@ export interface Member {
    * hands and how big a unit is there, or nothing if they are not sitting down.
    */
   toss(): { x: number; y: number; scale: number } | undefined;
+  /** Where their hands are, without making them move: for effects that start from them. Nothing if they are not sitting down. */
+  anchor(): { x: number; y: number; scale: number } | undefined;
+  /**
+   * Walks to the stones, leans over them to put something on the fire, and walks back to sit down again; the
+   * hooks say when. Returns false unless they are sitting down with nothing else going on.
+   */
+  errand(run: ErrandRun, hooks: ErrandHooks): boolean;
+  /** Where their hands are right now, wherever they are, for something they carry. */
+  hand(): HandPosition;
   destroy(): void;
 }
 
@@ -305,6 +348,10 @@ interface Pose {
   /** Distance walked so far. */
   travelled: number;
   onLog: boolean;
+  /** Standing still in the walking view, so it doesn't bob. */
+  still?: boolean;
+  /** How far it leans toward the way it faces, in radians. */
+  lean?: number;
 }
 
 /**
@@ -331,7 +378,7 @@ export function createMember(
   const { layout } = context;
   const { cx, cy, u, characterHeight } = layout;
   const { seat } = placed;
-  const arrival = entrance?.kind === "walk" ? entrance : undefined;
+  let arrival: Arrival | undefined = entrance?.kind === "walk" ? entrance : undefined;
   const rig = buildSeatRig(context, placed, species);
   let walker = arrival ? buildWalkerRig(context, species) : undefined;
   const cast = buildShadows(context);
@@ -348,6 +395,12 @@ export function createMember(
   /** Whether `onSeated` has been called: someone who fades in counts as seated once they are fully there. */
   let announced = !entrance;
   let leaving: { exit: Exit; elapsed: number; onGone: () => void } | undefined;
+  /** An errand to the fire: out and the lean (the way back is an `arrival`). */
+  let errand:
+    { run: ErrandRun; hooks: ErrandHooks; elapsed: number; released: boolean } | undefined;
+  /** The hooks of an errand until they are seated again (or it is cut short). */
+  let errandHooks: ErrandHooks | undefined;
+  let lastPose: Pose | undefined;
 
   layers.shadows.addChild(cast.shadow);
   layers.contactShadows.addChild(cast.contact);
@@ -386,8 +439,8 @@ export function createMember(
         walking: true,
         squash: 1,
         sit: 1,
-        exposure: exposureAt(progress),
-        fade: fadeInAt(progress),
+        exposure: arrival.local ? 1 : exposureAt(progress),
+        fade: arrival.local ? 1 : fadeInAt(progress),
         travelled,
         onLog: false,
       };
@@ -432,7 +485,11 @@ export function createMember(
   };
 
   /** The arrival run backwards: stand up, hop down off the log, turn, walk away into the dark. */
-  const leavePoseAt = (frame: LeaveFrame, { plan }: { plan: DeparturePlan }): Pose => {
+  const leavePoseAt = (
+    frame: LeaveFrame,
+    { plan }: { plan: DeparturePlan },
+    local = false,
+  ): Pose => {
     const { path, approach } = plan;
     const atSeat = {
       x: seat.x,
@@ -490,8 +547,8 @@ export function createMember(
           squash: 1,
           sit: 1,
           // The reverse of coming in: the light leaves it and it disappears into the dark.
-          exposure: exposureAt(1 - progress),
-          fade: fadeInAt(1 - progress),
+          exposure: local ? 1 : exposureAt(1 - progress),
+          fade: local ? 1 : fadeInAt(1 - progress),
           travelled,
           onLog: false,
         };
@@ -532,7 +589,10 @@ export function createMember(
     const intensity = fire.intensity;
     const k = rig.k * depth;
     const heightPx = k * 100;
-    const bob = bobAt(pose.travelled / heightPx, reduced || !pose.walking || pose.squash < 1);
+    const bob = bobAt(
+      pose.travelled / heightPx,
+      reduced || !pose.walking || pose.squash < 1 || pose.still === true,
+    );
     const toFire = directionToFire(
       { x: pose.x, y: pose.ground - 55 * k },
       { x: cx, y: cy - 45 * u },
@@ -541,7 +601,8 @@ export function createMember(
 
     const flip = w.directional && heading > 0 ? -1 : 1;
     w.container.position.set(pose.x, pose.ground - bob.lift * heightPx);
-    w.container.rotation = bob.sway;
+    // Leaning toward the way it faces: clockwise on screen when facing right.
+    w.container.rotation = bob.sway + (pose.lean ?? 0) * heading;
     w.container.scale.set(flip * k * rig.variation.width * pose.squash, k * rig.variation.height);
     w.container.alpha = pose.fade;
 
@@ -588,9 +649,12 @@ export function createMember(
     cast.contact.alpha = pose.onLog ? 0 : 0.6 * visible;
   };
 
+  const anchor = () => ({ x: seat.x, y: seat.y - rig.raise - 55 * rig.k, scale: rig.k });
+
   let gone = false;
   /** When the last toss began, in `elapsed` time. */
   let tossStart: number | undefined;
+  let lastDepth = 1;
 
   const update = (time: number, dt: number, reduced: boolean) => {
     if (gone) return;
@@ -598,7 +662,48 @@ export function createMember(
     let pose: Pose;
     let frame: ArrivalFrame | undefined;
     let leaveDone = false;
-    if (leaving) {
+    if (errand && !leaving) {
+      errand.elapsed += dt;
+      const run = errand.run;
+      const step = errandFrame(run.out, errand.elapsed);
+      if (step.phase === "done") {
+        // Back to the seat: the way back is an arrival, so it turns, settles and hops up the way anyone does.
+        errand = undefined;
+        arrival = { timeline: run.back, plan: run.plan.back, local: true };
+        arrived = false;
+        announced = false;
+        elapsed = 0;
+        tossStart = undefined;
+        frame = arrivalFrame(arrival.timeline, 0);
+        pose = poseAt(frame);
+      } else if (step.phase === "placing") {
+        heading = run.plan.heading;
+        pose = {
+          x: run.plan.spot.x,
+          ground: run.plan.spot.y,
+          lift: 0,
+          walking: true,
+          squash: 1,
+          sit: 1,
+          exposure: 1,
+          fade: 1,
+          travelled: run.plan.out.path.length,
+          onLog: false,
+          still: true,
+          lean: leanAt(step.progress),
+        };
+        if (!errand.released && step.progress >= ERRAND.release) {
+          errand.released = true;
+          errand.hooks.onRelease(run.plan.heading);
+        }
+      } else {
+        pose = leavePoseAt(
+          { phase: step.phase, progress: step.progress },
+          { plan: run.plan.out },
+          true,
+        );
+      }
+    } else if (leaving) {
       leaving.elapsed += dt;
       const { exit } = leaving;
       if (exit.kind === "walk") {
@@ -615,6 +720,8 @@ export function createMember(
       pose = poseAt(frame);
     }
     const depth = scaleRatioAt(layout, pose.ground, seat.y);
+    lastPose = pose;
+    lastDepth = depth;
 
     rig.container.visible = !pose.walking;
     show(rig.container, pose.ground);
@@ -635,6 +742,9 @@ export function createMember(
       walker?.container.destroy({ children: true });
       walker = undefined;
       onSeated();
+      const hooks = errandHooks;
+      errandHooks = undefined;
+      hooks?.onReturned();
     }
     if (!announced && entrance?.kind === "fade" && elapsed >= FADE_SECONDS) {
       announced = true;
@@ -654,10 +764,47 @@ export function createMember(
     toss() {
       if (!announced || leaving) return undefined;
       tossStart = elapsed;
-      return { x: seat.x, y: seat.y - rig.raise - 55 * rig.k, scale: rig.k };
+      return anchor();
+    },
+    anchor() {
+      return announced && !leaving && !errand ? anchor() : undefined;
+    },
+    hand() {
+      const pose = lastPose;
+      const k = rig.k * lastDepth;
+      if (!pose) return { x: seat.x, y: seat.y - rig.raise - 40 * rig.k, scale: rig.k };
+      // Held in front of the body, lower as they lean over to put it down.
+      const lean = pose.lean ?? 0;
+      const reach = (pose.walking ? 9 : 0) + Math.sin(lean) * 62;
+      return {
+        x: pose.x + heading * reach * k,
+        y: pose.ground - pose.lift - (40 - (1 - Math.cos(lean)) * 30) * k,
+        scale: k,
+      };
+    },
+    errand(run, hooks) {
+      if (!announced || leaving || errand) return false;
+      heading = run.plan.out.startHeading;
+      walker ??= buildWalkerRig(context, species);
+      errand = { run, hooks, elapsed: 0, released: false };
+      errandHooks = hooks;
+      return true;
     },
     leave(exit, onGone) {
-      if (!announced || leaving) return false;
+      if (!announced && !errandHooks) return false;
+      if (leaving) return false;
+      if (errandHooks) {
+        // Cut the errand short: they are back in their seat, as if they had never left it.
+        const hooks = errandHooks;
+        errand = undefined;
+        errandHooks = undefined;
+        arrival = undefined;
+        arrived = true;
+        announced = true;
+        walker?.container.destroy({ children: true });
+        walker = undefined;
+        hooks.onCancel();
+      }
       if (exit.kind === "walk") {
         // The walker takes over from the seated character at the turn.
         heading = exit.plan.startHeading;

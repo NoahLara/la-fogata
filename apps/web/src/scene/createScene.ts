@@ -5,13 +5,22 @@ import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
 import { easeToward } from "./math";
-import { computeLayout, type Insets } from "./layout";
+import { computeLayout, type Insets, type SceneLayout } from "./layout";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
 import { Roster, type MemberInfo, type MemberSpec } from "./roster";
 import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
 import { shuffled } from "./random";
 import { TextureBag } from "./textures";
+import {
+  createNoteEffects,
+  NOTE_HEIGHT_UNITS,
+  type NoteEffects,
+  type NoteHandle,
+  type NoteHooks,
+} from "./noteEffects";
 import { createWoodEffects, type WoodEffects } from "./woodEffects";
+import { createYouMarker, type YouMarker } from "./you";
+import { gestureGlowAt, youLabelAlpha } from "./youMarker";
 
 export interface FogataScene {
   /** How many seats there are around the fire. */
@@ -30,19 +39,49 @@ export interface FogataScene {
    * Has someone throw a log into the fire, which makes it stronger for a while. Everyone can throw one a
    * minute; the fire can only get so big.
    */
-  throwWood(id: string): ThrowResult;
+  throwWood(id: string, options?: { ignoreCooldown?: boolean }): ThrowResult;
+  /**
+   * Has someone hand over a burden. A small folded note, with nothing written on it, is in their hands: they stand
+   * up, walk to the stones, lean over them to put it on the ember bed, and walk back to sit down while it burns
+   * like paper and its ash rises. Works for anyone around the fire, so everyone in the room can watch anyone's
+   * burden burn; nothing about what was written ever reaches the scene. `onDone` is called when they are sitting
+   * again and the note has burned. With reduced motion nobody walks: the note is on the fire and fades into it.
+   */
+  handOverBurden(id: string, request: BurdenRequest): BurdenResult;
+  /**
+   * Where the note is in someone's hands, in window coordinates, and how tall it is there: for the page to fly
+   * a note to before the scene takes over. Nothing if they are not sitting down.
+   */
+  notePlacement(id: string): { x: number; y: number; height: number } | undefined;
+  /** Marks this person as the visitor: their animal gets a label when they arrive and a glow when they do something. */
+  setSelf(id: string | undefined): void;
   /** Seconds before they can throw wood again; 0 when they can throw now. */
   woodCooldown(id: string): number;
   members(): MemberInfo[];
   destroy(): void;
 }
 
+export interface BurdenRequest {
+  onDone: () => void;
+}
+
+export type BurdenResult = { status: "burning" } | { status: "not-seated" };
+
 export type ThrowResult =
   { status: "thrown" } | { status: "cooling"; secondsLeft: number } | { status: "not-seated" };
+
+export interface SceneFonts {
+  /** The interface font, for labels. */
+  ui: string;
+}
 
 interface SceneOptions {
   /** Accessible name for the canvas. */
   label: string;
+  /** What the visitor's own animal is labelled with. */
+  youLabel: string;
+  /** CSS font families for text drawn in the scene. They must already be loaded: drawn text is not redrawn when a font arrives. */
+  fonts: SceneFonts;
   /** Space reserved for UI at the top and bottom of the host. */
   insets?: Insets;
   /** Randomizes who sits where, once per scene, and seats everyone at the start. For checking every animal in every seat. */
@@ -62,6 +101,9 @@ interface Built {
   fire: Fire;
   seats: Seats;
   effects: WoodEffects;
+  notes: NoteEffects;
+  layout: SceneLayout;
+  you: YouMarker;
   textures: TextureBag;
 }
 
@@ -73,6 +115,8 @@ function build(
   intensity: number,
   sprites: SpriteArt,
   onSeated: (id: string) => void,
+  youLabel: string,
+  fonts: SceneFonts,
 ): Built {
   const layout = computeLayout(width, height, insets);
   const textures = new TextureBag();
@@ -80,6 +124,8 @@ function build(
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
   const effects = createWoodEffects(layout);
+  const notes = createNoteEffects(layout, fire.noteLayer);
+  const you = createYouMarker(layout, youLabel, fonts.ui);
 
   // Same draw order as the prototype: far people behind the fire, near people in front of it.
   const root = new Container();
@@ -92,9 +138,11 @@ function build(
     fire.glow,
     seats.near,
     effects.container,
+    notes.air,
+    you.container,
     background.front,
   );
-  return { root, background, fire, seats, effects, textures };
+  return { root, layout, background, fire, seats, effects, notes, you, textures };
 }
 
 export async function createScene(host: HTMLElement, options: SceneOptions): Promise<FogataScene> {
@@ -138,6 +186,12 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** The brief surge as a log lands, on top of the strength the fire settles at. */
   let flare = 0;
   const cooldowns = new WoodCooldowns();
+  /** Rituals in progress, each with what ends it at once. */
+  const rituals = new Set<() => void>();
+  // The visitor's own animal: when they sat down and when they last did something, in scene time.
+  let selfId: string | undefined;
+  let selfSeatedAt: number | undefined;
+  let glowSince: number | undefined;
   let intensity = fireIntensityFor(roster.seatedCount, fuel);
   let reduced = prefersReducedMotion();
   let time = 0;
@@ -154,6 +208,9 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     if (current) {
       // Logs still in the air land now, so none are lost.
       current.effects.landAll();
+      // A ritual cut off by the rebuild ends where it stands: everyone sits and the note is gone.
+      for (const finish of [...rituals]) finish();
+      current.notes.finishAll();
       app.stage.removeChild(current.root);
       current.root.destroy({ children: true });
       current.seats.destroy();
@@ -162,7 +219,17 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     // Anyone still walking in sits down where they were headed.
     roster.removeLeaving();
     roster.markAllSeated();
-    current = build(app, width, height, insets, intensity, sprites, (id) => roster.markSeated(id));
+    current = build(
+      app,
+      width,
+      height,
+      insets,
+      intensity,
+      sprites,
+      (id) => roster.markSeated(id),
+      options.youLabel,
+      options.fonts,
+    );
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
     // Let the fire burn for a few seconds before the first frame, so it is already going on load and
     // after a resize (which rebuilds it) instead of starting from nothing and growing back.
@@ -171,6 +238,18 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     app.stage.addChild(current.root);
   };
   rebuild();
+
+  /** Shows the label and glow on the visitor's animal, if they are sitting by the fire. */
+  const updateYou = () => {
+    if (!current) return;
+    const me = selfId ? roster.members().find((member) => member.id === selfId) : undefined;
+    if (me?.status !== "seated") selfSeatedAt = undefined;
+    else selfSeatedAt ??= time;
+    const at = selfId && selfSeatedAt !== undefined ? current.seats.anchor(selfId) : undefined;
+    const label = selfSeatedAt === undefined ? 0 : youLabelAlpha(time - selfSeatedAt);
+    const glow = glowSince === undefined ? 0 : gestureGlowAt(time - glowSince);
+    current.you.update(at, label, glow);
+  };
 
   app.ticker.add((ticker) => {
     if (!current) return;
@@ -181,6 +260,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     intensity = easeToward(intensity, fireIntensityFor(roster.seatedCount, fuel), dt, 0.8);
     current.fire.state.intensity = intensity + flare;
     current.effects.update(dt);
+    current.notes.update(dt);
+    updateYou();
     current.fire.update(dt, time, reduced);
     current.background.update(time, reduced, current.fire.state.light);
     current.seats.update(time, dt, reduced);
@@ -236,10 +317,15 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         cooldowns.forget(id);
       }
     },
-    throwWood(id) {
+    setSelf(id) {
+      selfId = id;
+      selfSeatedAt = undefined;
+      glowSince = undefined;
+    },
+    throwWood(id, { ignoreCooldown = false } = {}) {
       const member = roster.members().find((entry) => entry.id === id);
       if (!member || member.status !== "seated") return { status: "not-seated" };
-      const secondsLeft = cooldowns.remaining(id, time);
+      const secondsLeft = ignoreCooldown ? 0 : cooldowns.remaining(id, time);
       if (secondsLeft > 0) return { status: "cooling", secondsLeft };
       // The log is added to the fire once it lands, whatever happens to the scene before that.
       const land = () => {
@@ -257,6 +343,81 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       }
       cooldowns.record(id, time);
       return { status: "thrown" };
+    },
+    notePlacement(id) {
+      const hand = current?.seats.hand(id);
+      const member = roster.members().find((entry) => entry.id === id);
+      if (!hand || member?.status !== "seated") return undefined;
+      const page = host.getBoundingClientRect();
+      return {
+        x: hand.x + page.left,
+        y: hand.y + page.top,
+        height: NOTE_HEIGHT_UNITS * hand.scale,
+      };
+    },
+    handOverBurden(id, { onDone }) {
+      const member = roster.members().find((entry) => entry.id === id);
+      if (!member || member.status !== "seated" || !current) return { status: "not-seated" };
+      const hand = current.seats.hand(id);
+      if (!hand) return { status: "not-seated" };
+
+      // The ritual is over when they are sitting again and the note has burned, whichever comes last.
+      let seated = false;
+      let burned = false;
+      let ended = false;
+      const end = () => {
+        if (ended || !seated || !burned) return;
+        ended = true;
+        rituals.delete(abort);
+        onDone();
+      };
+      const hooks: NoteHooks = {
+        onLand: () => {
+          flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
+          current?.fire.burst(reduced ? 0 : 6);
+        },
+        onEmbers: (count) => current?.fire.burst(reduced ? 0 : count),
+        onDone: () => {
+          burned = true;
+          end();
+        },
+      };
+      let note: NoteHandle | undefined;
+      const abort = () => {
+        seated = true;
+        note?.finish();
+        end();
+      };
+
+      if (reduced) {
+        // Nobody walks: the note is on the fire and fades into it.
+        seated = true;
+        note = current.notes.fadeIn(hand.x < current.layout.cx ? -1 : 1, hooks);
+        rituals.add(abort);
+        if (id === selfId) glowSince = time;
+        return { status: "burning" };
+      }
+      note = current.notes.carry(
+        () => current?.seats.hand(id),
+        hooks,
+        Math.floor(time * 1000) >>> 0,
+      );
+      const started = current.seats.errand(id, {
+        // They stand on the opposite side of the fire from the way they face; the note goes to their side.
+        onRelease: (heading) => note?.release(heading === 1 ? -1 : 1),
+        onReturned: () => {
+          seated = true;
+          end();
+        },
+        onCancel: () => abort(),
+      });
+      if (!started) {
+        note.finish();
+        return { status: "not-seated" };
+      }
+      rituals.add(abort);
+      if (id === selfId) glowSince = time;
+      return { status: "burning" };
     },
     woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),

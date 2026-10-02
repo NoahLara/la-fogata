@@ -270,3 +270,94 @@ export function planDeparture(
     startHeading: second.x >= first.x ? 1 : -1,
   };
 }
+
+/** Where someone stands to put something on the fire: just outside the stones, to one side of it. */
+const SPOT = { rx: 76, ry: 27 } as const;
+/** The spot is never closer than this to straight in front of or behind the fire (cosine of the angle from the side). */
+const MIN_SIDE = 0.55;
+
+export interface ErrandPlan {
+  /** From the seat (or the ground in front of its log) to the spot beside the stones. */
+  out: DeparturePlan;
+  /** The way back: the way out, run backwards. */
+  back: ArrivalPlan;
+  /** Where they stand to put it on the fire. */
+  spot: Point;
+  /** Which way they face there, toward the fire: 1 to the right, -1 to the left. */
+  heading: 1 | -1;
+}
+
+/**
+ * The short walk from a seat to the stones and back, to put something on the fire. Whatever the seat, the spot
+ * is on a flank of the ring (so the walker, drawn from the side, faces the fire), and the way there bends
+ * around the fire instead of through it; only the last few steps cross into the zone nobody else enters.
+ */
+export function planErrand(
+  layout: SceneLayout,
+  seat: SeatPosition,
+  { log }: { log: boolean },
+): ErrandPlan {
+  const zone = keepOutZone(layout);
+  const approach: Point = log
+    ? { x: seat.x, y: seat.y + layout.characterHeight * 0.1 }
+    : { x: seat.x, y: seat.y };
+
+  // The angle of the seat around the fire, in the ring's own (circular) units, pushed to the side if it is too
+  // close to straight in front or behind.
+  const ax = (approach.x - layout.cx) / layout.rx;
+  const ay = (approach.y - layout.cy) / layout.ry;
+  let angle = Math.atan2(ay, ax);
+  const side = ax >= 0 ? 1 : -1;
+  if (Math.abs(Math.cos(angle)) < MIN_SIDE) {
+    const sign = Math.sin(angle) >= 0 ? 1 : -1;
+    const widened = Math.acos(MIN_SIDE);
+    angle = side > 0 ? sign * widened : sign * (Math.PI - widened);
+  }
+  const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+  const spot: Point = {
+    x: layout.cx + direction.x * SPOT.rx * layout.u,
+    y: layout.cy + direction.y * SPOT.ry * layout.u,
+  };
+  // Where that line meets the edge of the zone: the walk goes there on the open ground, then steps in.
+  const edge: Point = {
+    x: zone.cx + direction.x * zone.rx * 1.02,
+    y: zone.cy + direction.y * zone.ry * 1.02,
+  };
+
+  const controls: Point[] = [approach];
+  if (crossesZone(zone, approach, edge)) {
+    controls.push(waypointAround(zone, approach, edge, seat.y >= layout.cy));
+  }
+  controls.push(edge);
+  const samples = smoothCurve(controls).map((point) => pushOut(zone, point));
+  const steps = 6;
+  for (let i = 1; i <= steps; i++) {
+    samples.push({
+      x: edge.x + ((spot.x - edge.x) * i) / steps,
+      y: edge.y + ((spot.y - edge.y) * i) / steps,
+    });
+  }
+  samples[0] = approach;
+  samples[samples.length - 1] = spot;
+
+  const heading: 1 | -1 = layout.cx >= spot.x ? 1 : -1;
+  const second = samples[1] ?? spot;
+  const reversed = [...samples].reverse();
+  const backSecond = reversed[1] ?? approach;
+  return {
+    out: {
+      path: pathFromPoints(samples),
+      approach,
+      toTrees: false,
+      startHeading: second.x >= approach.x ? 1 : -1,
+    },
+    back: {
+      path: pathFromPoints(reversed),
+      approach,
+      fromTrees: false,
+      endHeading: approach.x >= backSecond.x ? 1 : -1,
+    },
+    spot,
+    heading,
+  };
+}
