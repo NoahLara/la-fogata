@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SPECIES, type Species } from "./characters/species";
-import { pickArrival, pickLeaver } from "./demo";
+import { pickArrival, pickLeaver, pickThrower } from "./demo";
 import type { MemberInfo } from "./roster";
 import { createRandom } from "./random";
 
@@ -55,5 +55,35 @@ describe("pickLeaver", () => {
   it("returns nothing when no one is sitting there", () => {
     expect(pickLeaver(createRandom(1), [])).toBeUndefined();
     expect(pickLeaver(createRandom(1), [member("a", "arriving")])).toBeUndefined();
+  });
+});
+
+describe("pickThrower", () => {
+  const member = (id: string, status: MemberInfo["status"] = "seated"): MemberInfo => ({
+    id,
+    species: "fox",
+    seat: 0,
+    status,
+  });
+
+  it("picks someone who can throw, never someone who is waiting or not sitting", () => {
+    const members = [member("a"), member("b"), member("c", "leaving"), member("d", "arriving")];
+    const waiting: Record<string, number> = { a: 30, b: 0, c: 0, d: 0 };
+    for (let seed = 1; seed <= 20; seed++) {
+      expect(pickThrower(createRandom(seed), members, (id) => waiting[id] ?? 0)).toEqual({
+        id: "b",
+      });
+    }
+  });
+
+  it("says how long until someone can when everyone is waiting", () => {
+    const members = [member("a"), member("b")];
+    const waiting: Record<string, number> = { a: 42, b: 17 };
+    expect(pickThrower(createRandom(1), members, (id) => waiting[id] ?? 0)).toEqual({ wait: 17 });
+  });
+
+  it("returns nothing when no one is sitting there", () => {
+    expect(pickThrower(createRandom(1), [], () => 0)).toBeUndefined();
+    expect(pickThrower(createRandom(1), [member("a", "arriving")], () => 0)).toBeUndefined();
   });
 });

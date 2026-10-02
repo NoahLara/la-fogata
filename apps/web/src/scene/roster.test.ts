@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireIntensityFor, Roster } from "./roster";
+import { Roster } from "./roster";
 
 describe("Roster", () => {
   it("adds people to free seats", () => {
@@ -82,12 +82,5 @@ describe("Roster leaving", () => {
     roster.removeLeaving();
     roster.markAllSeated();
     expect(roster.seatedCount).toBe(0);
-  });
-});
-
-describe("fireIntensityFor", () => {
-  it("grows a little with each person, and seven give the old fixed strength", () => {
-    expect(fireIntensityFor(1)).toBeGreaterThan(fireIntensityFor(0));
-    expect(fireIntensityFor(7)).toBeCloseTo(0.72 + 0.06 * 7);
   });
 });

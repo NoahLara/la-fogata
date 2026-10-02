@@ -33,3 +33,18 @@ export function pickLeaver(rand: Random, members: readonly MemberInfo[]): string
   const seated = members.filter((member) => member.status === "seated");
   return seated.length ? pick(rand, seated).id : undefined;
 }
+
+/** Who throws wood next in the demo: someone sitting by the fire who can, or how long until someone can. */
+export type ThrowerChoice = { id: string } | { wait: number };
+
+export function pickThrower(
+  rand: Random,
+  members: readonly MemberInfo[],
+  cooldownOf: (id: string) => number,
+): ThrowerChoice | undefined {
+  const seated = members.filter((member) => member.status === "seated");
+  if (seated.length === 0) return undefined;
+  const ready = seated.filter((member) => cooldownOf(member.id) === 0);
+  if (ready.length > 0) return { id: pick(rand, ready).id };
+  return { wait: Math.min(...seated.map((member) => cooldownOf(member.id))) };
+}

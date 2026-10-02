@@ -73,11 +73,3 @@ export class Roster {
     return [...this.entries.values()].filter((entry) => entry.status === "seated").length;
   }
 }
-
-const FIRE_BASE = 0.72;
-const FIRE_PER_MEMBER = 0.06;
-
-/** The fire's strength for a number of seated people: it grows a little with each one. Seven give the old fixed value. */
-export function fireIntensityFor(seatedCount: number): number {
-  return FIRE_BASE + FIRE_PER_MEMBER * seatedCount;
-}

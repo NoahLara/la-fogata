@@ -3,13 +3,15 @@ import { createBackground, type Background } from "./background";
 import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
+import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
 import { easeToward } from "./math";
 import { computeLayout, type Insets } from "./layout";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
-import { fireIntensityFor, Roster, type MemberInfo, type MemberSpec } from "./roster";
+import { Roster, type MemberInfo, type MemberSpec } from "./roster";
 import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
 import { shuffled } from "./random";
 import { TextureBag } from "./textures";
+import { createWoodEffects, type WoodEffects } from "./woodEffects";
 
 export interface FogataScene {
   /** How many seats there are around the fire. */
@@ -24,9 +26,19 @@ export interface FogataScene {
    * without it they are just gone. Does nothing (and warns) if they are not around or still arriving.
    */
   removeMember(id: string, options: { animate: boolean }): void;
+  /**
+   * Has someone throw a log into the fire, which makes it stronger for a while. Everyone can throw one a
+   * minute; the fire can only get so big.
+   */
+  throwWood(id: string): ThrowResult;
+  /** Seconds before they can throw wood again; 0 when they can throw now. */
+  woodCooldown(id: string): number;
   members(): MemberInfo[];
   destroy(): void;
 }
+
+export type ThrowResult =
+  { status: "thrown" } | { status: "cooling"; secondsLeft: number } | { status: "not-seated" };
 
 interface SceneOptions {
   /** Accessible name for the canvas. */
@@ -49,6 +61,7 @@ interface Built {
   background: Background;
   fire: Fire;
   seats: Seats;
+  effects: WoodEffects;
   textures: TextureBag;
 }
 
@@ -66,6 +79,7 @@ function build(
   const background = createBackground(layout, textures);
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
+  const effects = createWoodEffects(layout);
 
   // Same draw order as the prototype: far people behind the fire, near people in front of it.
   const root = new Container();
@@ -77,9 +91,10 @@ function build(
     fire.body,
     fire.glow,
     seats.near,
+    effects.container,
     background.front,
   );
-  return { root, background, fire, seats, textures };
+  return { root, background, fire, seats, effects, textures };
 }
 
 export async function createScene(host: HTMLElement, options: SceneOptions): Promise<FogataScene> {
@@ -118,8 +133,12 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   assignment?.forEach((species, seat) => {
     roster.add({ id: `seat-${seat}`, species, seat }, "seated");
   });
-  // The fire eases toward the strength the seated people give it, and starts at it.
-  let intensity = fireIntensityFor(roster.seatedCount);
+  // The fire eases toward the strength the people and the wood give it, and starts at it.
+  let fuel = 0;
+  /** The brief surge as a log lands, on top of the strength the fire settles at. */
+  let flare = 0;
+  const cooldowns = new WoodCooldowns();
+  let intensity = fireIntensityFor(roster.seatedCount, fuel);
   let reduced = prefersReducedMotion();
   let time = 0;
   let current: Built | undefined;
@@ -133,6 +152,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     builtWidth = width;
     builtHeight = height;
     if (current) {
+      // Logs still in the air land now, so none are lost.
+      current.effects.landAll();
       app.stage.removeChild(current.root);
       current.root.destroy({ children: true });
       current.seats.destroy();
@@ -155,8 +176,11 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     if (!current) return;
     const dt = Math.min(0.05, ticker.deltaMS / 1000);
     time += dt;
-    intensity = easeToward(intensity, fireIntensityFor(roster.seatedCount), dt, 0.8);
-    current.fire.state.intensity = intensity;
+    fuel = burn(fuel, dt);
+    flare = easeToward(flare, 0, dt, 0.9);
+    intensity = easeToward(intensity, fireIntensityFor(roster.seatedCount, fuel), dt, 0.8);
+    current.fire.state.intensity = intensity + flare;
+    current.effects.update(dt);
     current.fire.update(dt, time, reduced);
     current.background.update(time, reduced, current.fire.state.light);
     current.seats.update(time, dt, reduced);
@@ -203,9 +227,38 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       // Leaving people stop feeding the fire at once, and their seat stays taken until they are gone.
       roster.markLeaving(id);
       const mode = animate ? (reduced ? "fade" : "walk") : "instant";
-      const started = current?.seats.removeMember(id, mode, Math.random, () => roster.remove(id));
-      if (!started) roster.remove(id);
+      const started = current?.seats.removeMember(id, mode, Math.random, () => {
+        roster.remove(id);
+        cooldowns.forget(id);
+      });
+      if (!started) {
+        roster.remove(id);
+        cooldowns.forget(id);
+      }
     },
+    throwWood(id) {
+      const member = roster.members().find((entry) => entry.id === id);
+      if (!member || member.status !== "seated") return { status: "not-seated" };
+      const secondsLeft = cooldowns.remaining(id, time);
+      if (secondsLeft > 0) return { status: "cooling", secondsLeft };
+      // The log is added to the fire once it lands, whatever happens to the scene before that.
+      const land = () => {
+        fuel = addLog(fuel);
+        flare = Math.min(flare + FIRE.flarePerLog, 0.6);
+        current?.fire.burst(reduced ? 0 : 14);
+      };
+      if (reduced) {
+        // Without motion nobody swings an arm: the log simply goes into the fire.
+        land();
+      } else {
+        const hand = current?.seats.toss(id);
+        if (!current || !hand) return { status: "not-seated" };
+        current.effects.launch({ x: hand.x, y: hand.y }, hand.scale, land);
+      }
+      cooldowns.record(id, time);
+      return { status: "thrown" };
+    },
+    woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),
     destroy() {
       rebuildWhenSettled.cancel();

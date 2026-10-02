@@ -22,6 +22,7 @@ import { partsFor } from "./parts";
 import { createSoftMesh, type SoftMesh } from "./softMesh";
 import { OVERLAY_COLORS, type TextureBag } from "./textures";
 import { pointAt, scaleRatioAt, type ArrivalPlan, type DeparturePlan } from "./walk";
+import { swingAt } from "./woodThrow";
 import { bobAt, exposureAt, fadeInAt, turnWidth, walkerTint } from "./walkerLook";
 import type { SeatPosition } from "./layout";
 
@@ -277,6 +278,11 @@ export interface Member {
    * should then drop and destroy the member. Returns false if they have not finished arriving.
    */
   leave(exit: Exit, onGone: () => void): boolean;
+  /**
+   * Swings an arm to throw a log: the character stretches up for a moment. Returns where the log leaves their
+   * hands and how big a unit is there, or nothing if they are not sitting down.
+   */
+  toss(): { x: number; y: number; scale: number } | undefined;
   destroy(): void;
 }
 
@@ -360,7 +366,7 @@ export function createMember(
         lift: rig.raise,
         walking: false,
         squash: 1,
-        sit: 1,
+        sit: 1 + (tossStart === undefined ? 0 : swingAt(elapsed - tossStart)),
         exposure: 1,
         fade: entrance?.kind === "fade" ? smoothstep(0, FADE_SECONDS, elapsed) : 1,
         travelled: 0,
@@ -495,7 +501,7 @@ export function createMember(
 
   const applySeatRig = (pose: Pose, depth: number, breath: number) => {
     const intensity = fire.intensity;
-    const light = clamp(fire.light, 0.4, 1.4);
+    const light = clamp(fire.light, 0.12, 1.4);
     const falloff = 1 - rig.distance * 0.2;
     rig.body.tint = nightTint(evaluateCurve(rig.lighting.bodyTint, rig.distance, intensity));
     rig.lit.alpha = rig.lighting.litAlpha * light * falloff;
@@ -544,7 +550,7 @@ export function createMember(
     w.body.tint = nightTint(
       walkerTint(pose.exposure, evaluateCurve(lighting.bodyTint, distance, intensity)),
     );
-    const light = clamp(fire.light, 0.4, 1.4) * (1 - distance * 0.2) * pose.exposure;
+    const light = clamp(fire.light, 0.12, 1.4) * (1 - distance * 0.2) * pose.exposure;
     // Which way the art faces on screen: the unmirrored art faces left.
     const facing = w.directional ? (heading > 0 ? 1 : -1) : -1;
     const front = smoothstep(-0.6, 0.6, toFire.x * facing);
@@ -560,7 +566,7 @@ export function createMember(
   const applyCast = (pose: Pose, depth: number) => {
     const k = rig.k * depth;
     const scale = rig.scale * depth;
-    const light = clamp(fire.light, 0.4, 1.4);
+    const light = clamp(fire.light, 0.12, 1.4);
     const visible = pose.fade * (0.35 + 0.65 * pose.exposure);
 
     let dx = pose.x - cx;
@@ -583,6 +589,8 @@ export function createMember(
   };
 
   let gone = false;
+  /** When the last toss began, in `elapsed` time. */
+  let tossStart: number | undefined;
 
   const update = (time: number, dt: number, reduced: boolean) => {
     if (gone) return;
@@ -643,6 +651,11 @@ export function createMember(
   return {
     id,
     update,
+    toss() {
+      if (!announced || leaving) return undefined;
+      tossStart = elapsed;
+      return { x: seat.x, y: seat.y - rig.raise - 55 * rig.k, scale: rig.k };
+    },
     leave(exit, onGone) {
       if (!announced || leaving) return false;
       if (exit.kind === "walk") {

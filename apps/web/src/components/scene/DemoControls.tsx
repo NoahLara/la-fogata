@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { es } from "@/i18n/es";
-import { pickArrival, pickLeaver } from "@/scene/demo";
+import { pickArrival, pickLeaver, pickThrower } from "@/scene/demo";
 import type { FogataScene } from "@/scene/createScene";
 import type { Species } from "@/scene/characters/species";
 
@@ -23,6 +24,21 @@ export function DemoControls({ scene }: { scene: FogataScene }) {
     if (arrival) scene.addMember({ id: `demo-${nextId++}`, ...arrival }, { animate: true });
   };
 
+  const [notice, setNotice] = useState<string>();
+  // The notice goes away by itself.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 2500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const throwWood = () => {
+    const choice = pickThrower(Math.random, scene.members(), (id) => scene.woodCooldown(id));
+    if (!choice) return;
+    if ("id" in choice) scene.throwWood(choice.id);
+    else setNotice(es.demo.nobodyReady.replace("{seconds}", String(Math.ceil(choice.wait))));
+  };
+
   const leave = () => {
     const id = pickLeaver(Math.random, scene.members());
     if (id) scene.removeMember(id, { animate: true });
@@ -40,6 +56,15 @@ export function DemoControls({ scene }: { scene: FogataScene }) {
       <button type="button" onClick={leave} className={BUTTON}>
         {es.demo.leaves}
       </button>
+      <button type="button" onClick={throwWood} className={BUTTON}>
+        {es.demo.throws}
+      </button>
+      <p
+        aria-live="polite"
+        className="absolute bottom-full left-1/2 mb-2 w-max max-w-[80vw] -translate-x-1/2 text-center text-sm text-[#ffd9a0]"
+      >
+        {notice}
+      </p>
     </div>
   );
 }

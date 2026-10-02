@@ -52,6 +52,8 @@ export interface Seats {
    * (`instant`). `onGone` is called when they are gone. Returns false if they are not around or still arriving.
    */
   removeMember(id: string, mode: EntranceMode, rand: Random, onGone: () => void): boolean;
+  /** Has someone swing an arm to throw a log; see `Member.toss`. */
+  toss(id: string): { x: number; y: number; scale: number } | undefined;
   update(time: number, dt: number, reduced: boolean): void;
   destroy(): void;
 }
@@ -174,7 +176,7 @@ export function createSeats(
   }
 
   const updateLogs = () => {
-    const light = clamp(fire.light, 0.4, 1.4);
+    const light = clamp(fire.light, 0.12, 1.4);
     for (const log of logs) {
       log.body.tint = nightTint(evaluateCurve(log.lighting.logTint, log.distance, fire.intensity));
       log.warm.alpha = clamp(light * (1 - log.distance * 0.25), 0, 1);
@@ -239,6 +241,7 @@ export function createSeats(
       }
       return entry.member.leave(exit, finish);
     },
+    toss: (id) => members.get(id)?.member.toss(),
     update(time, dt, reduced) {
       updateLogs();
       for (const { member } of members.values()) member.update(time, dt, reduced);
