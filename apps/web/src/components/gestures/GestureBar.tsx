@@ -67,7 +67,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const [afterglow, setAfterglow] = useState<string>();
   // Nothing else can be done while a ritual runs, from pressing the button to sitting down again, or while a
   // star turns golden or goes back to the fire.
-  const { busy: ritual, hold, message } = useInteraction();
+  const { busy: ritual, hold, message, notifyFire, reportDialog } = useInteraction();
   const releaseRitual = useRef<(() => void) | undefined>(undefined);
   const setRitual = useCallback(
     (on: boolean) => {
@@ -91,6 +91,12 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const [helpFor, setHelpFor] = useState<"burden" | "petition">("burden");
   const [cooling, setCooling] = useState(false);
   const timers = useRef(new Set<number>());
+
+  // The fire doesn't speak over a dialog, and stays quiet around the help screen.
+  useEffect(() => {
+    reportDialog("gestures", dialog === undefined ? "none" : dialog === "help" ? "help" : "dialog");
+  }, [dialog, reportDialog]);
+  useEffect(() => () => reportDialog("gestures", "none"), [reportDialog]);
 
   const later = useCallback((action: () => void, ms: number) => {
     const timer = window.setTimeout(() => {
@@ -164,6 +170,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
           onDone: () => {
             setRitual(false);
             setAfterglow(t.burden.afterglow);
+            // Someone whose words showed signs of risk is shown the help screen next: the fire stays quiet.
+            if (!atRisk.current) notifyFire("burden");
             later(() => {
               setAfterglow(undefined);
               if (atRisk.current) {
@@ -251,6 +259,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
               pending.current = undefined;
               setRitual(false);
               setAfterglow(t.petition.afterglow);
+              notifyFire("petition");
               focusGesture("petition");
               later(() => setAfterglow(undefined), STAR_AFTERGLOW_MS);
             },

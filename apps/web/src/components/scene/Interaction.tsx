@@ -10,6 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Emitter } from "@/data/emitter";
+import type { TriggerEvent } from "@/fire/triggerPolicy";
 
 /** How long a word under the scene stays before it fades. */
 const MESSAGE_MS = 4000;
@@ -22,6 +24,16 @@ interface Interaction {
   /** A line shown, and said aloud, under the scene for a few seconds. */
   message: string | undefined;
   say: (text: string) => void;
+  /** Said aloud only, for something already shown on the page. */
+  announce: (text: string) => void;
+  /** Something happened that the fire may answer with a word: a burden burned, a star settled, or being alone. */
+  notifyFire: (event: TriggerEvent) => void;
+  /** Hears `notifyFire`. Returns a way to stop. */
+  onFire: (listener: (event: TriggerEvent) => void) => () => void;
+  /** Tells what is open over the scene (a dialog or the help screen), so the fire doesn't speak over it. */
+  reportDialog: (source: string, state: "none" | "dialog" | "help") => void;
+  /** What is open now, and how long ago the help screen was last on screen (0 while it is). */
+  dialogState: () => { open: boolean; msSinceHelp: number | undefined };
 }
 
 const InteractionContext = createContext<Interaction | undefined>(undefined);
@@ -30,6 +42,7 @@ const InteractionContext = createContext<Interaction | undefined>(undefined);
 export function InteractionProvider({ children }: { children: ReactNode }) {
   const [holds, setHolds] = useState(0);
   const [message, setMessage] = useState<string>();
+  const [announcement, setAnnouncement] = useState("");
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -50,11 +63,55 @@ export function InteractionProvider({ children }: { children: ReactNode }) {
     timer.current = window.setTimeout(() => setMessage(undefined), MESSAGE_MS);
   }, []);
 
-  const value = useMemo(
-    () => ({ busy: holds > 0, hold, message, say }),
-    [holds, hold, message, say],
+  const announce = useCallback((text: string) => setAnnouncement(text), []);
+
+  const fireEvents = useRef(new Emitter<TriggerEvent>());
+  const notifyFire = useCallback((event: TriggerEvent) => fireEvents.current.emit(event), []);
+  const onFire = useCallback(
+    (listener: (event: TriggerEvent) => void) => fireEvents.current.subscribe(listener),
+    [],
   );
-  return <InteractionContext.Provider value={value}>{children}</InteractionContext.Provider>;
+
+  // What is open over the scene, by who reports it, and when the help screen last closed.
+  const dialogs = useRef(new Map<string, "dialog" | "help">());
+  const helpClosedAt = useRef<number | undefined>(undefined);
+  const reportDialog = useCallback((source: string, state: "none" | "dialog" | "help") => {
+    const before = dialogs.current.get(source);
+    if (state === "none") dialogs.current.delete(source);
+    else dialogs.current.set(source, state);
+    if (before === "help" && state !== "help") helpClosedAt.current = Date.now();
+  }, []);
+  const dialogState = useCallback(() => {
+    const helpOpen = [...dialogs.current.values()].includes("help");
+    const closedAt = helpClosedAt.current;
+    return {
+      open: dialogs.current.size > 0,
+      msSinceHelp: helpOpen ? 0 : closedAt === undefined ? undefined : Date.now() - closedAt,
+    };
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      busy: holds > 0,
+      hold,
+      message,
+      say,
+      announce,
+      notifyFire,
+      onFire,
+      reportDialog,
+      dialogState,
+    }),
+    [holds, hold, message, say, announce, notifyFire, onFire, reportDialog, dialogState],
+  );
+  return (
+    <InteractionContext.Provider value={value}>
+      {children}
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
+    </InteractionContext.Provider>
+  );
 }
 
 export function useInteraction(): Interaction {

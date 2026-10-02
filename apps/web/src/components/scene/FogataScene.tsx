@@ -10,6 +10,7 @@ import { GestureBar } from "../gestures/GestureBar";
 import { PetitionSky } from "../sky/PetitionSky";
 import { InteractionProvider } from "./Interaction";
 import { DemoControls } from "./DemoControls";
+import { WordFromFire } from "./WordFromFire";
 
 /** Room at the bottom of the scene for the gesture bar. */
 const BAR_HEIGHT = 72;
@@ -125,6 +126,7 @@ export function FogataScene() {
       {mounted && (
         <DataProvider services={mounted.services}>
           <InteractionProvider>
+            <WordFromFire scene={mounted.scene} unlimited={demo} />
             <PetitionSky scene={mounted.scene} />
             <GestureBar scene={mounted.scene} />
             {demo && <DemoControls local={mounted.services} scene={mounted.scene} />}

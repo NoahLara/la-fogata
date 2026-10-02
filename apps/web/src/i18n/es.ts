@@ -89,6 +89,35 @@ export const es = {
     notFound: "Esa petición ya no está. La estrella sigue en su lugar.",
     failed: "No se pudo. La estrella sigue en su lugar.",
   },
+  fire: {
+    // The name of the invisible button over the flames.
+    listen: "Escuchar al fuego",
+    // The tiny verse number under the word; it reveals the reference. {number} is like "41:10".
+    showReference: "Ver la referencia de {number}",
+    hideReference: "Ocultar la referencia de {number}",
+    // The full reference. {book} {number}, for example "Isaías 41:10".
+    reference: "{book} {number}",
+    // Credit for the Spanish text. Exactly as the publisher asks; the About page shows it too.
+    notice:
+      "Texto bíblico: Traducción en lenguaje actual™ © Sociedades Bíblicas Unidas, 2002, 2004. Utilizado con permiso.",
+  },
+  books: {
+    isaiah: "Isaías",
+    psalms: "Salmos",
+    matthew: "Mateo",
+    hebrews: "Hebreos",
+    joshua: "Josué",
+    galatians: "Gálatas",
+    john: "Juan",
+    songOfSongs: "Cantares",
+    jeremiah: "Jeremías",
+    revelation: "Apocalipsis",
+    ecclesiastes: "Eclesiastés",
+    romans: "Romanos",
+    proverbs: "Proverbios",
+    thessalonians1: "1 Tesalonicenses",
+    corinthians2: "2 Corintios",
+  },
   help: {
     title: "Mereces apoyo ahora",
     body: "Lo que escribiste se quemó y nadie lo vio. Si estás pasando por algo muy difícil, hablar con una persona puede ayudar, y hay líneas de ayuda gratuitas en casi todos los países.",

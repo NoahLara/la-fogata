@@ -6,7 +6,11 @@ import { getLocale } from "@/i18n/server";
 import "./globals.css";
 
 // Self-hosted at build time: visitors never contact Google.
-const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
 const atkinson = Atkinson_Hyperlegible_Next({ variable: "--font-atkinson", subsets: ["latin"] });
 const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin"] });
 
