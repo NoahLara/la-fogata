@@ -4,6 +4,8 @@ interface DevFlags {
   animal?: string;
   /** `?shuffle`: randomize who sits where. */
   shuffle: boolean;
+  /** `?demo`: buttons to make people arrive and leave. */
+  demo: boolean;
 }
 
 /**
@@ -11,8 +13,12 @@ interface DevFlags {
  * the URL says, so these can never change what a visitor sees. Kept free of PixiJS so any code can import it.
  */
 export function readDevFlags(search: string, production: boolean): DevFlags {
-  if (production) return { shuffle: false };
+  if (production) return { shuffle: false, demo: false };
   const params = new URLSearchParams(search);
   const animal = params.get("animal");
-  return { shuffle: params.has("shuffle"), ...(animal ? { animal } : {}) };
+  return {
+    shuffle: params.has("shuffle"),
+    demo: params.has("demo"),
+    ...(animal ? { animal } : {}),
+  };
 }

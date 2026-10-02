@@ -25,3 +25,12 @@ export function smoothstep(from: number, to: number, value: number): number {
 export function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
+
+export function lerp(from: number, to: number, t: number): number {
+  return from + (to - from) * t;
+}
+
+/** Moves `current` toward `target` exponentially, with time constant `tau` seconds. Frame-rate independent. */
+export function easeToward(current: number, target: number, dt: number, tau: number): number {
+  return target + (current - target) * Math.exp(-dt / tau);
+}

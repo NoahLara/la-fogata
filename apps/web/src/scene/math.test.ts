@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { between, clamp, randomInt, smoothstep, TAU, toRadians } from "./math";
+import { between, clamp, easeToward, lerp, randomInt, smoothstep, TAU, toRadians } from "./math";
 import { createRandom } from "./random";
 
 describe("clamp", () => {
@@ -62,5 +62,24 @@ describe("toRadians", () => {
     expect(toRadians(180)).toBe(Math.PI);
     expect(toRadians(90)).toBeCloseTo(Math.PI / 2, 12);
     expect(toRadians(360)).toBeCloseTo(TAU, 12);
+  });
+});
+
+describe("lerp", () => {
+  it("blends between two values", () => {
+    expect(lerp(10, 20, 0)).toBe(10);
+    expect(lerp(10, 20, 0.5)).toBe(15);
+    expect(lerp(10, 20, 1)).toBe(20);
+  });
+});
+
+describe("easeToward", () => {
+  it("approaches the target without overshooting, at any frame rate", () => {
+    const once = easeToward(0, 1, 1, 1);
+    expect(once).toBeGreaterThan(0.6);
+    expect(once).toBeLessThan(1);
+    let stepped = 0;
+    for (let i = 0; i < 60; i++) stepped = easeToward(stepped, 1, 1 / 60, 1);
+    expect(stepped).toBeCloseTo(once, 10);
   });
 });
