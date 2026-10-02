@@ -12,6 +12,8 @@ export interface YouMarker {
     label: number,
     glow: number,
   ): void;
+  /** Changes the label's words (the language changed). */
+  setText(text: string): void;
   destroy(): void;
 }
 
@@ -49,6 +51,9 @@ export function createYouMarker(layout: SceneLayout, text: string, fontFamily: s
       label.visible = labelAlpha > 0.01;
       label.position.set(at.x, at.y - 62 * at.scale);
       label.alpha = labelAlpha;
+    },
+    setText(text) {
+      label.text = text;
     },
     destroy() {
       container.destroy({ children: true });

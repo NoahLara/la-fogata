@@ -2,7 +2,7 @@
 
 import { pick } from "@/scene/random";
 import type { LocalServices } from "@/data";
-import { es } from "@/i18n/es";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 
 const BUTTON =
@@ -10,6 +10,7 @@ const BUTTON =
 
 /** Development-only buttons (behind ?demo) to make other people arrive at and leave the fire. */
 export function DemoControls({ local, scene }: { local: LocalServices; scene: FogataScene }) {
+  const { t } = useI18n();
   const leave = () => {
     // The visitor stays: only others can be sent away.
     const others = local.presence
@@ -28,17 +29,17 @@ export function DemoControls({ local, scene }: { local: LocalServices; scene: Fo
   return (
     <div
       role="group"
-      aria-label={es.demo.groupLabel}
+      aria-label={t.demo.groupLabel}
       className="absolute bottom-20 left-1/2 z-10 flex -translate-x-1/2 gap-3"
     >
       <button type="button" onClick={() => local.presence.addPeer()} className={BUTTON}>
-        {es.demo.arrives}
+        {t.demo.arrives}
       </button>
       <button type="button" onClick={leave} className={BUTTON}>
-        {es.demo.leaves}
+        {t.demo.leaves}
       </button>
       <button type="button" onClick={burden} className={BUTTON}>
-        {es.demo.burden}
+        {t.demo.burden}
       </button>
     </div>
   );

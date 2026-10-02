@@ -6,7 +6,8 @@ import { PETITION_ANSWER_MAX_LENGTH } from "@/data/limits";
 import type { Petition } from "@/data/types";
 import { paperOutline, PAPER_SEED } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
-import { es } from "@/i18n/es";
+import { format } from "@/i18n/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import { limitAnswer } from "@/petition/petition";
 
 const OUTLINE = paperOutline(PAPER_SEED)
@@ -61,6 +62,7 @@ export function StarCard({
   onAnswer: (line: string) => Promise<string | undefined>;
   onReturn: () => Promise<string | undefined>;
 }) {
+  const { t } = useI18n();
   const [view, setView] = useState<View>("details");
   const [line, setLine] = useState("");
   const [notice, setNotice] = useState<string>();
@@ -118,7 +120,7 @@ export function StarCard({
       }
     } catch (error) {
       console.error("Could not change the petition", error);
-      setNotice(es.sky.failed);
+      setNotice(t.sky.failed);
       setView("details");
     } finally {
       setWorking(false);
@@ -164,10 +166,10 @@ export function StarCard({
           </p>
           {answered && (
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-ink-soft">{es.sky.answered}</p>
+              <p className="text-sm font-medium text-ink-soft">{t.sky.answered}</p>
               {answered.note && (
                 <>
-                  <p className="text-sm text-ink-soft">{es.sky.answerFieldLabel}</p>
+                  <p className="text-sm text-ink-soft">{t.sky.answerFieldLabel}</p>
                   <p className="font-hand text-[1.5rem] leading-8 break-words text-ink">
                     {answered.note}
                   </p>
@@ -185,14 +187,14 @@ export function StarCard({
               }}
             >
               <label htmlFor={`${textId}-line`} className="text-sm text-ink-soft">
-                {es.sky.answerFieldLabel}
+                {t.sky.answerFieldLabel}
               </label>
               <textarea
                 id={`${textId}-line`}
                 autoFocus
                 value={line}
                 onChange={(event) => setLine(limitAnswer(event.target.value))}
-                placeholder={es.sky.answerPlaceholder}
+                placeholder={t.sky.answerPlaceholder}
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -204,9 +206,7 @@ export function StarCard({
                 aria-hidden="true"
                 className="h-5 self-end text-sm text-ink-soft tabular-nums"
               >
-                {es.sky.counter
-                  .replace("{count}", String(count))
-                  .replace("{max}", String(PETITION_ANSWER_MAX_LENGTH))}
+                {format(t.sky.counter, { count, max: PETITION_ANSWER_MAX_LENGTH })}
               </p>
               <div className="flex items-center justify-end gap-3">
                 <button
@@ -217,14 +217,14 @@ export function StarCard({
                     setView("details");
                   }}
                 >
-                  {es.sky.cancel}
+                  {t.sky.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={working || busy || line.trim() === ""}
                   className={PRIMARY}
                 >
-                  {es.sky.confirm}
+                  {t.sky.confirm}
                 </button>
               </div>
             </form>
@@ -233,11 +233,11 @@ export function StarCard({
           {view === "returning" && (
             <div className="flex flex-col gap-3">
               <p ref={questionRef} tabIndex={-1} className="text-base text-ink outline-none">
-                {es.sky.returnQuestion}
+                {t.sky.returnQuestion}
               </p>
               <div className="flex items-center justify-end gap-3">
                 <button type="button" className={SECONDARY} onClick={() => setView("details")}>
-                  {es.sky.cancel}
+                  {t.sky.cancel}
                 </button>
                 <button
                   type="button"
@@ -245,7 +245,7 @@ export function StarCard({
                   className={PRIMARY}
                   onClick={() => void run(onReturn)}
                 >
-                  {es.sky.returnConfirm}
+                  {t.sky.returnConfirm}
                 </button>
               </div>
             </div>
@@ -262,7 +262,7 @@ export function StarCard({
                   setView("returning");
                 }}
               >
-                {es.sky.returnToFire}
+                {t.sky.returnToFire}
               </button>
               {!answered && (
                 <button
@@ -274,7 +274,7 @@ export function StarCard({
                     setView("answering");
                   }}
                 >
-                  {es.sky.markAnswered}
+                  {t.sky.markAnswered}
                 </button>
               )}
             </div>
