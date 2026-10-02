@@ -7,7 +7,7 @@ import { createFire, type Fire } from "./fire";
 import { createLightEffects, type LightEffects } from "./lightEffect";
 import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
 import { easeToward } from "./math";
-import { computeLayout, type Insets, type SceneLayout } from "./layout";
+import { computeLayout, wordBandBottom, type Insets, type SceneLayout } from "./layout";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
 import { Roster, type MemberInfo, type MemberSpec } from "./roster";
 import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
@@ -77,6 +77,14 @@ export interface FogataScene {
    * a note to before the scene takes over. Nothing if they are not sitting down.
    */
   notePlacement(id: string): { x: number; y: number; height: number } | undefined;
+  /** Where the flames are, in pixels from the top left of the scene: the target for touching the fire. */
+  fireBounds(): { x: number; y: number; width: number; height: number };
+  /** Where the word from the fire sits: its bottom edge in pixels from the top of the scene, in the sky above the trees. */
+  wordBottom(): number;
+  /** Dims the petition stars a little while a word is over them, or brings them back. */
+  dimPetitionStars(dimmed: boolean): void;
+  /** The fire flares softly and throws a few sparks. Nothing with reduced motion. */
+  touchFire(): void;
   /** Changes the words drawn in or named on the scene (the language changed). */
   setLabels(labels: { label: string; you: string }): void;
   /** Marks this person as the visitor: their animal gets a label when they arrive and a glow when they do something. */
@@ -226,6 +234,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** Of those, the ones answered, and the ones that went back to the fire (which only keep their place). */
   const answeredIds = new Set<string>();
   const retiredIds = new Set<string>();
+  let starsDimmed = false;
   const layoutListeners = new Set<() => void>();
   const notifyLayout = () => {
     for (const listener of [...layoutListeners]) listener();
@@ -278,6 +287,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
     );
+    current.background.dimPetitionStars(starsDimmed);
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
     // Let the fire burn for a few seconds before the first frame, so it is already going on load and
     // after a resize (which rebuilds it) instead of starting from nothing and growing back.
@@ -562,6 +572,21 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     onLayout(listener) {
       layoutListeners.add(listener);
       return () => layoutListeners.delete(listener);
+    },
+    fireBounds() {
+      if (!current) return { x: 0, y: 0, width: 0, height: 0 };
+      const { cx, cy, u } = current.layout;
+      return { x: cx - 45 * u, y: cy - 95 * u, width: 90 * u, height: 105 * u };
+    },
+    wordBottom: () => (current ? wordBandBottom(current.layout) : 0),
+    dimPetitionStars(dimmed) {
+      starsDimmed = dimmed;
+      current?.background.dimPetitionStars(dimmed);
+    },
+    touchFire() {
+      if (reduced || !current) return;
+      flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
+      current.fire.burst(5);
     },
     woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),

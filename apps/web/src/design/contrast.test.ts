@@ -37,6 +37,7 @@ describe("text pairs in the design tokens", () => {
     ["ink", "ember"],
     ["ink", "ember-soft"],
     ["gold", "night"],
+    ["ember-soft", "night"],
     ["gold", "bark"],
     ["gold", "bark-deep"],
   ])("%s on %s", (text, background) => {

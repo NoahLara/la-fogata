@@ -5,6 +5,7 @@ import {
   directionToFire,
   NEAR_SCALE_RATIO,
   seatPosition,
+  wordBandBottom,
 } from "./layout";
 
 const none = { top: 0, bottom: 0 };
@@ -97,5 +98,22 @@ describe("directionToFire", () => {
   it("does not divide by zero when the seat is at the fire", () => {
     const here = directionToFire({ x: 4, y: 4 }, { x: 4, y: 4 });
     expect(here).toEqual({ x: 0, y: 0, length: 1 });
+  });
+});
+
+describe("wordBandBottom", () => {
+  it.each([
+    [1519, 784],
+    [390, 844],
+    [820, 1180],
+    [1920, 1080],
+  ])("is above the trees and the heads of the far seats at %ix%i", (width, height) => {
+    const layout = computeLayout(width, height, { top: 0, bottom: 72 });
+    const bottom = wordBandBottom(layout);
+    expect(bottom).toBeLessThan(layout.horizon);
+    for (const degrees of [225, 255, 300]) {
+      const seat = seatPosition(layout, degrees, 0.8);
+      expect(bottom).toBeLessThanOrEqual(seat.y - layout.characterHeight * seat.scale);
+    }
   });
 });

@@ -101,3 +101,13 @@ export function capNearScales(
   const cap = ratio * Math.max(...farScales);
   return seats.map((seat) => (seat.near ? { ...seat, scale: Math.min(seat.scale, cap) } : seat));
 }
+
+/**
+ * Where the word from the fire is bottom-aligned: in the sky above the tree line, and above the head of any
+ * character on the far side of the fire, so it never covers a seat or a log.
+ */
+export function wordBandBottom(layout: SceneLayout): number {
+  const aboveTrees = layout.horizon - 70 * layout.u;
+  const aboveHeads = layout.cy - layout.ry - layout.characterHeight - 24;
+  return Math.max(0, Math.min(aboveTrees, aboveHeads));
+}

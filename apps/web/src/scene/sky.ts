@@ -1,7 +1,7 @@
 import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import { verticalGradient } from "./gradient";
 import type { Point, SceneLayout } from "./layout";
-import { between, smoothstep, TAU } from "./math";
+import { between, easeToward, smoothstep, TAU } from "./math";
 import { pick, type Random } from "./random";
 import {
   drawShootingStar,
@@ -31,6 +31,8 @@ export interface Sky {
   removePetitionStar(id: string, mode: "dim" | "instant"): void;
   /** Where each star is now, by petition id. */
   petitionSpots(): ReadonlyMap<string, Point>;
+  /** Dims every petition star a little (a word is over them) or brings them back. */
+  dimPetitionStars(dimmed: boolean): void;
   /** A shooting star crosses the sky now. Nothing with reduced motion. */
   shootingStar(): void;
 }
@@ -332,6 +334,9 @@ function twinkle(star: Twinkler, time: number): number {
   return star.alpha * (1 - star.amplitude * (0.5 - 0.5 * wave));
 }
 
+/** How bright the petition stars stay while a word is over them. */
+const DIMMED_STARS = 0.35;
+
 /** How long a petition star takes to fade in, and how long its bloom lasts. */
 const STAR_FADE_SECONDS = 1.5;
 const STAR_BLOOM_SECONDS = 1.5;
@@ -530,7 +535,13 @@ export function createSky(
     }
   }
 
+  let dimTarget = 1;
+  let dimNow = 1;
+  let dimTime = 0;
   const updatePetitionStars = (time: number, reduced: boolean) => {
+    dimNow = reduced ? dimTarget : easeToward(dimNow, dimTarget, Math.max(0, time - dimTime), 0.35);
+    dimTime = time;
+    petitionLayer.alpha = dimNow;
     const scale = Math.max(0.85, u);
     for (const [id, star] of [...petitionStars]) {
       star.born ??= time;
@@ -618,6 +629,9 @@ export function createSky(
     },
     removePetitionStar,
     petitionSpots: () => new Map([...petitionStars].map(([id, star]) => [id, star.spot])),
+    dimPetitionStars(dimmed) {
+      dimTarget = dimmed ? DIMMED_STARS : 1;
+    },
     shootingStar() {
       requested = true;
     },

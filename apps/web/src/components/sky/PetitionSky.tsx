@@ -38,7 +38,7 @@ interface Star {
 export function PetitionSky({ scene }: { scene: FogataScene }) {
   const { t } = useI18n();
   const { petitions } = useServices();
-  const { busy, hold, say } = useInteraction();
+  const { busy, hold, say, reportDialog } = useInteraction();
   const [mine, setMine] = useState<readonly Petition[]>([]);
   const [spots, setSpots] = useState<ReadonlyMap<string, { x: number; y: number }>>(new Map());
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -46,6 +46,11 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const [openId, setOpenId] = useState<string>();
   const [help, setHelp] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  // A star's card or help screen is open: the fire doesn't speak over it.
+  useEffect(() => {
+    reportDialog("sky", help ? "help" : openId ? "dialog" : "none");
+  }, [help, openId, reportDialog]);
+  useEffect(() => () => reportDialog("sky", "none"), [reportDialog]);
   const timers = useRef(new Set<number>());
 
   // The visitor's petitions, kept up to date as they are made, answered and returned.

@@ -25,7 +25,7 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
   - Max 140 characters, 1 petition per person per day, moderated before it is shown.
   - Petitions expire after 30 days; answered ones stay golden 30 more days.
   - No accounts: ownership is a secret key kept in the browser.
-- Touch the fire: receive one short random verse from a curated list, in a modern translation, with no reference shown. The translation credit goes in an About page.
+- Touch the fire: receive one short random verse from a curated list (`apps/web/src/fire/words.ts`), with no reference shown unless the person taps the tiny chapter:verse number. The word from the fire uses TLA (es) and WEB (en), exact text: an entry is a whole verse or a contiguous fragment (leading "…" if it starts mid-sentence, trailing "…" where it was cut at ; , or :), up to 120 characters (aim for 90), no quotation marks, never one that names God, Lord, Yahweh, Jesus, Christ, the Spirit or the Father, and nothing that addresses the reader in the singular with a gendered word. An entry may exist in only one language; each language has its own shuffle bag. TLA's terms: at most 500 verses, non-commercial use, text unchanged. The translation notice (`fire.notice`) shows with the reference and on the About page.
 - Sparks (free-text phrases) are removed; petitions replace them.
 - No chat, no direct messages, no profiles, no likes, no streaks.
 - Never simulate fake people in production. When you are alone, the scene shows the stars and "someone will arrive".
@@ -40,6 +40,8 @@ La Fogata is quietly inspired by Christian faith. It never says so; the meaning 
 - Venus, the morning star (Revelation 22:16)
 - Petitions as stars: "Look up at the sky and count the stars" (Genesis 15:5)
 - Handing over a burden: casting your anxiety on Him (1 Peter 5:7); "Cast your burden on the Lord" (Psalm 55:22)
+- The word from the fire: God speaking to Moses from the burning bush (Exodus 3:2–4). Verses where God speaks in first person read as a voice from the fire.
+- Ecclesiastes 4:12: a cord of three strands is not quickly broken — the three logs
 - Psalm 141:2: the petition rising with the smoke (let my prayer be set before you like incense)
 - Matthew 7:7: Pídelo (ask and it will be given to you)
 - The shooting star: an answered prayer
@@ -107,7 +109,7 @@ The web experience is built first, against the in-memory services (`apps/web/src
    - burden ✅
    - petition ritual: leave a petition and watch it become a star in your own sky
    - star interactions: your own stars are buttons with a card, answered (golden) stars and returning a star to the fire ✅. Left: rotating sky, tap other people's stars, "Estoy contigo"
-   - a word from the fire
+   - a word from the fire ✅
    - distant campfires and the alone state
    - sound
    - the About page

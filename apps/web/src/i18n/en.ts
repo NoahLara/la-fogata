@@ -85,6 +85,34 @@ export const en = {
     notFound: "That star is gone. It stays where it is.",
     failed: "That didn't work. The star stays where it is.",
   },
+  fire: {
+    // The name of the invisible button over the flames.
+    listen: "Listen to the fire",
+    // The tiny verse number under the word; it reveals the reference. {number} is like "41:10".
+    showReference: "Show the reference for {number}",
+    hideReference: "Hide the reference for {number}",
+    // The full reference. {book} {number}, for example "Isaiah 41:10".
+    reference: "{book} {number}",
+    // Credit for the English text; the About page shows it too.
+    notice: "Scripture: World English Bible (public domain).",
+  },
+  books: {
+    isaiah: "Isaiah",
+    psalms: "Psalm",
+    matthew: "Matthew",
+    hebrews: "Hebrews",
+    joshua: "Joshua",
+    galatians: "Galatians",
+    john: "John",
+    songOfSongs: "Song of Solomon",
+    jeremiah: "Jeremiah",
+    revelation: "Revelation",
+    ecclesiastes: "Ecclesiastes",
+    romans: "Romans",
+    proverbs: "Proverbs",
+    thessalonians1: "1 Thessalonians",
+    corinthians2: "2 Corinthians",
+  },
   help: {
     title: "You deserve support right now",
     body: "What you wrote burned, and no one saw it. If you're going through something really hard, talking with a person can help, and there are free helplines in almost every country.",

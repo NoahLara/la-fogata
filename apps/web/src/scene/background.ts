@@ -25,6 +25,8 @@ export interface Background {
   removePetitionStar(id: string, mode: "dim" | "instant"): void;
   /** Where each star is now, by petition id. */
   petitionSpots(): ReadonlyMap<string, Point>;
+  /** Dims the petition stars a little while a word is over them, or brings them back. */
+  dimPetitionStars(dimmed: boolean): void;
   /** A shooting star crosses the sky now (none with reduced motion). */
   shootingStar(): void;
 }
@@ -149,6 +151,7 @@ export function createBackground(
     answerPetitionStar: sky.answerPetitionStar,
     removePetitionStar: sky.removePetitionStar,
     petitionSpots: sky.petitionSpots,
+    dimPetitionStars: sky.dimPetitionStars,
     shootingStar: sky.shootingStar,
     update(time, reduced, light = 1) {
       sky.update(time, reduced);
