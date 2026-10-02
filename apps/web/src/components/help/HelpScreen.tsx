@@ -4,8 +4,17 @@ import { useId } from "react";
 import { es, HELPLINE_URL } from "@/i18n/es";
 import { DIALOG_PRIMARY, DIALOG_SECONDARY, ModalDialog } from "../ModalDialog";
 
-/** Shown, gently, after a burden that had signs of someone being at risk. */
-export function HelpScreen({ onClose }: { onClose: () => void }) {
+/**
+ * Shown, gently, after something written had signs of someone being at risk: a burden (it burned) or a petition
+ * (it never went anywhere).
+ */
+export function HelpScreen({
+  kind = "burden",
+  onClose,
+}: {
+  kind?: "burden" | "petition";
+  onClose: () => void;
+}) {
   const titleId = useId();
   const bodyId = useId();
   return (
@@ -15,7 +24,7 @@ export function HelpScreen({ onClose }: { onClose: () => void }) {
           {es.help.title}
         </h2>
         <p id={bodyId} className="text-sm leading-relaxed text-gold/90">
-          {es.help.body}
+          {kind === "petition" ? es.help.bodyPetition : es.help.body}
         </p>
         <a
           href={HELPLINE_URL}

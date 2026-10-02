@@ -1,6 +1,7 @@
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
+import { randomKey } from "./randomKey";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
 import type { Person, Services } from "./types";
 
@@ -17,6 +18,8 @@ interface LocalOptions {
   /** People already seated when the services start. */
   initial?: readonly Person[];
   keys?: KeyStore;
+  /** Development only (`?demo`): no daily limit on petitions. */
+  unlimitedPetitions?: boolean;
 }
 
 let counter = 0;
@@ -33,7 +36,8 @@ export function createLocalServices(options: LocalOptions): LocalServices {
     rand,
     keys: options.keys ?? new BrowserKeyStore(),
     newId: () => `petition-${Date.now().toString(36)}-${counter++}`,
-    newKey: () => crypto.randomUUID(),
+    newKey: randomKey,
+    ...(options.unlimitedPetitions ? { petitionsPerDay: Infinity } : {}),
   });
   const fire = new MemoryFire({ presence, now: () => performance.now() / 1000 });
   return { presence, fire, petitions, prayers: petitions };

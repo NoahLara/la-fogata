@@ -4,7 +4,7 @@ import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
 import { MemoryKeyStore } from "./keyStore";
-import { DAY, PETITION_MAX_LENGTH, PRAYERS_PER_SESSION } from "./limits";
+import { DAY, PETITION_MAX_LENGTH, petitionAvailableAt, PRAYERS_PER_SESSION } from "./limits";
 import type { PresenceEvent } from "./types";
 
 function presence(seatCount = 7) {
@@ -97,15 +97,23 @@ describe("MemoryFire", () => {
   });
 });
 
-function petitions(overrides: { now?: () => number; prayersPerSession?: number } = {}) {
+function petitions(
+  overrides: {
+    now?: () => number;
+    prayersPerSession?: number;
+    petitionsPerDay?: number;
+    keys?: MemoryKeyStore;
+  } = {},
+) {
   let id = 0;
   let clock = 1_000_000;
   const service = new MemoryPetitions({
     now: overrides.now ?? (() => clock),
     rand: createRandom(7),
-    keys: new MemoryKeyStore(),
+    keys: overrides.keys ?? new MemoryKeyStore(),
     newId: () => `p${id++}`,
     newKey: () => "secret",
+    ...(overrides.petitionsPerDay ? { petitionsPerDay: overrides.petitionsPerDay } : {}),
     ...(overrides.prayersPerSession ? { prayersPerSession: overrides.prayersPerSession } : {}),
   });
   return { service, advance: (ms: number) => (clock += ms) };
@@ -134,6 +142,44 @@ describe("MemoryPetitions: writing", () => {
     expect((await service.create("dos")).status).toBe("daily-limit");
     advance(DAY + 1);
     expect((await service.create("dos")).status).toBe("created");
+  });
+
+  it("accepts two characters and rejects one", async () => {
+    const { service } = petitions();
+    expect((await service.create("a")).status).toBe("empty");
+    expect((await service.create("Fe")).status).toBe("created");
+  });
+
+  it("says when the daily limit has been reached", async () => {
+    const { service, advance } = petitions();
+    expect(await service.dailyLimitReached()).toBe(false);
+    await service.create("uno");
+    expect(await service.dailyLimitReached()).toBe(true);
+    advance(DAY + 1);
+    expect(await service.dailyLimitReached()).toBe(false);
+  });
+
+  it("has no daily limit when development lifts it", async () => {
+    const { service } = petitions({ petitionsPerDay: Infinity });
+    for (const text of ["uno", "dos", "tres"]) {
+      expect((await service.create(text)).status).toBe("created");
+    }
+    expect(await service.dailyLimitReached()).toBe(false);
+  });
+
+  it("tells the visitor's petitions from others' by the key kept in the browser", async () => {
+    const keys = new MemoryKeyStore();
+    const { service } = petitions({ keys });
+    const other = service.seedOther("de otra persona");
+    const created = await service.create("mía");
+    expect(keys.get()).toBe("secret");
+    const mine = await service.mine();
+    expect(mine.map((petition) => petition.text)).toEqual(["mía"]);
+    expect(other.mine).toBe(false);
+    // Without the key, nothing is theirs.
+    const stranger = petitions({ keys: new MemoryKeyStore() }).service;
+    expect(await stranger.mine()).toEqual([]);
+    expect(created.status).toBe("created");
   });
 
   it("never publishes a petition with signs of risk", async () => {
@@ -231,5 +277,26 @@ describe("MemoryPetitions: expiry", () => {
     expect((await service.pray(old.id)).status).toBe("not-found");
     advance(6 * DAY);
     expect(await service.sky()).toHaveLength(0);
+  });
+});
+
+describe("petitionAvailableAt", () => {
+  const now = 10 * DAY;
+
+  it("is now when nothing was left in the last day", () => {
+    expect(petitionAvailableAt([], now)).toBe(now);
+    expect(petitionAvailableAt([now - DAY - 1], now)).toBe(now);
+  });
+
+  it("is a day after the one left", () => {
+    expect(petitionAvailableAt([now - 1000], now)).toBe(now - 1000 + DAY);
+  });
+
+  it("never waits when there is no limit", () => {
+    expect(petitionAvailableAt([now - 1, now - 2, now - 3], now, Infinity)).toBe(now);
+  });
+
+  it("waits for the right one to age out when more are allowed", () => {
+    expect(petitionAvailableAt([now - 3000, now - 1000], now, 2)).toBe(now - 3000 + DAY);
   });
 });

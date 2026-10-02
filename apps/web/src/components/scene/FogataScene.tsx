@@ -73,7 +73,16 @@ export function FogataScene() {
         const services = createLocalServices({
           seatCount: created.seatCount,
           initial: created.members().map(({ id, species, seat }) => ({ id, species, seat })),
+          // Only with ?demo (never in production), so the ritual can be watched over and over.
+          unlimitedPetitions: flags.demo,
         });
+        // Your own sky: your petitions that are still alive are already stars.
+        const mine = await services.petitions.mine();
+        if (disposed) {
+          created.destroy();
+          return;
+        }
+        created.setPetitionStars(mine.map((petition) => petition.id));
         // The scene follows who the service says is there.
         const unsubscribers = [
           services.presence.subscribe((event) => {
