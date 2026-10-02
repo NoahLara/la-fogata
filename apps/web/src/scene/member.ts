@@ -1,4 +1,4 @@
-import { Container, Sprite, type Renderer, type Texture } from "pixi.js";
+import { Container, Sprite, type Mesh, type Renderer, type Texture } from "pixi.js";
 import { SPECIES_SCALE, type Species, type SpriteArt } from "./characters";
 import type { FireLight } from "./fire";
 import { directionToFire, type Point, type SceneLayout } from "./layout";
@@ -8,6 +8,9 @@ import { between, clamp, lerp, smoothstep } from "./math";
 import { createRandom } from "./random";
 import { arrivalFrame, walkEase, type ArrivalFrame, type ArrivalTimeline } from "./seatState";
 import type { SeatSpec } from "./seatTable";
+import { createIdle, type GestureDirector } from "./idle";
+import { partsFor } from "./parts";
+import { createSoftMesh, type SoftMesh } from "./softMesh";
 import { OVERLAY_COLORS, type TextureBag } from "./textures";
 import { pointAt, scaleRatioAt, type ArrivalPlan } from "./walk";
 import { bobAt, exposureAt, fadeInAt, turnWidth, walkerTint } from "./walkerLook";
@@ -22,6 +25,8 @@ export interface BuildContext {
   pixelsPerUnit: number;
   /** Light overlays for walkers, baked once per animal and shared by everyone who walks in as it. */
   walkerLight: Map<Species, WalkerLight>;
+  /** Spaces out the small gestures of seated characters so they are never in step. */
+  director: GestureDirector;
 }
 
 export interface Placed {
@@ -53,10 +58,13 @@ interface LightTextures {
   rim: Texture;
 }
 
+/** A layer of a character: a plain sprite, or a mesh when the character has parts that move. */
+type Layer = Sprite | Mesh;
+
 interface LightSprites {
-  lit: Sprite;
-  shade: Sprite;
-  rim: Sprite;
+  lit: Layer;
+  shade: Layer;
+  rim: Layer;
 }
 
 /**
@@ -113,8 +121,10 @@ function bakeLight(
   };
 }
 
-function lightSprites(art: Art, light: LightTextures): LightSprites {
-  const sprite = (texture: Texture) => {
+function lightSprites(art: Art, light: LightTextures, soft?: SoftMesh): LightSprites {
+  const sprite = (texture: Texture): Layer => {
+    // A mesh already sits where the art does, with the feet at its origin.
+    if (soft) return soft.layer(texture);
     const result = new Sprite(texture);
     result.anchor.set(art.originX / art.width, art.originY / art.height);
     result.setSize(art.width, art.height);
@@ -123,7 +133,8 @@ function lightSprites(art: Art, light: LightTextures): LightSprites {
   return { lit: sprite(light.lit), shade: sprite(light.shade), rim: sprite(light.rim) };
 }
 
-function bodySprite(art: Art): Sprite {
+function bodySprite(art: Art, soft?: SoftMesh): Layer {
+  if (soft) return soft.layer(art.texture);
   const body = new Sprite(art.texture);
   body.anchor.set(art.originX / art.width, art.originY / art.height);
   body.setSize(art.width, art.height);
@@ -151,8 +162,11 @@ function buildSeatRig(context: BuildContext, { spec, index, seat }: Placed, spec
   const towardFire = { x: flip * toFire.x, y: toFire.y };
   const distance = Math.min(1.6, toFire.length / Math.max(rx, 1));
 
-  const body = bodySprite(art);
-  const layers = lightSprites(art, bakeLight(context, art, towardFire, lighting));
+  // Characters with parts that move are drawn as meshes that share one shape, so the lighting moves with the parts.
+  const parts = partsFor(species, spec.view);
+  const soft = parts.length ? createSoftMesh(art, parts) : undefined;
+  const body = bodySprite(art, soft);
+  const layers = lightSprites(art, bakeLight(context, art, towardFire, lighting), soft);
 
   const container = new Container();
   // Each character leans a little toward the fire (the head more than the hips) and is built slightly
@@ -170,7 +184,7 @@ function buildSeatRig(context: BuildContext, { spec, index, seat }: Placed, spec
   container.rotation = variation.rotation;
   container.addChild(body, layers.lit, layers.shade, layers.rim);
 
-  return { container, body, ...layers, lighting, flip, scale, k, raise, distance, variation };
+  return { container, body, ...layers, soft, lighting, flip, scale, k, raise, distance, variation };
 }
 
 /** What a walker needs beyond the art: its light from the front and from behind, relative to where it faces. */
@@ -270,6 +284,13 @@ interface Pose {
  * Someone around the fire. With an arrival it walks in first (see `Arrival`); without one it is just seated.
  * The log under a log seat belongs to the seat, not to the member.
  */
+/** A number from a name, so every character gets its own rhythm. */
+function idSeed(id: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619);
+  return hash >>> 0;
+}
+
 export function createMember(
   context: BuildContext,
   placed: Placed,
@@ -286,7 +307,12 @@ export function createMember(
   const rig = buildSeatRig(context, placed, species);
   let walker = arrival ? buildWalkerRig(context, species) : undefined;
   const cast = buildShadows(context);
-  const seed = placed.index * 17.3;
+  const idle = createIdle({
+    species,
+    view: placed.spec.view,
+    seed: idSeed(id) + placed.index,
+    director: context.director,
+  });
   let elapsed = 0;
   /** Which way the walker heads on screen, kept while it is standing still. */
   let heading: 1 | -1 = seat.x < cx ? 1 : -1;
@@ -374,7 +400,7 @@ export function createMember(
     };
   };
 
-  const applySeatRig = (pose: Pose, depth: number, time: number, reduced: boolean) => {
+  const applySeatRig = (pose: Pose, depth: number, breath: number) => {
     const intensity = fire.intensity;
     const light = clamp(fire.light, 0.4, 1.4);
     const falloff = 1 - rig.distance * 0.2;
@@ -383,7 +409,6 @@ export function createMember(
     rig.shade.alpha = rig.lighting.shadeAlpha;
     rig.rim.alpha = clamp(rig.lighting.rimAlpha * light * falloff, 0, 1);
 
-    const breath = reduced ? 0 : Math.sin(time * 1.8 + seed) * 0.018;
     const k = rig.k * depth;
     rig.container.position.set(pose.x, pose.ground - pose.lift);
     // Sinking makes it a little wider as well as lower.
@@ -476,7 +501,10 @@ export function createMember(
       show(walker.container, pose.ground);
       applyWalker(walker, pose, depth, reduced);
     }
-    applySeatRig(pose, depth, time, reduced);
+    // Only someone who has sat down breathes and moves; not while walking in, turning or hopping.
+    const idlePose = idle.update(time, arrived || frame?.phase === "seated", reduced);
+    rig.soft?.pose(idlePose.angles);
+    applySeatRig(pose, depth, idlePose.breath);
     applyCast(pose, depth);
 
     if (!arrived && frame?.phase === "seated") {
@@ -494,6 +522,7 @@ export function createMember(
     update,
     destroy() {
       rig.container.destroy({ children: true });
+      rig.soft?.destroy();
       walker?.container.destroy({ children: true });
       cast.shadow.destroy();
       cast.contact.destroy();

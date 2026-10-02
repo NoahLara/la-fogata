@@ -9,6 +9,7 @@ import {
   type SeatPosition,
 } from "./layout";
 import { evaluateCurve, VIEW_LIGHTING, type ViewLighting } from "./lighting";
+import { createDirector } from "./idle";
 import { drawLog } from "./log";
 import { LOG, logShape } from "./logShape";
 import { clamp, toRadians } from "./math";
@@ -140,6 +141,7 @@ export function createSeats(
     sprites,
     pixelsPerUnit: (layout.characterHeight / 100) * renderer.resolution,
     walkerLight: new Map(),
+    director: createDirector(),
   };
   // Contact shadows go over the long cast ones.
   const shadows = new Container({ sortableChildren: true });
@@ -203,6 +205,9 @@ export function createSeats(
       updateLogs();
       for (const { member } of members.values()) member.update(time, dt, reduced);
     },
-    destroy() {},
+    destroy() {
+      for (const { member } of members.values()) member.destroy();
+      members.clear();
+    },
   };
 }
