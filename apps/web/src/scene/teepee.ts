@@ -3,7 +3,7 @@ import type { SceneLayout } from "./layout";
 import { between, clamp, TAU, toRadians } from "./math";
 import type { Random } from "./random";
 
-const LOG_COUNT = 5;
+const LOG_COUNT = 3;
 
 interface Teepee {
   /** Logs on the far side of the fire. They go behind the flames. */
@@ -37,9 +37,9 @@ function along(from: { x: number; y: number }, to: { x: number; y: number }, t: 
 }
 
 /**
- * Builds the fire's logs: 5 thick logs leaning against each other in a cone. Each has bark, a lighter cut end at
+ * Builds the fire's logs: 3 thick logs leaning against each other in a cone. Each has bark, a lighter cut end at
  * the bottom, a charred tip and glowing cracks and embers along its lower part, as if it were lit from inside.
- * It is mirror-symmetric about the vertical axis through the fire: a log at the front and two mirrored pairs. That
+ * It is mirror-symmetric about the vertical axis through the fire: a log at the front and one mirrored pair. That
  * keeps the flames, which show through the gaps, evenly spread on both sides instead of leaning to one.
  */
 export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
@@ -52,16 +52,14 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   const crossingHeight = between(rand, 78, 90) * u;
   const thetas: number[] = [];
   let radiusSum = 0;
-  // Angles around the fire, in degrees, with the group each log belongs to: front centre, then two mirrored pairs.
+  // Angles around the fire, in degrees, with the group each log belongs to: front centre, then one mirrored pair.
   const LOGS = [
     { degrees: 90, group: 0 },
-    { degrees: 162, group: 1 },
-    { degrees: 18, group: 1 },
-    { degrees: 234, group: 2 },
-    { degrees: 306, group: 2 },
+    { degrees: 210, group: 1 },
+    { degrees: 330, group: 1 },
   ] as const;
   // Logs in a group share their size, so a mirrored pair really is a mirror image.
-  const groups = [0, 1, 2].map(() => ({
+  const groups = [0, 1].map(() => ({
     baseRadius: between(rand, 38, 45) * u,
     crossingY: crossingHeight * between(rand, 0.94, 1.06),
     stick: between(rand, 0.26, 0.36),
