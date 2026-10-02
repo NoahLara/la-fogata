@@ -74,13 +74,20 @@ export type AnswerPetitionResult =
   | { status: "not-yours" }
   | { status: "not-found" }
   | { status: "already-answered" }
+  /** An answered petition always says how it happened. */
+  | { status: "note-required" }
   | { status: "too-long" };
+
+export type RemovePetitionResult =
+  { status: "removed" } | { status: "not-yours" } | { status: "not-found" };
 
 export type PetitionEvent =
   | { type: "added"; petition: Petition }
   | { type: "changed"; petition: Petition }
   /** An answered petition: a shooting star crosses every sky. */
-  | { type: "answered"; petition: Petition };
+  | { type: "answered"; petition: Petition }
+  /** The author returned it to the fire: its star is gone. */
+  | { type: "removed"; id: string };
 
 export interface PetitionService {
   /** The petitions the sky shows now: about `SKY_SIZE`, those with fewer prayers first. */
@@ -90,8 +97,10 @@ export interface PetitionService {
   /** Whether the visitor has already left all the petitions a day allows. */
   dailyLimitReached(): Promise<boolean>;
   create(text: string): Promise<CreatePetitionResult>;
-  /** The author marks it answered, with one optional line. */
-  answer(id: string, note?: string): Promise<AnswerPetitionResult>;
+  /** The author marks it answered, with one line that says how it happened: it is required. */
+  answer(id: string, note: string): Promise<AnswerPetitionResult>;
+  /** The author returns it to the fire, for good. The day's petition stays used. */
+  remove(id: string): Promise<RemovePetitionResult>;
   subscribe(listener: (event: PetitionEvent) => void): Unsubscribe;
 }
 

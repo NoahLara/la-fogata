@@ -11,6 +11,7 @@ import { BurdenDialog } from "./BurdenDialog";
 import { BurdenIcon, PetitionIcon, WoodIcon } from "./icons";
 import { PetitionDialog } from "./PetitionDialog";
 import { PetitionLimit } from "./PetitionLimit";
+import { useInteraction } from "../scene/Interaction";
 
 type Dialog = "burden" | "petition" | "limit" | "help" | undefined;
 
@@ -62,8 +63,20 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const [notice, setNotice] = useState<string>();
   // The soft line after a burden has burned or a petition has become a star.
   const [afterglow, setAfterglow] = useState<string>();
-  // The whole ritual of a burden, from pressing the button to sitting down again: nothing else can be done.
-  const [ritual, setRitual] = useState(false);
+  // Nothing else can be done while a ritual runs, from pressing the button to sitting down again, or while a
+  // star turns golden or goes back to the fire.
+  const { busy: ritual, hold, message } = useInteraction();
+  const releaseRitual = useRef<(() => void) | undefined>(undefined);
+  const setRitual = useCallback(
+    (on: boolean) => {
+      if (on) releaseRitual.current ??= hold();
+      else {
+        releaseRitual.current?.();
+        releaseRitual.current = undefined;
+      }
+    },
+    [hold],
+  );
   // Whether what was written had signs of risk. Only this is remembered, never the text.
   const atRisk = useRef(false);
   // The petition being raised, from when it is made until its star has settled; and which gesture opened the dialog.
@@ -250,7 +263,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
 
   /** The ritual could not finish: the petition was made all the same, so its star simply appears. */
   const abortPetition = () => {
-    if (pending.current) scene.setPetitionStars([pending.current]);
+    if (pending.current) scene.setPetitionStars([{ id: pending.current, answered: false }]);
     pending.current = undefined;
     setRitual(false);
   };
@@ -296,10 +309,10 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       <p
         role="status"
         className={`pointer-events-none absolute inset-x-0 bottom-20 z-10 px-6 text-center text-base text-gold transition-opacity duration-1000 motion-reduce:transition-none ${
-          afterglow || notice ? "opacity-100" : "opacity-0"
+          afterglow || notice || message ? "opacity-100" : "opacity-0"
         }`}
       >
-        {afterglow ?? notice}
+        {afterglow ?? notice ?? message}
       </p>
       {dialog === "burden" && (
         <BurdenDialog

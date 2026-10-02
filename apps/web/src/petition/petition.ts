@@ -1,5 +1,9 @@
 import { burdenLength } from "@/burden/burden";
-import { PETITION_MAX_LENGTH, PETITION_MIN_LENGTH } from "@/data/limits";
+import {
+  PETITION_ANSWER_MAX_LENGTH,
+  PETITION_MAX_LENGTH,
+  PETITION_MIN_LENGTH,
+} from "@/data/limits";
 
 /** Cuts text down to the limit, never splitting a character in half. */
 export function limitPetition(text: string): string {
@@ -18,4 +22,11 @@ export function canElevate(text: string): boolean {
 export function petitionRemainingToAnnounce(count: number): number | undefined {
   const remaining = PETITION_MAX_LENGTH - count;
   return remaining === 50 || remaining === 10 || remaining === 0 ? remaining : undefined;
+}
+
+/** Cuts the line that says how a petition was answered down to the limit, never splitting a character in half. */
+export function limitAnswer(text: string): string {
+  return burdenLength(text) <= PETITION_ANSWER_MAX_LENGTH
+    ? text
+    : Array.from(text).slice(0, PETITION_ANSWER_MAX_LENGTH).join("");
 }

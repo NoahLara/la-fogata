@@ -10,7 +10,7 @@ import {
   type Keepout,
   type ShootingStarPlan,
 } from "./shootingStar";
-import { placeStar, starArea, type Tree } from "./petitionStars";
+import { ANSWER_TURN_SECONDS, placeStar, starArea, starLook, type Tree } from "./petitionStars";
 import { skyGeometry } from "./skyGeometry";
 import { createCanvas, type TextureBag } from "./textures";
 
@@ -25,6 +25,23 @@ export interface Sky {
    * fades in (reduced motion); `instant` one that was there all along.
    */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
+  /** Turns a star golden. `turn` does it in front of the viewer; `instant` is for one that was answered before. */
+  answerPetitionStar(id: string, mode: "turn" | "instant"): void;
+  /** Takes a star out of the sky: it dims away (`dim`) or goes at once. Its place stays reserved so no other star moves. */
+  removePetitionStar(id: string, mode: "dim" | "instant"): void;
+  /** Where each star is now, by petition id. */
+  petitionSpots(): ReadonlyMap<string, Point>;
+  /** A shooting star crosses the sky now. Nothing with reduced motion. */
+  shootingStar(): void;
+}
+
+/** The petition stars a sky starts with, in the order they became stars. */
+export interface SkyPetitions {
+  ids: readonly string[];
+  /** Golden from the start. */
+  answered: ReadonlySet<string>;
+  /** Returned to the fire: they only keep their place so the other stars stay where they were. */
+  retired: ReadonlySet<string>;
 }
 
 /** Star colors: mostly blue-white and white, a few warm. */
@@ -330,13 +347,21 @@ interface PetitionStar {
   /** When it was born, in scene time; set on the first frame. */
   born: number | undefined;
   phase: number;
+  answered: boolean;
+  /** When it turned golden in front of the viewer, in scene time; set on the first frame. `undefined` once it has. */
+  turning: "pending" | number | undefined;
+  /** Dimming away: when that began (`"pending"` until the first frame). */
+  leaving: "pending" | number | undefined;
 }
+
+/** How long a star takes to dim away when it goes back to the fire. */
+const STAR_DIM_SECONDS = 0.7;
 
 export function createSky(
   layout: SceneLayout,
   textures: TextureBag,
   rand: Random,
-  petitionIds: readonly string[] = [],
+  petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
   trees: readonly Tree[] = [],
 ): Sky {
   const { width, horizon, u } = layout;
@@ -420,6 +445,8 @@ export function createSky(
   ];
   let nextAt = -1;
   let active: { plan: ShootingStarPlan; start: number } | undefined;
+  /** Asked for from outside (a petition was answered): it starts on the next frame. */
+  let requested = false;
 
   // Petition stars: a bit bigger than the bright stars, warm white, with a soft glow and a gentle pulse.
   const petitionLayer = new Container();
@@ -427,6 +454,8 @@ export function createSky(
   container.addChildAt(petitionLayer, container.getChildIndex(meteor));
   const area = starArea(layout, trees);
   const petitionStars = new Map<string, PetitionStar>();
+  /** Where stars that went back to the fire were: nothing is placed on them, so the others keep their spots. */
+  const reserved = new Map<string, Point>();
   const glowTexture = textures.radial([
     [0, 1],
     [0.3, 0.4],
@@ -434,11 +463,11 @@ export function createSky(
   ]);
   const spotFor = (id: string): Point =>
     petitionStars.get(id)?.spot ??
-    placeStar(
-      id,
-      area,
-      [...petitionStars.values()].map((star) => star.spot),
-    );
+    reserved.get(id) ??
+    placeStar(id, area, [
+      ...[...petitionStars.values()].map((star) => star.spot),
+      ...reserved.values(),
+    ]);
   const addPetitionStar = (id: string, mode: PetitionStar["mode"]) => {
     if (petitionStars.has(id)) return;
     const spot = spotFor(id);
@@ -469,27 +498,70 @@ export function createSky(
       mode,
       born: undefined,
       phase: (spot.x * 0.013 + spot.y * 0.007) % TAU,
+      answered: false,
+      turning: undefined,
+      leaving: undefined,
     });
   };
-  for (const id of petitionIds) addPetitionStar(id, "instant");
+  const dropStar = (id: string) => {
+    const star = petitionStars.get(id);
+    if (!star) return;
+    star.glow.destroy();
+    star.glint.destroy();
+    star.core.destroy();
+    petitionStars.delete(id);
+  };
+  const removePetitionStar = (id: string, mode: "dim" | "instant") => {
+    const star = petitionStars.get(id);
+    if (!star) return;
+    reserved.set(id, star.spot);
+    if (mode === "instant") dropStar(id);
+    else star.leaving ??= "pending";
+  };
+  for (const id of petitions.ids) {
+    if (petitions.retired.has(id)) {
+      reserved.set(id, spotFor(id));
+      continue;
+    }
+    addPetitionStar(id, "instant");
+    if (petitions.answered.has(id)) {
+      const star = petitionStars.get(id);
+      if (star) star.answered = true;
+    }
+  }
 
   const updatePetitionStars = (time: number, reduced: boolean) => {
     const scale = Math.max(0.85, u);
-    for (const star of petitionStars.values()) {
+    for (const [id, star] of [...petitionStars]) {
       star.born ??= time;
       const age = time - star.born;
-      // Slower and wider than a twinkle: the star breathes.
-      const breath = reduced ? 0.9 : 0.9 + 0.1 * Math.sin(time * 0.9 + star.phase);
+      if (star.turning === "pending") star.turning = time;
+      if (star.leaving === "pending") star.leaving = time;
+      const turned =
+        typeof star.turning === "number" ? (time - star.turning) / ANSWER_TURN_SECONDS : 1;
+      if (turned >= 1) star.turning = undefined;
+      const look = starLook(star.answered, time, star.phase, reduced, turned);
+      const farewell =
+        typeof star.leaving === "number"
+          ? 1 - smoothstep(0, STAR_DIM_SECONDS, time - star.leaving)
+          : 1;
+      if (farewell <= 0) {
+        dropStar(id);
+        continue;
+      }
+      star.core.tint = star.glint.tint = look.core;
+      star.glow.tint = look.glow;
       const arriving = star.mode === "instant" ? 1 : smoothstep(0, STAR_FADE_SECONDS, age);
       // A soft bloom as the light settles into it, then the glow returns to its size.
       const bloom =
         star.mode === "bloom" && !reduced && age < STAR_BLOOM_SECONDS
           ? Math.sin((Math.PI * age) / STAR_BLOOM_SECONDS)
           : 0;
-      const alpha = star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving;
-      star.core.alpha = Math.min(1, alpha * (breath + 0.1));
-      star.glint.alpha = alpha * breath;
-      star.glow.alpha = alpha * (0.6 * breath + bloom * 0.45);
+      const alpha =
+        (star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving) * farewell;
+      star.core.alpha = Math.min(1, alpha * (look.level + 0.1));
+      star.glint.alpha = alpha * look.level;
+      star.glow.alpha = alpha * (0.6 * look.level + bloom * 0.45);
       star.glow.scale.set(((38 * scale) / glowTexture.width) * (1 + bloom * 1.6));
     }
   };
@@ -501,8 +573,18 @@ export function createSky(
     if (reduced) {
       if (active) meteor.clear();
       active = undefined;
+      requested = false;
       nextAt = -1;
       return;
+    }
+    if (requested) {
+      requested = false;
+      const plan = planShootingStar(rand, bounds, keepouts);
+      if (plan) {
+        active = { plan, start: time };
+        // The next ambient one comes after this has had its moment.
+        nextAt = Math.max(nextAt, time + 20);
+      }
     }
     // The first one comes a little early so nobody waits a full minute to see it.
     if (nextAt < 0) nextAt = time + between(rand, 10, 25);
@@ -523,5 +605,21 @@ export function createSky(
   };
   update(0, true);
 
-  return { container, update, petitionSpot: spotFor, addPetitionStar };
+  return {
+    container,
+    update,
+    petitionSpot: spotFor,
+    addPetitionStar,
+    answerPetitionStar(id, mode) {
+      const star = petitionStars.get(id);
+      if (!star || star.answered) return;
+      star.answered = true;
+      star.turning = mode === "turn" ? "pending" : undefined;
+    },
+    removePetitionStar,
+    petitionSpots: () => new Map([...petitionStars].map(([id, star]) => [id, star.spot])),
+    shootingStar() {
+      requested = true;
+    },
+  };
 }

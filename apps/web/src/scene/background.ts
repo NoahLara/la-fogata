@@ -5,7 +5,7 @@ import type { Point, SceneLayout } from "./layout";
 import { between, clamp } from "./math";
 import { createRandom, type Random } from "./random";
 import type { Tree } from "./petitionStars";
-import { createSky } from "./sky";
+import { createSky, type SkyPetitions } from "./sky";
 import type { TextureBag } from "./textures";
 
 export interface Background {
@@ -19,6 +19,14 @@ export interface Background {
   petitionSpot(id: string): Point;
   /** Puts a petition's star in the sky: it blooms as a light arrives, fades in (reduced motion) or was always there. */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
+  /** Turns a star golden; `turn` in front of the viewer, `instant` for one answered before. */
+  answerPetitionStar(id: string, mode: "turn" | "instant"): void;
+  /** Takes a star out of the sky: it dims away, or goes at once. */
+  removePetitionStar(id: string, mode: "dim" | "instant"): void;
+  /** Where each star is now, by petition id. */
+  petitionSpots(): ReadonlyMap<string, Point>;
+  /** A shooting star crosses the sky now (none with reduced motion). */
+  shootingStar(): void;
 }
 
 /** How strongly the firelit copy of the ground shows at a flicker of 1. */
@@ -117,7 +125,7 @@ function buildFront(layout: SceneLayout, textures: TextureBag, ground: Ground): 
 export function createBackground(
   layout: SceneLayout,
   textures: TextureBag,
-  petitionIds: readonly string[] = [],
+  petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
 ): Background {
   const rand = createRandom(20240601);
   // The trees were laid out from the same random stream as the old stars, 7 draws per star. Skipping them
@@ -128,7 +136,7 @@ export function createBackground(
   const ground = bakeGround(layout, textures, createRandom(33011));
   // The land comes first: the sky needs to know where the pines are. They don't share a random stream.
   const land = buildLand(layout, rand, ground);
-  const sky = createSky(layout, textures, createRandom(70013), petitionIds, land.trees);
+  const sky = createSky(layout, textures, createRandom(70013), petitions, land.trees);
   const back = new Container();
   back.addChild(sky.container, land.container);
   const front = buildFront(layout, textures, ground);
@@ -138,6 +146,10 @@ export function createBackground(
     front,
     petitionSpot: sky.petitionSpot,
     addPetitionStar: sky.addPetitionStar,
+    answerPetitionStar: sky.answerPetitionStar,
+    removePetitionStar: sky.removePetitionStar,
+    petitionSpots: sky.petitionSpots,
+    shootingStar: sky.shootingStar,
     update(time, reduced, light = 1) {
       sky.update(time, reduced);
       ground.lit.alpha = LIT_ALPHA * clamp(light, 0, 1.4);

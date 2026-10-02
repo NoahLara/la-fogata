@@ -72,3 +72,53 @@ export function lightAt(plan: FlightPlan, elapsed: number): Point {
     y: a * plan.rise.y + b * plan.control.y + c * plan.to.y,
   };
 }
+
+/** The way back: a star dims into a small golden light, which glides in an arc down to the fire. */
+export interface ReturnPlan {
+  from: Point;
+  /** Bends the glide into an arc. */
+  control: Point;
+  to: Point;
+  /** Seconds of the glide itself. */
+  duration: number;
+}
+
+/** The star dims into its light for this long before the light starts to glide. */
+export const DIM_SECONDS = 0.7;
+export const RETURN_SECONDS = 2.2;
+
+/** Plans the glide from the star at `from` down to the flames at `to`. The arc bows away from the straight line. */
+export function planReturn(from: Point, to: Point, u: number): ReturnPlan {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const bow = (to.x >= from.x ? 1 : -1) * 0.3;
+  // The control sits above the middle of the path, so the light drops late, like something that sinks.
+  const control = {
+    x: from.x + dx * 0.5 + dy * bow * 0.6,
+    y: from.y + dy * 0.28,
+  };
+  return {
+    from,
+    control,
+    to,
+    duration: Math.max(1.6, RETURN_SECONDS * Math.min(1.3, 0.6 + u * 0.4)),
+  };
+}
+
+/** How far along the path the light is after `elapsed` seconds of the glide: 0 to 1, never going back, slowing toward the end. */
+export function returnProgress(plan: ReturnPlan, elapsed: number): number {
+  const t = clamp(elapsed / plan.duration, 0, 1);
+  return 1 - (1 - t) ** 3;
+}
+
+/** Where the light is after `elapsed` seconds of the glide. At 0 it is at `from`; from `duration` on it is at `to`. */
+export function returnAt(plan: ReturnPlan, elapsed: number): Point {
+  const e = returnProgress(plan, elapsed);
+  const a = (1 - e) * (1 - e);
+  const b = 2 * (1 - e) * e;
+  const c = e * e;
+  return {
+    x: a * plan.from.x + b * plan.control.x + c * plan.to.x,
+    y: a * plan.from.y + b * plan.control.y + c * plan.to.y,
+  };
+}
