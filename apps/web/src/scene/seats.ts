@@ -18,17 +18,20 @@ import {
   nightTint,
   type BuildContext,
   type Entrance,
+  type ErrandHooks,
   type Exit,
+  type HandPosition,
   type Member,
   type MemberLayers,
   type Placed,
 } from "./member";
 import { createRandom, type Random } from "./random";
 import type { MemberSpec } from "./roster";
+import { errandTimeline, returnTimeline } from "./errand";
 import { arrivalTimeline, leaveTimeline, needsTurn } from "./seatState";
 import { ringScaleFor, SEATS } from "./seatTable";
 import type { TextureBag } from "./textures";
-import { planArrival, planDeparture } from "./walk";
+import { planArrival, planDeparture, planErrand } from "./walk";
 
 export { DEFAULT_ASSIGNMENT, SEATS } from "./seatTable";
 
@@ -54,6 +57,15 @@ export interface Seats {
   removeMember(id: string, mode: EntranceMode, rand: Random, onGone: () => void): boolean;
   /** Has someone swing an arm to throw a log; see `Member.toss`. */
   toss(id: string): { x: number; y: number; scale: number } | undefined;
+  /** Where someone's hands are, without them moving; see `Member.anchor`. */
+  anchor(id: string): { x: number; y: number; scale: number } | undefined;
+  /**
+   * Sends someone to the stones to put something on the fire and back to their seat; see `Member.errand`. Works
+   * for anyone around the fire. Returns false unless they are sitting down with nothing else going on.
+   */
+  errand(id: string, hooks: ErrandHooks): boolean;
+  /** Where someone's hands are right now, wherever they are; see `Member.hand`. */
+  hand(id: string): HandPosition | undefined;
   update(time: number, dt: number, reduced: boolean): void;
   destroy(): void;
 }
@@ -242,6 +254,25 @@ export function createSeats(
       return entry.member.leave(exit, finish);
     },
     toss: (id) => members.get(id)?.member.toss(),
+    anchor: (id) => members.get(id)?.member.anchor(),
+    hand: (id) => members.get(id)?.member.hand(),
+    errand(id, hooks) {
+      const entry = members.get(id);
+      const placed = entry && places[entry.seat];
+      if (!entry || !placed) return false;
+      const log = placed.spec.log === true;
+      const plan = planErrand(layout, placed.seat, { log });
+      const seatFacing = placed.seat.x < layout.cx ? 1 : -1;
+      const out = errandTimeline({
+        log,
+        turn: needsTurn(placed.spec.view, plan.out.startHeading, seatFacing),
+      });
+      const back = returnTimeline({
+        log,
+        turn: needsTurn(placed.spec.view, plan.back.endHeading, seatFacing),
+      });
+      return entry.member.errand({ plan, out, back }, hooks);
+    },
     update(time, dt, reduced) {
       updateLogs();
       for (const { member } of members.values()) member.update(time, dt, reduced);

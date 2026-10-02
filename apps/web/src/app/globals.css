@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design tokens. Colors: night is the sky and ground, bark the warm dark of buttons and dialogs, ember the fire,
+ * gold the warm light on dark surfaces (and an answered star), paper the cream of a written sheet, ink the dark
+ * brown written on it. The contrast of every pair that carries text is checked in contrast.test.ts, which reads
+ * the values from here.
+ */
+@theme {
+  --color-night: #0b0d1a;
+  --color-bark: #2a1d14;
+  --color-bark-deep: #1d140e;
+  --color-ember: #ff9650;
+  --color-ember-soft: #ffb070;
+  --color-gold: #ffd9a0;
+  --color-paper: #f3e6cb;
+  --color-paper-glow: #f0d6a6;
+  --color-paper-shade: #e6d3ae;
+  --color-ink: #34210f;
+  --color-ink-soft: #5c4630;
+  --color-ink-faint: #6e5a43;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --radius-sheet: 1.25rem;
+  --radius-paper: 0.375rem;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* The paper is lit from below by the fire; the ember glow marks what matters most. */
+  --shadow-paper: 0 -14px 44px rgb(255 150 80 / 0.32), 0 22px 44px rgb(0 0 0 / 0.5);
+  --shadow-ember: 0 0 18px rgb(255 150 80 / 0.55);
+  --shadow-focus: 0 0 0 2px rgb(255 176 112 / 0.85), 0 0 22px rgb(255 150 80 / 0.55);
+
+  /* Set by next/font in layout.tsx. Titles, interface and body text, and what people write by hand. */
+  --font-title: var(--font-fraunces), Georgia, serif;
+  --font-ui: var(--font-atkinson), system-ui, sans-serif;
+  --font-hand: var(--font-caveat), "Segoe Print", cursive;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-night);
+  color: var(--color-gold);
+  font-family: var(--font-ui);
+}
+
+/* The burden form: a sheet of paper by the fire. */
+
+.paper-dialog {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  overflow: visible;
+}
+
+/* The scene stays visible, dimmed. It brightens again as the sheet leaves for the fire. */
+.paper-dialog::backdrop {
+  background: rgb(5 6 14 / 0.62);
+  transition: opacity 0.5s ease;
+}
+
+.paper-dialog[data-handing]::backdrop {
+  opacity: 0;
+}
+
+.paper-sheet {
+  transform: rotate(-1deg);
+  animation: sheet-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* The paper's own shape follows its irregular edge, so the light and the focus glow do too. */
+.paper-shape {
+  filter: drop-shadow(0 -10px 26px rgb(255 150 80 / 0.35)) drop-shadow(0 18px 30px rgb(0 0 0 / 0.5));
+  transition: filter 0.2s ease;
+}
+
+.paper-sheet[data-focused] .paper-shape {
+  filter: drop-shadow(0 0 2px rgb(255 190 120 / 0.95)) drop-shadow(0 0 16px rgb(255 150 80 / 0.6))
+    drop-shadow(0 18px 30px rgb(0 0 0 / 0.5));
+}
+
+/* Faint ruled lines that scroll with the writing. 2rem is the line height. */
+.ruled {
+  line-height: 2rem;
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(2rem - 1px),
+    rgb(52 33 15 / 0.16) calc(2rem - 1px)
+  );
+  background-size: 100% 2rem;
+  background-attachment: local;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) rotate(-1deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-1deg);
+  }
+}
+
+/* On phones the sheet slides up from the bottom. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(105%) rotate(-1deg);
+  }
+  to {
+    transform: translateY(0) rotate(-1deg);
+  }
+}
+
+@media (max-width: 639px) {
+  .paper-sheet {
+    animation-name: sheet-up;
+    animation-duration: 0.4s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-sheet {
+    animation: none;
+  }
+
+  .paper-dialog::backdrop,
+  .paper-shape {
+    transition: none;
+  }
 }

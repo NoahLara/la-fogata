@@ -88,6 +88,8 @@ export interface Fire {
   body: Container;
   /** Big additive halo. Goes over the near characters' feet but under the foreground. */
   glow: Sprite;
+  /** A layer inside `body` on the ember bed, in front of the back logs and behind the smoke and flames: where a note burns. */
+  noteLayer: Container;
   state: FireLight;
   update(dt: number, time: number, reduced: boolean): void;
   /** A shower of embers, as when a log lands in the fire. */
@@ -169,11 +171,13 @@ export function createFire(
   // the near side, the rising embers, the near stones. Flames between the two sets of logs is what gives the
   // fire depth: they show through the gaps and lick up past the logs behind them.
   const body = new Container();
+  const noteLayer = new Container();
   body.addChild(
     stones.far,
     stones.farLit,
     teepee.bed,
     teepee.back,
+    noteLayer,
     smokeLayer,
     baseFlare,
     tongueLayer,
@@ -389,6 +393,7 @@ export function createFire(
     groundLight,
     body,
     glow,
+    noteLayer,
     state,
     update,
     burst(count) {

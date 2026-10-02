@@ -34,3 +34,13 @@ export function lerp(from: number, to: number, t: number): number {
 export function easeToward(current: number, target: number, dt: number, tau: number): number {
   return target + (current - target) * Math.exp(-dt / tau);
 }
+
+/** A blend of two 0xRRGGBB colors, `t` of the way from `from` to `to`. */
+export function mixColor(from: number, to: number, t: number): number {
+  const channel = (shift: number) => {
+    const a = (from >> shift) & 0xff;
+    const b = (to >> shift) & 0xff;
+    return Math.round(a + (b - a) * t);
+  };
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}

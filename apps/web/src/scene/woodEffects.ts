@@ -1,6 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 import type { Point, SceneLayout } from "./layout";
-import { lerp } from "./math";
+import { lerp, mixColor } from "./math";
 import { arcAt, spinAt, THROW } from "./woodThrow";
 
 interface Flight {
@@ -106,13 +106,4 @@ export function createWoodEffects(layout: SceneLayout): WoodEffects {
       container.destroy({ children: true });
     },
   };
-}
-
-function mixColor(from: number, to: number, t: number): number {
-  const channel = (shift: number) => {
-    const a = (from >> shift) & 0xff;
-    const b = (to >> shift) & 0xff;
-    return Math.round(a + (b - a) * t);
-  };
-  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
