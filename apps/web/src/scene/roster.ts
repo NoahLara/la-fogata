@@ -7,7 +7,11 @@ export interface MemberSpec {
   seat: number;
 }
 
-export type MemberStatus = "arriving" | "seated";
+export type MemberStatus = "arriving" | "seated" | "leaving";
+
+export interface MemberInfo extends MemberSpec {
+  status: MemberStatus;
+}
 
 export type AddResult = "added" | "duplicate-id" | "seat-taken" | "no-such-seat";
 
@@ -40,8 +44,24 @@ export class Roster {
     for (const entry of this.entries.values()) entry.status = "seated";
   }
 
-  members(): MemberSpec[] {
-    return [...this.entries.values()].map(({ id, species, seat }) => ({ id, species, seat }));
+  /** Marks someone as on their way out. They stop counting toward the fire, but their seat stays taken until they are gone. */
+  markLeaving(id: string): void {
+    const entry = this.entries.get(id);
+    if (entry) entry.status = "leaving";
+  }
+
+  /** Drops everyone who was on their way out. */
+  removeLeaving(): void {
+    for (const [id, entry] of this.entries) if (entry.status === "leaving") this.entries.delete(id);
+  }
+
+  members(): MemberInfo[] {
+    return [...this.entries.values()].map(({ id, species, seat, status }) => ({
+      id,
+      species,
+      seat,
+      status,
+    }));
   }
 
   takenSeats(): Set<number> {

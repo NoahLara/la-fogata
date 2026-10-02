@@ -6,13 +6,22 @@ import { evaluateCurve, VIEW_LIGHTING, type ViewLighting } from "./lighting";
 import { LOG } from "./logShape";
 import { between, clamp, lerp, smoothstep } from "./math";
 import { createRandom } from "./random";
-import { arrivalFrame, walkEase, type ArrivalFrame, type ArrivalTimeline } from "./seatState";
+import {
+  arrivalFrame,
+  FADE_SECONDS,
+  leaveFrame,
+  walkEase,
+  type ArrivalFrame,
+  type ArrivalTimeline,
+  type LeaveFrame,
+  type LeaveTimeline,
+} from "./seatState";
 import type { SeatSpec } from "./seatTable";
 import { createIdle, type GestureDirector } from "./idle";
 import { partsFor } from "./parts";
 import { createSoftMesh, type SoftMesh } from "./softMesh";
 import { OVERLAY_COLORS, type TextureBag } from "./textures";
-import { pointAt, scaleRatioAt, type ArrivalPlan } from "./walk";
+import { pointAt, scaleRatioAt, type ArrivalPlan, type DeparturePlan } from "./walk";
 import { bobAt, exposureAt, fadeInAt, turnWidth, walkerTint } from "./walkerLook";
 import type { SeatPosition } from "./layout";
 
@@ -253,9 +262,21 @@ export interface Arrival {
   plan: ArrivalPlan;
 }
 
+/** How someone first shows up: walking in, or with reduced motion fading in where they sit. */
+export type Entrance = ({ kind: "walk" } & Arrival) | { kind: "fade" };
+
+/** How someone goes: the arrival run backwards, or with reduced motion fading out where they sit. */
+export type Exit =
+  { kind: "walk"; timeline: LeaveTimeline; plan: DeparturePlan } | { kind: "fade" };
+
 export interface Member {
   readonly id: string;
   update(time: number, dt: number, reduced: boolean): void;
+  /**
+   * Starts leaving. `onGone` is called, once, as the last thing an update does when they have gone; the owner
+   * should then drop and destroy the member. Returns false if they have not finished arriving.
+   */
+  leave(exit: Exit, onGone: () => void): boolean;
   destroy(): void;
 }
 
@@ -298,12 +319,13 @@ export function createMember(
   species: Species,
   fire: FireLight,
   layers: MemberLayers,
-  arrival: Arrival | undefined,
+  entrance: Entrance | undefined,
   onSeated: () => void,
 ): Member {
   const { layout } = context;
   const { cx, cy, u, characterHeight } = layout;
   const { seat } = placed;
+  const arrival = entrance?.kind === "walk" ? entrance : undefined;
   const rig = buildSeatRig(context, placed, species);
   let walker = arrival ? buildWalkerRig(context, species) : undefined;
   const cast = buildShadows(context);
@@ -317,6 +339,9 @@ export function createMember(
   /** Which way the walker heads on screen, kept while it is standing still. */
   let heading: 1 | -1 = seat.x < cx ? 1 : -1;
   let arrived = !arrival;
+  /** Whether `onSeated` has been called: someone who fades in counts as seated once they are fully there. */
+  let announced = !entrance;
+  let leaving: { exit: Exit; elapsed: number; onGone: () => void } | undefined;
 
   layers.shadows.addChild(cast.shadow);
   layers.contactShadows.addChild(cast.contact);
@@ -337,7 +362,7 @@ export function createMember(
         squash: 1,
         sit: 1,
         exposure: 1,
-        fade: 1,
+        fade: entrance?.kind === "fade" ? smoothstep(0, FADE_SECONDS, elapsed) : 1,
         travelled: 0,
         onLog: placed.spec.log === true,
       };
@@ -400,6 +425,74 @@ export function createMember(
     };
   };
 
+  /** The arrival run backwards: stand up, hop down off the log, turn, walk away into the dark. */
+  const leavePoseAt = (frame: LeaveFrame, { plan }: { plan: DeparturePlan }): Pose => {
+    const { path, approach } = plan;
+    const atSeat = {
+      x: seat.x,
+      ground: seat.y,
+      lift: rig.raise,
+      walking: false,
+      squash: 1,
+      sit: 1,
+      exposure: 1,
+      fade: 1,
+      travelled: 0,
+      onLog: placed.spec.log === true,
+    };
+    const onGround = {
+      x: approach.x,
+      ground: approach.y,
+      lift: 0,
+      exposure: 1,
+      fade: 1,
+      travelled: 0,
+    };
+    switch (frame.phase) {
+      case "standing":
+        // Stretches up a little as it gets up.
+        return { ...atSeat, sit: 1 + 0.06 * Math.sin(Math.PI * frame.progress) };
+      case "hopping": {
+        const t = 1 - smoothstep(0, 1, frame.progress);
+        return {
+          ...atSeat,
+          x: lerp(approach.x, seat.x, t),
+          ground: lerp(approach.y, seat.y, t),
+          lift:
+            rig.raise * t + Math.sin(Math.PI * frame.progress) * 0.16 * characterHeight * rig.scale,
+        };
+      }
+      case "turning":
+        return {
+          ...onGround,
+          walking: frame.progress >= 0.5,
+          squash: turnWidth(frame.progress),
+          sit: 1,
+          onLog: false,
+        };
+      default: {
+        const done = frame.phase === "gone";
+        const progress = walkEase(done ? 1 : frame.progress);
+        const travelled = progress * path.length;
+        const at = pointAt(path, travelled);
+        if (Math.abs(at.dx) > 0.15) heading = at.dx > 0 ? 1 : -1;
+        return {
+          x: at.x,
+          ground: at.y,
+          lift: 0,
+          walking: true,
+          squash: 1,
+          sit: 1,
+          // The reverse of coming in: the light leaves it and it disappears into the dark.
+          exposure: exposureAt(1 - progress),
+          fade: fadeInAt(1 - progress),
+          travelled,
+          onLog: false,
+        };
+      }
+    }
+  };
+
   const applySeatRig = (pose: Pose, depth: number, breath: number) => {
     const intensity = fire.intensity;
     const light = clamp(fire.light, 0.4, 1.4);
@@ -410,6 +503,7 @@ export function createMember(
     rig.rim.alpha = clamp(rig.lighting.rimAlpha * light * falloff, 0, 1);
 
     const k = rig.k * depth;
+    rig.container.alpha = pose.fade;
     rig.container.position.set(pose.x, pose.ground - pose.lift);
     // Sinking makes it a little wider as well as lower.
     rig.container.scale.set(
@@ -488,11 +582,31 @@ export function createMember(
     cast.contact.alpha = pose.onLog ? 0 : 0.6 * visible;
   };
 
+  let gone = false;
+
   const update = (time: number, dt: number, reduced: boolean) => {
+    if (gone) return;
     elapsed += dt;
-    const frame = arrival ? arrivalFrame(arrival.timeline, elapsed) : undefined;
-    const pose = poseAt(frame);
-    const depth = arrival ? scaleRatioAt(layout, pose.ground, seat.y) : 1;
+    let pose: Pose;
+    let frame: ArrivalFrame | undefined;
+    let leaveDone = false;
+    if (leaving) {
+      leaving.elapsed += dt;
+      const { exit } = leaving;
+      if (exit.kind === "walk") {
+        const leaveProgress = leaveFrame(exit.timeline, leaving.elapsed);
+        pose = leavePoseAt(leaveProgress, exit);
+        leaveDone = leaveProgress.phase === "gone";
+      } else {
+        // Fades out where it sits.
+        pose = { ...poseAt(undefined), fade: 1 - smoothstep(0, FADE_SECONDS, leaving.elapsed) };
+        leaveDone = leaving.elapsed >= FADE_SECONDS;
+      }
+    } else {
+      frame = arrival ? arrivalFrame(arrival.timeline, elapsed) : undefined;
+      pose = poseAt(frame);
+    }
+    const depth = scaleRatioAt(layout, pose.ground, seat.y);
 
     rig.container.visible = !pose.walking;
     show(rig.container, pose.ground);
@@ -501,17 +615,26 @@ export function createMember(
       show(walker.container, pose.ground);
       applyWalker(walker, pose, depth, reduced);
     }
-    // Only someone who has sat down breathes and moves; not while walking in, turning or hopping.
-    const idlePose = idle.update(time, arrived || frame?.phase === "seated", reduced);
+    // Only someone who has sat down breathes and moves; not while walking in, turning, hopping or leaving.
+    const idlePose = idle.update(time, !leaving && (arrived || frame?.phase === "seated"), reduced);
     rig.soft?.pose(idlePose.angles);
     applySeatRig(pose, depth, idlePose.breath);
     applyCast(pose, depth);
 
-    if (!arrived && frame?.phase === "seated") {
+    if (arrival && !arrived && frame?.phase === "seated") {
       arrived = true;
+      announced = true;
       walker?.container.destroy({ children: true });
       walker = undefined;
       onSeated();
+    }
+    if (!announced && entrance?.kind === "fade" && elapsed >= FADE_SECONDS) {
+      announced = true;
+      onSeated();
+    }
+    if (leaveDone && leaving) {
+      gone = true;
+      leaving.onGone();
     }
   };
 
@@ -520,6 +643,16 @@ export function createMember(
   return {
     id,
     update,
+    leave(exit, onGone) {
+      if (!announced || leaving) return false;
+      if (exit.kind === "walk") {
+        // The walker takes over from the seated character at the turn.
+        heading = exit.plan.startHeading;
+        walker ??= buildWalkerRig(context, species);
+      }
+      leaving = { exit, elapsed: 0, onGone };
+      return true;
+    },
     destroy() {
       rig.container.destroy({ children: true });
       rig.soft?.destroy();

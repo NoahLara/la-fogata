@@ -7,6 +7,7 @@ import {
   keepOutZone,
   pathFromPoints,
   planArrival,
+  planDeparture,
   pointAt,
   pushOut,
   scaleRatioAt,
@@ -213,5 +214,74 @@ describe("scaleRatioAt", () => {
     expect(scaleRatioAt(layout, 300, 300)).toBe(1);
     expect(scaleRatioAt(layout, layout.horizon, layout.cy)).toBeLessThan(1);
     expect(scaleRatioAt(layout, layout.cy + layout.ry, layout.cy)).toBeGreaterThan(1);
+  });
+});
+
+describe("planDeparture", () => {
+  for (const layout of layouts) {
+    const zone = keepOutZone(layout);
+    SEATS.forEach((spec, index) => {
+      const seat = seatPosition(layout, spec.degrees, spec.view === "back" ? 1 : 0.8);
+      const options = (seed: number) => ({
+        log: spec.log === true,
+        rand: createRandom(seed),
+        faceFire: spec.view === "side",
+      });
+
+      it(`is the way in run backwards (seat ${index} at ${layout.width}px)`, () => {
+        for (let seed = 1; seed <= 10; seed++) {
+          const arrival = planArrival(layout, seat, options(seed));
+          const departure = planDeparture(layout, seat, options(seed));
+          expect(departure.path.points).toEqual([...arrival.path.points].reverse());
+          expect(departure.path.length).toBeCloseTo(arrival.path.length);
+          expect(departure.approach).toEqual(arrival.approach);
+          expect(departure.toTrees).toBe(arrival.fromTrees);
+          expect(departure.path.points[0]).toEqual(departure.approach);
+        }
+      });
+
+      it(`never goes through the fire (seat ${index} at ${layout.width}px)`, () => {
+        for (let seed = 1; seed <= 10; seed++) {
+          for (const point of planDeparture(layout, seat, options(seed)).path.points) {
+            expect(keepOutRadius(zone, point)).toBeGreaterThanOrEqual(1 - 1e-9);
+          }
+        }
+      });
+    });
+  }
+
+  it("goes into the trees from far seats and off the nearest edge from the rest", () => {
+    const layout = layouts[0]!;
+    SEATS.forEach((spec, index) => {
+      const seat = seatPosition(layout, spec.degrees, spec.view === "back" ? 1 : 0.8);
+      const plan = planDeparture(layout, seat, { log: false, rand: createRandom(index + 1) });
+      const end = plan.path.points[plan.path.points.length - 1]!;
+      if (seat.y < layout.cy) {
+        expect(plan.toTrees).toBe(true);
+        expect(end.y).toBeLessThan(layout.horizon + 10 * layout.u);
+      } else {
+        expect(plan.toTrees).toBe(false);
+        expect(end.x < 0 || end.x > layout.width).toBe(true);
+        expect(end.x < layout.cx).toBe(seat.x < layout.cx);
+      }
+    });
+  });
+
+  it("starts a side seat walking straight away from the fire", () => {
+    for (const layout of layouts) {
+      for (const degrees of [165, 15]) {
+        const seat = seatPosition(layout, degrees, 0.8);
+        const away = seat.x < layout.cx ? -1 : 1;
+        const plan = planDeparture(layout, seat, {
+          log: false,
+          rand: createRandom(2),
+          faceFire: true,
+        });
+        expect(plan.startHeading).toBe(away);
+        const start = pointAt(plan.path, 0);
+        expect(Math.sign(start.dx)).toBe(away);
+        expect(start.dy).toBeCloseTo(0);
+      }
+    }
   });
 });

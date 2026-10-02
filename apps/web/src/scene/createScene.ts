@@ -6,7 +6,7 @@ import { createFire, type Fire } from "./fire";
 import { easeToward } from "./math";
 import { computeLayout, type Insets } from "./layout";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
-import { fireIntensityFor, Roster, type MemberSpec } from "./roster";
+import { fireIntensityFor, Roster, type MemberInfo, type MemberSpec } from "./roster";
 import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
 import { shuffled } from "./random";
 import { TextureBag } from "./textures";
@@ -19,7 +19,12 @@ export interface FogataScene {
    * Does nothing (and warns) if the id is already around the fire or the seat is not free.
    */
   addMember(member: MemberSpec, options: { animate: boolean }): void;
-  members(): MemberSpec[];
+  /**
+   * Sends someone away. With `animate` they stand up and walk off into the dark, the arrival run backwards;
+   * without it they are just gone. Does nothing (and warns) if they are not around or still arriving.
+   */
+  removeMember(id: string, options: { animate: boolean }): void;
+  members(): MemberInfo[];
   destroy(): void;
 }
 
@@ -134,9 +139,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       current.textures.destroy();
     }
     // Anyone still walking in sits down where they were headed.
+    roster.removeLeaving();
     roster.markAllSeated();
     current = build(app, width, height, insets, intensity, sprites, (id) => roster.markSeated(id));
-    for (const member of roster.members()) current.seats.addMember(member, false, Math.random);
+    for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
     // Let the fire burn for a few seconds before the first frame, so it is already going on load and
     // after a resize (which rebuilds it) instead of starting from nothing and growing back.
     const warmUp = 150;
@@ -177,14 +183,28 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   return {
     seatCount: SEATS.length,
     addMember(member, { animate }) {
-      const result = roster.add(member, animate && !reduced ? "arriving" : "seated");
+      // Without motion they fade in where they sit instead of walking in.
+      const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+      const result = roster.add(member, mode === "instant" ? "seated" : "arriving");
       if (result !== "added") {
         console.warn(`Could not seat ${member.id}: ${result}`);
         return;
       }
       // Without a seat's worth of art to draw, nobody sits there.
-      const drawn = current?.seats.addMember(member, animate && !reduced, Math.random) ?? false;
+      const drawn = current?.seats.addMember(member, mode, Math.random) ?? false;
       if (!drawn) roster.remove(member.id);
+    },
+    removeMember(id, { animate }) {
+      const member = roster.members().find((entry) => entry.id === id);
+      if (!member || member.status !== "seated") {
+        console.warn(`Could not send ${id} away: not sitting by the fire`);
+        return;
+      }
+      // Leaving people stop feeding the fire at once, and their seat stays taken until they are gone.
+      roster.markLeaving(id);
+      const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+      const started = current?.seats.removeMember(id, mode, Math.random, () => roster.remove(id));
+      if (!started) roster.remove(id);
     },
     members: () => roster.members(),
     destroy() {

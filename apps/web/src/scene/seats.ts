@@ -17,19 +17,22 @@ import {
   createMember,
   nightTint,
   type BuildContext,
-  type Arrival,
+  type Entrance,
+  type Exit,
   type Member,
   type MemberLayers,
   type Placed,
 } from "./member";
 import { createRandom, type Random } from "./random";
 import type { MemberSpec } from "./roster";
-import { arrivalTimeline, needsTurn } from "./seatState";
+import { arrivalTimeline, leaveTimeline, needsTurn } from "./seatState";
 import { ringScaleFor, SEATS } from "./seatTable";
 import type { TextureBag } from "./textures";
-import { planArrival } from "./walk";
+import { planArrival, planDeparture } from "./walk";
 
 export { DEFAULT_ASSIGNMENT, SEATS } from "./seatTable";
+
+export type EntranceMode = "walk" | "fade" | "instant";
 
 export interface Seats {
   /** Soft shadows: cast away from the fire, plus a contact shadow under each character (or its log). */
@@ -39,10 +42,16 @@ export interface Seats {
   /** Characters and logs in front of the fire. */
   near: Container;
   /**
-   * Seats someone. With `animate` they walk in from outside the scene; without it they are just there.
-   * Returns false when the seat is not free or nothing can be drawn for them.
+   * Seats someone: `walk` has them walk in from outside the scene, `fade` (for reduced motion) has them fade in
+   * where they sit, and `instant` has them just there. Returns false when the seat is not free or nothing can
+   * be drawn for them.
    */
-  addMember(member: MemberSpec, animate: boolean, rand: Random): boolean;
+  addMember(member: MemberSpec, mode: EntranceMode, rand: Random): boolean;
+  /**
+   * Sends someone away, the arrival run backwards (`walk`), fading out where they sit (`fade`), or at once
+   * (`instant`). `onGone` is called when they are gone. Returns false if they are not around or still arriving.
+   */
+  removeMember(id: string, mode: EntranceMode, rand: Random, onGone: () => void): boolean;
   update(time: number, dt: number, reduced: boolean): void;
   destroy(): void;
 }
@@ -177,14 +186,14 @@ export function createSeats(
     shadows,
     far,
     near,
-    addMember(spec, animate, rand) {
+    addMember(spec, mode, rand) {
       const placed = places[spec.seat];
       if (!placed || [...members.values()].some((entry) => entry.seat === spec.seat)) return false;
       const species = resolveSpecies(sprites, spec.species);
       if (!species || members.has(spec.id)) return false;
       const log = placed.spec.log === true;
-      let arrival: Arrival | undefined;
-      if (animate) {
+      let entrance: Entrance | undefined;
+      if (mode === "walk") {
         // Side seats face the fire already, so they walk in facing it and need no turn.
         const plan = planArrival(layout, placed.seat, {
           log,
@@ -193,13 +202,42 @@ export function createSeats(
         });
         const seatFacing = placed.seat.x < layout.cx ? 1 : -1;
         const turn = needsTurn(placed.spec.view, plan.endHeading, seatFacing);
-        arrival = { timeline: arrivalTimeline(rand, { log, turn }), plan };
+        entrance = { kind: "walk", timeline: arrivalTimeline(rand, { log, turn }), plan };
+      } else if (mode === "fade") {
+        entrance = { kind: "fade" };
       }
-      const member = createMember(context, placed, spec.id, species, fire, layers, arrival, () =>
+      const member = createMember(context, placed, spec.id, species, fire, layers, entrance, () =>
         onSeated(spec.id),
       );
       members.set(spec.id, { member, seat: spec.seat });
       return true;
+    },
+    removeMember(id, mode, rand, onGone) {
+      const entry = members.get(id);
+      const placed = entry && places[entry.seat];
+      if (!entry || !placed) return false;
+      const finish = () => {
+        members.delete(id);
+        entry.member.destroy();
+        onGone();
+      };
+      if (mode === "instant") {
+        finish();
+        return true;
+      }
+      let exit: Exit = { kind: "fade" };
+      if (mode === "walk") {
+        const log = placed.spec.log === true;
+        const plan = planDeparture(layout, placed.seat, {
+          log,
+          rand,
+          faceFire: placed.spec.view === "side",
+        });
+        const seatFacing = placed.seat.x < layout.cx ? 1 : -1;
+        const turn = needsTurn(placed.spec.view, plan.startHeading, seatFacing);
+        exit = { kind: "walk", timeline: leaveTimeline(rand, { log, turn }), plan };
+      }
+      return entry.member.leave(exit, finish);
     },
     update(time, dt, reduced) {
       updateLogs();

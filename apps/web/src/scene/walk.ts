@@ -238,3 +238,35 @@ export function scaleRatioAt(layout: SceneLayout, y: number, seatY: number): num
   };
   return factor(y) / factor(seatY);
 }
+
+export interface DeparturePlan {
+  /** Ground path from the seat (or the ground in front of its log) out of the scene. */
+  path: Path;
+  /** Where the walk starts: the seat itself, or the ground in front of its log. */
+  approach: Point;
+  /** Whether it goes into the tree line rather than off the side of the screen. */
+  toTrees: boolean;
+  /** Which way it is heading on screen as the walk starts: 1 to the right, -1 to the left. */
+  startHeading: 1 | -1;
+}
+
+/**
+ * The way out: the way in, run backwards. Far seats go into the trees and the rest to the nearest edge, on a
+ * curve around the fire, and side seats first walk straight away from it.
+ */
+export function planDeparture(
+  layout: SceneLayout,
+  seat: SeatPosition,
+  options: ArrivalPlanOptions,
+): DeparturePlan {
+  const arrival = planArrival(layout, seat, options);
+  const points = [...arrival.path.points].reverse();
+  const first = points[0] ?? arrival.approach;
+  const second = points[1] ?? first;
+  return {
+    path: pathFromPoints(points),
+    approach: arrival.approach,
+    toTrees: arrival.fromTrees,
+    startHeading: second.x >= first.x ? 1 : -1,
+  };
+}

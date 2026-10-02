@@ -1,5 +1,6 @@
 import { SPECIES, type Species } from "./characters/species";
 import { pick, type Random } from "./random";
+import type { MemberInfo } from "./roster";
 
 export interface DemoArrival {
   species: Species;
@@ -25,4 +26,10 @@ export function pickArrival(
     seat: pick(rand, freeSeats),
     species: pick(rand, freeSpecies.length ? freeSpecies : SPECIES),
   };
+}
+
+/** Who leaves next in the demo: one of those sitting by the fire, chosen at random. Nothing when no one is. */
+export function pickLeaver(rand: Random, members: readonly MemberInfo[]): string | undefined {
+  const seated = members.filter((member) => member.status === "seated");
+  return seated.length ? pick(rand, seated).id : undefined;
 }
