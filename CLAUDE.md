@@ -9,9 +9,9 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 - A campfire is a room of at most 7 people. When it's full, a new one opens automatically.
 - Characters: little animals only (the prototype's "souls" mode is not part of the product). Everyone faces the fire: people on your side are seen from behind, people beside it in profile, people across it head-on. See "Art and scene" below.
 - The 7 animals: panda, cat, owl, fox, capybara, rabbit, bear. One of each per campfire (7 seats, 7 animals). If your animal is taken, you get a free one.
-- The fire grows with each connected person.
+- The fire is small when the room is empty (embers and a low flame, never out) and grows a little with each connected person. Wood is what makes it big: each log adds fuel that burns down on its own, there is a ceiling, and each person can throw one log a minute.
 - Sparks: phrases of at most 120 characters. They expire after 6 hours. They are moderated before being shown.
-- Throw wood: a reaction with no text, visible to the whole room.
+- Throw wood: a reaction with no text, visible to the whole room. The thrower's animal swings an arm, a log flies into the fire and it flares. One per person per minute (`WOOD_COOLDOWN_SECONDS`); constants for the fire's size are in `apps/web/src/scene/fuel.ts`.
 - Burn what weighs on you: happens 100% in the browser. It is NEVER sent to the server or stored.
 - No chat, no direct messages, no profiles, no likes, no streaks.
 

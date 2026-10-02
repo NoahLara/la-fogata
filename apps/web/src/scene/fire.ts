@@ -90,6 +90,8 @@ export interface Fire {
   glow: Sprite;
   state: FireLight;
   update(dt: number, time: number, reduced: boolean): void;
+  /** A shower of embers, as when a log lands in the fire. */
+  burst(count: number): void;
 }
 
 function buildStones(
@@ -224,14 +226,14 @@ export function createFire(
     tongues.push(tongue);
   };
 
-  const spawnEmber = () => {
+  const spawnEmber = (speed = 1) => {
     const particle = new Particle({ texture: disc, anchorX: 0.5, anchorY: 0.5 });
     const ember: Ember = {
       particle,
       x: cx + between(rand, -22, 22) * u,
       y: cy - between(rand, 8, teepee.height * 0.8),
       vx: between(rand, -20, 20) * u,
-      vy: -between(rand, 60, 150) * u,
+      vy: -between(rand, 60, 150) * u * speed,
       life: 0,
       max: between(rand, 1.6, 3.6),
       radius: between(rand, 0.8, 1.9),
@@ -270,7 +272,8 @@ export function createFire(
         (0.22 * Math.sin(time * 7.1) +
           0.16 * Math.sin(time * 12.7 + 1.3) +
           0.12 * Math.sin(time * 2.3 + 0.5));
-    state.light = clamp(state.intensity * (0.82 + 0.3 * state.flick), 0.4, 1.7);
+    // A fire at its lowest still glows a little; it never goes dark.
+    state.light = clamp(state.intensity * (0.82 + 0.3 * state.flick), 0.12, 1.7);
 
     tongueBudget += (reduced ? 24 : 48) * state.intensity * dt;
     while (tongueBudget > 1) {
@@ -367,13 +370,13 @@ export function createFire(
 
     baseFlare.width = 30 * u * Math.sqrt(state.intensity) * (0.92 + 0.12 * state.flick);
     baseFlare.height = baseFlare.width * 0.55;
-    baseFlare.alpha = 0.26 * clamp(state.light, 0.5, 1.3);
+    baseFlare.alpha = 0.26 * clamp(state.light, 0.3, 1.3);
 
-    const glowRadius = 480 * u * (0.75 + 0.25 * state.intensity) * (0.94 + 0.1 * state.flick);
+    const glowRadius = 480 * u * (0.45 + 0.55 * state.intensity) * (0.94 + 0.1 * state.flick);
     glow.width = glow.height = glowRadius * 2;
     glow.alpha = 0.17 * state.light;
 
-    const groundRadius = rx * 1.55 * (0.85 + 0.15 * state.intensity);
+    const groundRadius = rx * 1.55 * (0.5 + 0.5 * state.intensity);
     groundLight.width = groundRadius * 2;
     groundLight.height = groundRadius * 2 * 0.34;
     groundLight.alpha = 0.3 * state.light;
@@ -388,5 +391,8 @@ export function createFire(
     glow,
     state,
     update,
+    burst(count) {
+      for (let i = 0; i < count; i++) spawnEmber(between(rand, 1.2, 2));
+    },
   };
 }
