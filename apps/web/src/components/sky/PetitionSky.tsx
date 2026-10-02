@@ -5,7 +5,8 @@ import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
 import type { Petition } from "@/data/types";
 import { nextStarIndex, orderStars, starAfterRemoval } from "@/design/rovingFocus";
-import { es } from "@/i18n/es";
+import { format } from "@/i18n/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 import { HelpScreen } from "../help/HelpScreen";
 import { useInteraction } from "../scene/Interaction";
@@ -35,6 +36,7 @@ interface Star {
  * tab stop (arrow keys move between stars), and Enter or a tap opens the star's card.
  */
 export function PetitionSky({ scene }: { scene: FogataScene }) {
+  const { t } = useI18n();
   const { petitions } = useServices();
   const { busy, hold, say } = useInteraction();
   const [mine, setMine] = useState<readonly Petition[]>([]);
@@ -121,12 +123,12 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
       return undefined;
     }
     const result = await petitions.answer(petition.id, line);
-    if (result.status === "not-yours") return es.sky.notYours;
-    if (result.status === "not-found") return es.sky.notFound;
-    if (result.status === "note-required") return es.sky.noteRequired;
-    if (result.status !== "answered") return es.sky.failed;
+    if (result.status === "not-yours") return t.sky.notYours;
+    if (result.status === "not-found") return t.sky.notFound;
+    if (result.status === "note-required") return t.sky.noteRequired;
+    if (result.status !== "answered") return t.sky.failed;
     scene.answerPetition(petition.id);
-    say(es.sky.announceAnswered);
+    say(t.sky.announceAnswered);
     setOpenId(undefined);
     focusStar(petition.id);
     // The star turns golden and a shooting star crosses; the gestures wait for it (nothing moves with reduced motion).
@@ -139,10 +141,10 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
 
   const giveBack = async (petition: Petition): Promise<string | undefined> => {
     const result = await petitions.remove(petition.id);
-    if (result.status === "not-yours") return es.sky.notYours;
-    if (result.status === "not-found") return es.sky.notFound;
+    if (result.status === "not-yours") return t.sky.notYours;
+    if (result.status === "not-found") return t.sky.notFound;
     // Only a petition that was really removed goes back to the fire.
-    if (result.status !== "removed") return es.sky.failed;
+    if (result.status !== "removed") return t.sky.failed;
     const index = stars.findIndex((star) => star.id === petition.id);
     const next = starAfterRemoval(
       stars.filter((star) => star.id !== petition.id),
@@ -152,7 +154,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     const release = hold();
     scene.returnPetition(petition.id, () => {
       release();
-      say(es.sky.announceReturned);
+      say(t.sky.announceReturned);
       if (next) focusStar(next.id);
       else
         window.requestAnimationFrame(() =>
@@ -167,13 +169,12 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   return (
     <div ref={overlayRef} className="pointer-events-none absolute inset-0 z-[5]">
       {stars.length > 0 && (
-        <div role="group" aria-label={es.sky.groupLabel}>
+        <div role="group" aria-label={t.sky.groupLabel}>
           {stars.map((star, index) => {
             const { petition } = star;
-            const name = (petition.answered ? es.sky.starAnswered : es.sky.star).replace(
-              "{text}",
-              shorten(petition.text),
-            );
+            const name = format(petition.answered ? t.sky.starAnswered : t.sky.star, {
+              text: shorten(petition.text),
+            });
             return (
               <button
                 key={star.id}

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createLocalServices, type LocalServices } from "@/data";
 import { DataProvider } from "@/data/DataProvider";
-import { es } from "@/i18n/es";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene as Scene } from "@/scene/createScene";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
@@ -40,6 +40,9 @@ export function FogataScene() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState<Mounted>();
   const [demo, setDemo] = useState(false);
+  const { t } = useI18n();
+  // The scene is built once, in the language of that first render; `setLabels` below follows later changes.
+  const labels = useRef({ label: t.scene.ariaLabel, you: t.scene.you });
 
   useEffect(() => {
     const host = hostRef.current;
@@ -58,8 +61,8 @@ export function FogataScene() {
       .then(([{ createScene }]) =>
         createScene(host, {
           fonts,
-          label: es.scene.ariaLabel,
-          youLabel: es.scene.you,
+          label: labels.current.label,
+          youLabel: labels.current.you,
           insets: { top: 0, bottom: BAR_HEIGHT },
           shuffle: flags.shuffle,
           animal: flags.animal,
@@ -111,6 +114,10 @@ export function FogataScene() {
       setMounted(undefined);
     };
   }, []);
+
+  useEffect(() => {
+    mounted?.scene.setLabels({ label: t.scene.ariaLabel, you: t.scene.you });
+  }, [mounted, t]);
 
   return (
     <>

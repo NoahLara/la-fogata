@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { AFTERGLOW_SECONDS } from "@/burden/burden";
 import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
-import { es } from "@/i18n/es";
+import { format } from "@/i18n/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 import { HelpScreen } from "../help/HelpScreen";
 import { BurdenDialog } from "./BurdenDialog";
@@ -58,6 +59,7 @@ function Gesture({
 
 /** The three gestures, at the bottom of the scene: throw wood, hand over a burden, leave a petition. */
 export function GestureBar({ scene }: { scene: FogataScene }) {
+  const { t } = useI18n();
   const { fire, presence, petitions } = useServices();
   const [dialog, setDialog] = useState<Dialog>();
   const [notice, setNotice] = useState<string>();
@@ -124,8 +126,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     if (ritual) return;
     const result = await fire.throwWood();
     if (result.status === "cooling") {
-      say(es.gestures.woodCooling.replace("{seconds}", String(Math.ceil(result.secondsLeft))));
-    } else if (result.status === "not-seated") say(es.gestures.notSeated);
+      say(format(t.gestures.woodCooling, { seconds: Math.ceil(result.secondsLeft) }));
+    } else if (result.status === "not-seated") say(t.gestures.notSeated);
     else setCooling(true);
   };
 
@@ -136,11 +138,11 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const begin = (text: string): boolean => {
     const self = presence.self;
     if (!self) {
-      say(es.gestures.notSeated);
+      say(t.gestures.notSeated);
       return false;
     }
     if (!scene.notePlacement(self.id)) {
-      say(es.gestures.arriving);
+      say(t.gestures.arriving);
       return false;
     }
     atRisk.current = hasRiskSignals(text);
@@ -161,7 +163,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       ? scene.handOverBurden(self.id, {
           onDone: () => {
             setRitual(false);
-            setAfterglow(es.burden.afterglow);
+            setAfterglow(t.burden.afterglow);
             later(() => {
               setAfterglow(undefined);
               if (atRisk.current) {
@@ -174,7 +176,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
         })
       : undefined;
     if (result?.status !== "burning") {
-      say(es.gestures.arriving);
+      say(t.gestures.arriving);
       return false;
     }
     return true;
@@ -214,7 +216,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     setSheetNotice(undefined);
     const self = presence.self;
     if (!self) {
-      setSheetNotice(es.gestures.notSeated);
+      setSheetNotice(t.gestures.notSeated);
       return false;
     }
     if (hasRiskSignals(text)) {
@@ -223,7 +225,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       return false;
     }
     if (!scene.notePlacement(self.id)) {
-      setSheetNotice(es.gestures.arriving);
+      setSheetNotice(t.gestures.arriving);
       return false;
     }
     const result = await petitions.create(text);
@@ -248,14 +250,14 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
             onDone: () => {
               pending.current = undefined;
               setRitual(false);
-              setAfterglow(es.petition.afterglow);
+              setAfterglow(t.petition.afterglow);
               focusGesture("petition");
               later(() => setAfterglow(undefined), STAR_AFTERGLOW_MS);
             },
           })
         : undefined;
     if (result?.status !== "burning") {
-      say(es.gestures.arriving);
+      say(t.gestures.arriving);
       return false;
     }
     return true;
@@ -273,22 +275,22 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       <div
         ref={groupRef}
         role="group"
-        aria-label={es.gestures.groupLabel}
+        aria-label={t.gestures.groupLabel}
         className="absolute inset-x-0 bottom-0 z-10 flex justify-center gap-2 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <Gesture
           name="wood"
           icon={<WoodIcon />}
-          label={es.gestures.wood.label}
-          aria={es.gestures.wood.aria}
+          label={t.gestures.wood.label}
+          aria={t.gestures.wood.aria}
           onClick={throwWood}
           disabled={cooling || ritual}
         />
         <Gesture
           name="burden"
           icon={<BurdenIcon />}
-          label={es.gestures.burden.label}
-          aria={es.gestures.burden.aria}
+          label={t.gestures.burden.label}
+          aria={t.gestures.burden.aria}
           onClick={() => {
             if (ritual) return;
             opener.current = "burden";
@@ -299,8 +301,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
         <Gesture
           name="petition"
           icon={<PetitionIcon />}
-          label={es.gestures.petition.label}
-          aria={es.gestures.petition.aria}
+          label={t.gestures.petition.label}
+          aria={t.gestures.petition.aria}
           onClick={openPetition}
           disabled={ritual}
         />

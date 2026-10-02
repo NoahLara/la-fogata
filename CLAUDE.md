@@ -91,7 +91,7 @@ The look is a night scene with warm light. Tokens live in the Tailwind `@theme` 
 
 - Default branch: master.
 - Everything in English: code, names, comments, commits, docs, PRs.
-- UI copy: Spanish by default. Keep every user-facing string in one i18n file so English can be added later.
+- UI copy: Spanish (default) and English, nothing else for now. Every user-facing string, including aria labels and text drawn in the scene, lives in `apps/web/src/i18n/es.ts` and `en.ts` (same keys, enforced by `satisfies Messages` and a test); every new string goes into both. English is written to sound natural and warm, never a literal translation, and avoids the word "petition" (the gesture is "Ask", the thing in the sky is a "star"). Counts use `plural()` (Intl.PluralRules), never `"s"` tricks. The language is the `lang` cookie, else `Accept-Language` (highest-priority supported language), else Spanish; the cookie is a functional preference, not personal data.
 - Strict TypeScript. `any` is forbidden.
 - Every WebSocket event is defined in `packages/shared` and validated with zod on both client and server.
 - Accessibility WCAG 2.2 AA: keyboard navigation, visible focus, `prefers-reduced-motion`, and petitions rendered as real DOM text (not canvas only).

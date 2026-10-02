@@ -1,5 +1,9 @@
-/** Every user-facing string lives here so another language can be added later. */
+/** Spanish, the default. Every user-facing string lives here and in `en.ts`; both must have the same keys. */
 export const es = {
+  meta: {
+    title: "La Fogata",
+    description: "Una fogata para las noches difíciles",
+  },
   scene: {
     ariaLabel: "Una fogata de noche con personas sentadas alrededor.",
     /** Over the visitor's own animal when they sit down. */
@@ -31,7 +35,10 @@ export const es = {
     // Shown only in the last characters. {count} of {max} used.
     counter: "{count} de {max}",
     // Said aloud at a few points. {remaining} characters left.
-    remaining: "Te quedan {remaining} caracteres.",
+    remaining: {
+      one: "Te queda {remaining} carácter.",
+      other: "Te quedan {remaining} caracteres.",
+    },
     submit: "Echar al fuego",
     cancel: "Cancelar",
     afterglow: "Ya no lo cargas a solas.",
@@ -45,7 +52,10 @@ export const es = {
     // Always shown. {count} of {max} used.
     counter: "{count} de {max}",
     // Said aloud at a few points. {remaining} characters left.
-    remaining: "Te quedan {remaining} caracteres.",
+    remaining: {
+      one: "Te queda {remaining} carácter.",
+      other: "Te quedan {remaining} caracteres.",
+    },
     submit: "Elevar",
     cancel: "Cancelar",
     // Said, and shown, when the star has settled in the sky.
@@ -97,6 +107,3 @@ export const es = {
     burden: "Alguien entrega una carga",
   },
 } as const;
-
-/** The page that lists help lines in every country. */
-export const HELPLINE_URL = "https://findahelpline.com";

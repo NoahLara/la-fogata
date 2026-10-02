@@ -77,6 +77,8 @@ export interface FogataScene {
    * a note to before the scene takes over. Nothing if they are not sitting down.
    */
   notePlacement(id: string): { x: number; y: number; height: number } | undefined;
+  /** Changes the words drawn in or named on the scene (the language changed). */
+  setLabels(labels: { label: string; you: string }): void;
   /** Marks this person as the visitor: their animal gets a label when they arrive and a glow when they do something. */
   setSelf(id: string | undefined): void;
   /** Seconds before they can throw wood again; 0 when they can throw now. */
@@ -232,6 +234,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const rituals = new Set<() => void>();
   // The visitor's own animal: when they sat down and when they last did something, in scene time.
   let selfId: string | undefined;
+  // What the visitor's label says now; a rebuild (on resize) must not bring back the first language.
+  let youLabel = options.youLabel;
   let selfSeatedAt: number | undefined;
   let glowSince: number | undefined;
   let intensity = fireIntensityFor(roster.seatedCount, fuel);
@@ -270,7 +274,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       intensity,
       sprites,
       (id) => roster.markSeated(id),
-      options.youLabel,
+      youLabel,
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
     );
@@ -561,6 +565,11 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     },
     woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),
+    setLabels(labels) {
+      canvas.setAttribute("aria-label", labels.label);
+      youLabel = labels.you;
+      current?.you.setText(labels.you);
+    },
     destroy() {
       rebuildWhenSettled.cancel();
       observer.disconnect();

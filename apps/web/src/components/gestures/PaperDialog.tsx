@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { burdenLength } from "@/burden/burden";
 import { paperOutline, PAPER_SEED } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
-import { es } from "@/i18n/es";
+import { useI18n } from "@/i18n/I18nProvider";
 import { ModalDialog } from "../ModalDialog";
 import { FoldingNote, type NoteTarget } from "./FoldingNote";
 import { measurePaper, type PaperMeasure } from "./measure";
@@ -82,6 +82,7 @@ export function PaperDialog({
   onAbort: () => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [text, setText] = useState("");
   const [focused, setFocused] = useState(false);
   const [stage, setStage] = useState<Stage>("writing");
@@ -282,7 +283,7 @@ export function PaperDialog({
             </button>
           </div>
           <p className={`text-center text-xs text-ink-soft ${FADE} ${fading ? "opacity-0" : ""}`}>
-            {es.common.notProfessionalHelp}
+            {t.common.notProfessionalHelp}
           </p>
         </form>
         {fold && stage === "folding" && (
