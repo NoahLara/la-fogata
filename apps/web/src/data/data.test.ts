@@ -218,22 +218,71 @@ describe("MemoryPetitions: answering", () => {
     expect(result.status).toBe("answered");
     if (result.status === "answered") expect(result.petition.answered?.note).toBe("Ya estoy mejor");
     expect(types).toEqual(["answered"]);
-    expect((await service.answer(created.petition.id)).status).toBe("already-answered");
+    expect((await service.answer(created.petition.id, "otra")).status).toBe("already-answered");
   });
 
-  it("works without a line", async () => {
+  it("needs a line that says how it happened", async () => {
     const { service } = petitions();
     const created = await service.create("sanar");
     if (created.status !== "created") throw new Error("not created");
-    const result = await service.answer(created.petition.id);
-    if (result.status === "answered") expect(result.petition.answered?.note).toBeUndefined();
+    const events: string[] = [];
+    service.subscribe((event) => events.push(event.type));
+    expect((await service.answer(created.petition.id, "")).status).toBe("note-required");
+    expect((await service.answer(created.petition.id, "   ")).status).toBe("note-required");
+    expect((await service.answer(created.petition.id, "a".repeat(141))).status).toBe("too-long");
+    expect(events).toEqual([]);
+    expect((await service.mine())[0]?.answered).toBeUndefined();
   });
 
   it("is only for the author", async () => {
     const { service } = petitions();
     const other = service.seedOther("ajena");
-    expect((await service.answer(other.id)).status).toBe("not-yours");
-    expect((await service.answer("nope")).status).toBe("not-found");
+    expect((await service.answer(other.id, "x")).status).toBe("not-yours");
+    expect((await service.answer("nope", "x")).status).toBe("not-found");
+  });
+});
+
+describe("MemoryPetitions: returning to the fire", () => {
+  it("lets the author remove it, tells everyone and drops it from the sky", async () => {
+    const { service } = petitions();
+    const created = await service.create("sanar");
+    if (created.status !== "created") throw new Error("not created");
+    const events: string[] = [];
+    service.subscribe((event) =>
+      events.push(event.type === "removed" ? `removed ${event.id}` : event.type),
+    );
+    expect(await service.remove(created.petition.id)).toEqual({ status: "removed" });
+    expect(events).toEqual([`removed ${created.petition.id}`]);
+    expect(await service.mine()).toEqual([]);
+    expect(await service.sky()).toEqual([]);
+    expect((await service.remove(created.petition.id)).status).toBe("not-found");
+  });
+
+  it("is only for the author, and leaves other people's petitions alone", async () => {
+    const { service } = petitions();
+    const other = service.seedOther("ajena");
+    expect((await service.remove(other.id)).status).toBe("not-yours");
+    expect((await service.remove("nope")).status).toBe("not-found");
+    expect(await service.sky()).toHaveLength(1);
+  });
+
+  it("keeps the day's petition used", async () => {
+    const { service, advance } = petitions();
+    const created = await service.create("uno");
+    if (created.status !== "created") throw new Error("not created");
+    await service.remove(created.petition.id);
+    expect(await service.dailyLimitReached()).toBe(true);
+    expect((await service.create("dos")).status).toBe("daily-limit");
+    advance(DAY + 1);
+    expect((await service.create("dos")).status).toBe("created");
+  });
+
+  it("can't remove an answered petition that has expired", async () => {
+    const { service, advance } = petitions();
+    const created = await service.create("uno");
+    if (created.status !== "created") throw new Error("not created");
+    advance(31 * DAY);
+    expect((await service.remove(created.petition.id)).status).toBe("not-found");
   });
 });
 
@@ -269,7 +318,7 @@ describe("MemoryPetitions: expiry", () => {
     const old = service.seedOther("vieja");
     if (first.status !== "created") throw new Error("not created");
     advance(20 * DAY);
-    await service.answer(first.petition.id);
+    await service.answer(first.petition.id, "Se dio");
     // 45 days after it was written, but only 25 after it was answered.
     advance(25 * DAY);
     const texts = (await service.sky()).map((petition) => petition.text);

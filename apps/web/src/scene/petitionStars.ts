@@ -1,5 +1,5 @@
 import type { Point, SceneLayout } from "./layout";
-import { between } from "./math";
+import { between, clamp, mixColor } from "./math";
 import { createRandom } from "./random";
 import type { Keepout } from "./shootingStar";
 import { skyGeometry } from "./skyGeometry";
@@ -122,4 +122,39 @@ export function placeStar(id: string, area: StarArea, others: readonly Point[]):
     clearest ??
     fallback ?? { x: (area.left + area.right) / 2, y: (area.top + area.bottom) / 2 }
   );
+}
+
+/** Colours of a petition star: warm white while it waits, golden once it is answered. */
+export const WAITING_STAR = { core: 0xfff1dc, glow: 0xffd9a0 } as const;
+export const ANSWERED_STAR = { core: 0xffdc82, glow: 0xffb030 } as const;
+/** How long a star takes to turn golden when it is answered in front of you. */
+export const ANSWER_TURN_SECONDS = 1.2;
+
+export interface StarLook {
+  core: number;
+  glow: number;
+  /** How bright the star is right now, around 1. */
+  level: number;
+}
+
+/**
+ * How a petition star looks. A waiting star is steady: the same at any time. An answered one is golden and
+ * twinkles, except with reduced motion, when it is golden and still. `turned` (0 to 1) is how far a star that was
+ * just answered has turned from white to gold; a star that was already answered is at 1.
+ */
+export function starLook(
+  answered: boolean,
+  time: number,
+  phase: number,
+  reduced: boolean,
+  turned = 1,
+): StarLook {
+  if (!answered) return { core: WAITING_STAR.core, glow: WAITING_STAR.glow, level: 0.95 };
+  const t = clamp(turned, 0, 1);
+  const wave = 0.7 * Math.sin(time * 2.1 + phase) + 0.3 * Math.sin(time * 0.9 + phase * 1.7);
+  return {
+    core: mixColor(WAITING_STAR.core, ANSWERED_STAR.core, t),
+    glow: mixColor(WAITING_STAR.glow, ANSWERED_STAR.glow, t),
+    level: reduced ? 1 : 0.85 + 0.15 * wave,
+  };
 }

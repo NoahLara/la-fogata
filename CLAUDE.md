@@ -16,8 +16,11 @@ Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a 
 - Petition stars:
   - One shared sky across all campfires. The sky slowly rotates, so different stars pass over time.
   - Each sky shows about 30 petition stars at a time, prioritizing petitions with fewer prayers, so none goes unprayed.
+  - A waiting star is steady: warm white with a soft glow, no pulse. An answered star is golden and twinkles (golden and still with reduced motion).
   - Tap a star: see the petition and a "Pray for this" button. The star brightens and shows how many people prayed.
-  - The author can mark it answered and add one optional line. The star turns golden, and a shooting star crosses everyone's sky.
+  - The author can mark it answered, and must say how it happened in one line (the explanation is required). The star turns golden and twinkles, and a shooting star crosses everyone's sky.
+  - The author can return a star to the fire (no undo, after a confirmation): the star dims into a small golden light, glides in an arc down to the fire and sinks into the flames with a small flare and a few sparks. Nobody walks. With reduced motion the star just fades out. The day's petition stays used.
+  - Your own stars are real buttons (a 44 px target over each). The sky is one tab stop with a roving tabindex: arrows (and Home/End) move between stars ordered by x then y, wrapping at the ends; Enter opens the star's card, a non-modal paper card with a gold edge (a bottom sheet on phones).
   - A "find my stars" button highlights your own petition stars.
   - Max 140 characters, 1 petition per person per day, moderated before it is shown.
   - Petitions expire after 30 days; answered ones stay golden 30 more days.
@@ -103,7 +106,7 @@ The web experience is built first, against the in-memory services (`apps/web/src
 2. Web experience on in-memory services. Left to build, in order:
    - burden ✅
    - petition ritual: leave a petition and watch it become a star in your own sky
-   - star interactions: rotating sky, tap a star, "Estoy contigo", answered stars
+   - star interactions: your own stars are buttons with a card, answered (golden) stars and returning a star to the fire ✅. Left: rotating sky, tap other people's stars, "Estoy contigo"
    - a word from the fire
    - distant campfires and the alone state
    - sound

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { computeLayout } from "./layout";
-import { hashId, placeStar, starArea, treeLineAt, type StarArea, type Tree } from "./petitionStars";
+import {
+  ANSWERED_STAR,
+  hashId,
+  placeStar,
+  starArea,
+  starLook,
+  treeLineAt,
+  WAITING_STAR,
+  type StarArea,
+  type Tree,
+} from "./petitionStars";
 import type { Point } from "./layout";
 
 const SIZES = [
@@ -152,5 +162,46 @@ describe.each(SIZES)("a star never goes behind a pine on a $name", ({ width, hei
       if (i < 8) placed.push(spot);
       expect(treeLineAt(trees, spot.x) - spot.y).toBeGreaterThanOrEqual(sky.treeMargin);
     }
+  });
+});
+
+describe("starLook", () => {
+  const times = [0, 0.7, 1.9, 5.3, 12, 31.4];
+
+  it("keeps a waiting star steady and warm white, at any time", () => {
+    const first = starLook(false, 0, 1.2, false);
+    for (const time of times) expect(starLook(false, time, 1.2, false)).toEqual(first);
+    expect(first.core).toBe(WAITING_STAR.core);
+    expect(first.glow).toBe(WAITING_STAR.glow);
+  });
+
+  it("keeps a waiting star steady with reduced motion too", () => {
+    expect(starLook(false, 4, 0.3, true)).toEqual(starLook(false, 9, 0.3, false));
+  });
+
+  it("makes an answered star golden and twinkling", () => {
+    const levels = times.map((time) => starLook(true, time, 1.2, false).level);
+    expect(new Set(levels).size).toBeGreaterThan(3);
+    for (const level of levels) {
+      expect(level).toBeGreaterThanOrEqual(0.7);
+      expect(level).toBeLessThanOrEqual(1);
+    }
+    const look = starLook(true, 3, 1.2, false);
+    expect(look.core).toBe(ANSWERED_STAR.core);
+    expect(look.glow).toBe(ANSWERED_STAR.glow);
+  });
+
+  it("makes an answered star golden but still with reduced motion", () => {
+    const first = starLook(true, 0, 1.2, true);
+    for (const time of times) expect(starLook(true, time, 1.2, true)).toEqual(first);
+    expect(first.core).toBe(ANSWERED_STAR.core);
+  });
+
+  it("turns from white to gold as it is answered", () => {
+    expect(starLook(true, 0, 0, true, 0).core).toBe(WAITING_STAR.core);
+    expect(starLook(true, 0, 0, true, 1).core).toBe(ANSWERED_STAR.core);
+    const half = starLook(true, 0, 0, true, 0.5).core;
+    expect(half).not.toBe(WAITING_STAR.core);
+    expect(half).not.toBe(ANSWERED_STAR.core);
   });
 });

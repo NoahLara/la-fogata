@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { flightProgress, lightAt, planFlight, RISE_SECONDS } from "./lightFlight";
+import {
+  flightProgress,
+  lightAt,
+  planFlight,
+  planReturn,
+  returnAt,
+  returnProgress,
+  RISE_SECONDS,
+} from "./lightFlight";
 
 const FIRE = { x: 195, y: 480 };
 
@@ -59,5 +67,54 @@ describe.each(cases)("the light's flight ($name)", ({ to, u }) => {
     const farthest = Math.max(...gaps);
     expect(farthest).toBeLessThan(40 * Math.max(u, 1));
     expect(gaps[gaps.length - 1] as number).toBeLessThan(farthest / 5);
+  });
+});
+
+describe.each(cases)("the light's flight back to the fire ($name)", ({ to: star, u }) => {
+  const plan = planReturn({ ...star }, { ...FIRE }, u);
+  const steps = Array.from({ length: 601 }, (_, i) => (i / 600) * plan.duration);
+  const gaps = steps.slice(1).map((time, i) => {
+    const a = returnAt(plan, steps[i] as number);
+    const b = returnAt(plan, time);
+    return Math.hypot(b.x - a.x, b.y - a.y);
+  });
+
+  it("starts at the star and ends at the fire, and stays there", () => {
+    const start = returnAt(plan, 0);
+    const end = returnAt(plan, plan.duration);
+    expect(start.x).toBeCloseTo(star.x, 6);
+    expect(start.y).toBeCloseTo(star.y, 6);
+    expect(end.x).toBeCloseTo(FIRE.x, 6);
+    expect(end.y).toBeCloseTo(FIRE.y, 6);
+    expect(returnAt(plan, plan.duration + 10)).toEqual(end);
+  });
+
+  it("makes progress that never goes back, from 0 to 1", () => {
+    let last = -1;
+    for (const time of steps) {
+      const progress = returnProgress(plan, time);
+      expect(progress).toBeGreaterThanOrEqual(last);
+      last = progress;
+    }
+    expect(returnProgress(plan, 0)).toBe(0);
+    expect(returnProgress(plan, plan.duration)).toBe(1);
+  });
+
+  it("eases out: fastest at the start, slowing into the flames", () => {
+    expect(gaps[0] as number).toBeGreaterThan((gaps[gaps.length - 1] as number) * 5);
+    // Each step is no longer than the one before it.
+    for (let i = 1; i < gaps.length; i++) {
+      expect(gaps[i] as number).toBeLessThanOrEqual((gaps[i - 1] as number) * 1.15 + 1e-6);
+    }
+  });
+
+  it("bows into an arc instead of a straight line", () => {
+    const middle = returnAt(plan, plan.duration * 0.3);
+    const t = returnProgress(plan, plan.duration * 0.3);
+    const straight = {
+      x: star.x + (FIRE.x - star.x) * t,
+      y: star.y + (FIRE.y - star.y) * t,
+    };
+    expect(Math.hypot(middle.x - straight.x, middle.y - straight.y)).toBeGreaterThan(1);
   });
 });

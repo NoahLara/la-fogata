@@ -1,5 +1,6 @@
 import { Application, Container } from "pixi.js";
 import { createBackground, type Background } from "./background";
+import type { SkyPetitions } from "./sky";
 import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
@@ -58,7 +59,19 @@ export interface FogataScene {
    */
   offerPetition(id: string, request: PetitionRequest): BurdenResult;
   /** Puts these petitions' stars in the sky, all at once: the visitor's own, when the page loads. Ones already there stay. */
-  setPetitionStars(ids: readonly string[]): void;
+  setPetitionStars(stars: readonly { id: string; answered: boolean }[]): void;
+  /** A petition was marked answered: its star turns golden and a shooting star crosses the sky (none with reduced motion). */
+  answerPetition(id: string): void;
+  /**
+   * A petition goes back to the fire: its star dims into a small golden light, which glides in an arc down to the
+   * flames and sinks into them with a small flare and a few sparks. With reduced motion the star just fades out.
+   * Nobody walks. `onDone` is called when nothing of it is left.
+   */
+  returnPetition(id: string, onDone: () => void): void;
+  /** Where each petition star is, in pixels from the top left of the scene. */
+  petitionSpots(): ReadonlyMap<string, { x: number; y: number }>;
+  /** Called whenever the stars may have moved (the scene was laid out again, one was added or went). Returns a way to stop. */
+  onLayout(listener: () => void): () => void;
   /**
    * Where the note is in someone's hands, in window coordinates, and how tall it is there: for the page to fly
    * a note to before the scene takes over. Nothing if they are not sitting down.
@@ -134,11 +147,11 @@ function build(
   onSeated: (id: string) => void,
   youLabel: string,
   fonts: SceneFonts,
-  petitionIds: readonly string[],
+  petitions: SkyPetitions,
 ): Built {
   const layout = computeLayout(width, height, insets);
   const textures = new TextureBag();
-  const background = createBackground(layout, textures, petitionIds);
+  const background = createBackground(layout, textures, petitions);
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
   const effects = createWoodEffects(layout);
@@ -208,6 +221,13 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const cooldowns = new WoodCooldowns();
   /** The petitions that are stars in the sky, in the order they became stars: each keeps its spot across rebuilds. */
   const petitionIds: string[] = [];
+  /** Of those, the ones answered, and the ones that went back to the fire (which only keep their place). */
+  const answeredIds = new Set<string>();
+  const retiredIds = new Set<string>();
+  const layoutListeners = new Set<() => void>();
+  const notifyLayout = () => {
+    for (const listener of [...layoutListeners]) listener();
+  };
   /** Rituals in progress, each with what ends it at once. */
   const rituals = new Set<() => void>();
   // The visitor's own animal: when they sat down and when they last did something, in scene time.
@@ -252,7 +272,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       (id) => roster.markSeated(id),
       options.youLabel,
       options.fonts,
-      petitionIds,
+      { ids: petitionIds, answered: answeredIds, retired: retiredIds },
     );
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
     // Let the fire burn for a few seconds before the first frame, so it is already going on load and
@@ -260,6 +280,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const warmUp = 150;
     for (let i = 0; i < warmUp; i++) current.fire.update(1 / 30, time + i / 30, reduced);
     app.stage.addChild(current.root);
+    notifyLayout();
   };
   rebuild();
 
@@ -323,6 +344,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const show = (mode: "bloom" | "fade") => {
       if (!petitionIds.includes(petitionId)) petitionIds.push(petitionId);
       built.background.addPetitionStar(petitionId, mode);
+      notifyLayout();
     };
     const hooks = { onArrive: () => show(reduced ? "fade" : "bloom"), onDone: done };
     if (reduced) return built.lights.fade(hooks).finish;
@@ -483,12 +505,59 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     offerPetition(id, { petitionId, onDone }) {
       return errand(id, onDone, (done) => becomeStar(petitionId, done));
     },
-    setPetitionStars(ids) {
-      for (const id of ids) {
+    setPetitionStars(stars) {
+      for (const { id, answered } of stars) {
         if (petitionIds.includes(id)) continue;
         petitionIds.push(id);
         current?.background.addPetitionStar(id, "instant");
+        if (answered) {
+          answeredIds.add(id);
+          current?.background.answerPetitionStar(id, "instant");
+        }
       }
+      notifyLayout();
+    },
+    answerPetition(id) {
+      if (!petitionIds.includes(id) || retiredIds.has(id) || answeredIds.has(id)) return;
+      answeredIds.add(id);
+      current?.background.answerPetitionStar(id, reduced ? "instant" : "turn");
+      current?.background.shootingStar();
+    },
+    returnPetition(id, onDone) {
+      const built = current;
+      const spot = built?.background.petitionSpots().get(id);
+      if (!built || !spot || retiredIds.has(id)) {
+        onDone();
+        return;
+      }
+      // From now on the star is gone: a rebuild in the middle of the flight shows the sky without it.
+      retiredIds.add(id);
+      const { cx, cy, u } = built.layout;
+      built.lights.descend(
+        spot,
+        { x: cx, y: cy - 30 * u },
+        {
+          onDim: () => built.background.removePetitionStar(id, "dim"),
+          onArrive: () => {
+            flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
+            current?.fire.burst(5);
+          },
+          onDone,
+        },
+        reduced,
+      );
+      notifyLayout();
+    },
+    petitionSpots() {
+      const spots = new Map<string, { x: number; y: number }>();
+      for (const [id, spot] of current?.background.petitionSpots() ?? []) {
+        if (!retiredIds.has(id)) spots.set(id, { x: spot.x, y: spot.y });
+      }
+      return spots;
+    },
+    onLayout(listener) {
+      layoutListeners.add(listener);
+      return () => layoutListeners.delete(listener);
     },
     woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),

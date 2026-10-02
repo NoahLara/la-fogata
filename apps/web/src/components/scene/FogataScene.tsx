@@ -7,6 +7,8 @@ import { es } from "@/i18n/es";
 import type { FogataScene as Scene } from "@/scene/createScene";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
+import { PetitionSky } from "../sky/PetitionSky";
+import { InteractionProvider } from "./Interaction";
 import { DemoControls } from "./DemoControls";
 
 /** Room at the bottom of the scene for the gesture bar. */
@@ -82,7 +84,9 @@ export function FogataScene() {
           created.destroy();
           return;
         }
-        created.setPetitionStars(mine.map((petition) => petition.id));
+        created.setPetitionStars(
+          mine.map((petition) => ({ id: petition.id, answered: petition.answered !== undefined })),
+        );
         // The scene follows who the service says is there.
         const unsubscribers = [
           services.presence.subscribe((event) => {
@@ -113,8 +117,11 @@ export function FogataScene() {
       <div ref={hostRef} className="absolute inset-0" />
       {mounted && (
         <DataProvider services={mounted.services}>
-          <GestureBar scene={mounted.scene} />
-          {demo && <DemoControls local={mounted.services} scene={mounted.scene} />}
+          <InteractionProvider>
+            <PetitionSky scene={mounted.scene} />
+            <GestureBar scene={mounted.scene} />
+            {demo && <DemoControls local={mounted.services} scene={mounted.scene} />}
+          </InteractionProvider>
         </DataProvider>
       )}
     </>

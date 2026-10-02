@@ -20,6 +20,7 @@ import type {
   PetitionService,
   PrayerService,
   PrayResult,
+  RemovePetitionResult,
 } from "./types";
 
 interface Options {
@@ -53,6 +54,8 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   private readonly events = new Emitter<PetitionEvent>();
   private readonly prayedFor = new Set<string>();
   private prayerTaps = 0;
+  /** When the visitor made each petition: only the moments, never the text, so returning one doesn't give the day's back. */
+  private readonly madeAt: number[] = [];
 
   constructor(private readonly options: Options) {}
 
@@ -80,22 +83,34 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     if (hasRiskSignals(clean)) return { status: "risk" };
     if (this.limitReached()) return { status: "daily-limit" };
     const record = this.add(clean, this.ownerKey());
+    this.madeAt.push(record.createdAt);
     const petition = this.view(record);
     this.events.emit({ type: "added", petition });
     return { status: "created", petition };
   }
 
-  async answer(id: string, note?: string): Promise<AnswerPetitionResult> {
+  async answer(id: string, note: string): Promise<AnswerPetitionResult> {
     const record = this.records.get(id);
     if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
     if (!this.isMine(record)) return { status: "not-yours" };
     if (record.answered) return { status: "already-answered" };
-    const line = note?.trim();
-    if (line && burdenLength(line) > PETITION_ANSWER_MAX_LENGTH) return { status: "too-long" };
-    record.answered = { at: this.options.now(), ...(line ? { note: line } : {}) };
+    const line = note.trim();
+    if (!line) return { status: "note-required" };
+    if (burdenLength(line) > PETITION_ANSWER_MAX_LENGTH) return { status: "too-long" };
+    record.answered = { at: this.options.now(), note: line };
     const petition = this.view(record);
     this.events.emit({ type: "answered", petition });
     return { status: "answered", petition };
+  }
+
+  async remove(id: string): Promise<RemovePetitionResult> {
+    const record = this.records.get(id);
+    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (!this.isMine(record)) return { status: "not-yours" };
+    this.records.delete(id);
+    this.prayedFor.delete(id);
+    this.events.emit({ type: "removed", id });
+    return { status: "removed" };
   }
 
   async pray(petitionId: string): Promise<PrayResult> {
@@ -139,15 +154,8 @@ export class MemoryPetitions implements PetitionService, PrayerService {
 
   private limitReached(): boolean {
     const now = this.options.now();
-    const mine = [...this.records.values()].filter((record) => this.isMine(record));
     const perDay = this.options.petitionsPerDay ?? PETITIONS_PER_DAY;
-    return (
-      petitionAvailableAt(
-        mine.map((record) => record.createdAt),
-        now,
-        perDay,
-      ) > now
-    );
+    return petitionAvailableAt(this.madeAt, now, perDay) > now;
   }
 
   private living(): Stored[] {

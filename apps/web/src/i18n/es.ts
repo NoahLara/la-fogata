@@ -53,6 +53,32 @@ export const es = {
     // Instead of the form, when they have already left one today.
     alreadyToday: "Ya elevaste una hoy. Mañana podrás pedir otra.",
   },
+  sky: {
+    groupLabel: "Tus peticiones",
+    // The name of a star for a screen reader. {text} is the start of the petition.
+    star: "Petición: {text}",
+    starAnswered: "Petición respondida: {text}",
+    cardLabel: "Tu petición",
+    answered: "Respondida",
+    markAnswered: "Marcar como respondida",
+    answerFieldLabel: "¿Cómo pasó?",
+    answerPlaceholder: "Cuenta cómo pasó…",
+    // {count} of {max} used.
+    counter: "{count} de {max}",
+    confirm: "Confirmar",
+    cancel: "Cancelar",
+    returnToFire: "Regresar petición a la fogata",
+    returnQuestion: "¿Regresarla a la fogata? No se puede deshacer.",
+    returnConfirm: "Regresar",
+    // Said aloud, and shown, when the star has turned golden or gone back to the fire.
+    announceAnswered: "Marcada como respondida.",
+    announceReturned: "Regresó a la fogata.",
+    // Gentle words when it can't be done; the star stays where it is.
+    notYours: "Solo quien la pidió puede cambiarla. La estrella sigue en su lugar.",
+    noteRequired: "Cuenta cómo pasó para marcarla como respondida.",
+    notFound: "Esa petición ya no está. La estrella sigue en su lugar.",
+    failed: "No se pudo. La estrella sigue en su lugar.",
+  },
   help: {
     title: "Mereces apoyo ahora",
     body: "Lo que escribiste se quemó y nadie lo vio. Si estás pasando por algo muy difícil, hablar con una persona puede ayudar, y hay líneas de ayuda gratuitas en casi todos los países.",
