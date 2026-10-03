@@ -18,6 +18,7 @@ export function ModalDialog({
   style,
   handing,
   onCancel,
+  persistent = false,
 }: {
   labelledBy: string;
   describedBy?: string;
@@ -29,6 +30,8 @@ export function ModalDialog({
   handing?: boolean;
   /** Escape was pressed: call `preventDefault` to keep the dialog open. */
   onCancel?: (event: React.SyntheticEvent<HTMLDialogElement>) => void;
+  /** Escape can't close it: it is only left by what the page does. */
+  persistent?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -38,6 +41,8 @@ export function ModalDialog({
     // No cleanup: a modal dialog that leaves the page leaves the top layer too, and closing it by hand
     // would call `onClose` for a dialog the page has already dropped.
     dialog.showModal();
+    // The browser focuses the first thing it can; a dialog says where focus belongs with `data-autofocus`.
+    dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
   }, []);
 
   return (
@@ -46,8 +51,18 @@ export function ModalDialog({
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       // Escape closes the dialog by itself; this keeps React's state in step.
-      onClose={onClose}
-      onCancel={onCancel}
+      onClose={(event) => {
+        // A second Escape can close a dialog without a `cancel` event; a persistent one just opens again.
+        if (persistent) {
+          if (!event.currentTarget.open) event.currentTarget.showModal();
+          return;
+        }
+        onClose();
+      }}
+      onCancel={(event) => {
+        if (persistent) event.preventDefault();
+        onCancel?.(event);
+      }}
       className={className}
       style={style}
       data-handing={handing ? "" : undefined}

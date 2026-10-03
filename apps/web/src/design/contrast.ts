@@ -4,7 +4,13 @@ export function contrastRatio(a: string, b: string): number {
   return (light + 0.05) / (dark + 0.05);
 }
 
-function luminance(hex: string): number {
+/** WCAG contrast between two relative luminances (0 to 1), from 1 to 21. */
+export function contrastOfLuminances(a: number, b: number): number {
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** The WCAG relative luminance of a #rrggbb color, from 0 (black) to 1 (white). */
+export function luminance(hex: string): number {
   const match = /^#([0-9a-f]{6})$/i.exec(hex);
   if (!match?.[1]) throw new Error(`Not a #rrggbb color: ${hex}`);
   const value = parseInt(match[1], 16);

@@ -12,6 +12,8 @@
   --color-bark-deep: #1d140e;
   --color-ember: #ff9650;
   --color-ember-soft: #ffb070;
+  /* Ground faintly lit by the fire: the disc behind a character that is lighter than the dark. */
+  --color-hearth: #3d2413;
   --color-gold: #ffd9a0;
   --color-paper: #f3e6cb;
   --color-paper-glow: #f0d6a6;
@@ -32,6 +34,16 @@
   --font-title: var(--font-fraunces), Georgia, serif;
   --font-ui: var(--font-atkinson), system-ui, sans-serif;
   --font-hand: var(--font-caveat), "Segoe Print", cursive;
+}
+
+/* Settings > Text size (small is the default, 90%; normal is the browser's 100%; large 125%): every size in the UI is in rem, so they all follow the root. The scene art doesn't. */
+html:not([data-text-size]),
+html[data-text-size="small"] {
+  font-size: 90%;
+}
+
+html[data-text-size="large"] {
+  font-size: 125%;
 }
 
 body {

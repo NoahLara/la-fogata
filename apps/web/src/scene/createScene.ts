@@ -56,6 +56,12 @@ export interface FogataScene {
    */
   removeMember(id: string, options: { animate: boolean }): void;
   /**
+   * Swaps who sits in a seat, keeping the person: the old character leaves as in `removeMember` and, once gone,
+   * the new one (same id and seat, another species) arrives as in `addMember`. Does nothing (and warns) if the
+   * id is not sitting by the fire.
+   */
+  replaceMember(member: MemberSpec, options: { animate: boolean }): void;
+  /**
    * Has someone throw a log into the fire, which makes it stronger for a while. Everyone can throw one a
    * minute; the fire can only get so big.
    */
@@ -641,37 +647,59 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     return { status: "burning" };
   };
 
+  const addMemberTo = (member: MemberSpec, { animate }: { animate: boolean }) => {
+    // Without motion they fade in where they sit instead of walking in.
+    const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+    const result = roster.add(member, mode === "instant" ? "seated" : "arriving");
+    if (result !== "added") {
+      console.warn(`Could not seat ${member.id}: ${result}`);
+      return;
+    }
+    // Without a seat's worth of art to draw, nobody sits there.
+    const drawn = current?.seats.addMember(member, mode, Math.random) ?? false;
+    if (!drawn) roster.remove(member.id);
+  };
+
+  const removeMemberFrom = (
+    id: string,
+    animate: boolean,
+    { forgetCooldown, onGone }: { forgetCooldown: boolean; onGone?: () => void },
+  ) => {
+    const member = roster.members().find((entry) => entry.id === id);
+    if (!member || member.status !== "seated") {
+      console.warn(`Could not send ${id} away: not sitting by the fire`);
+      return;
+    }
+    // Leaving people stop feeding the fire at once, and their seat stays taken until they are gone.
+    roster.markLeaving(id);
+    const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+    const gone = () => {
+      roster.remove(id);
+      if (forgetCooldown) cooldowns.forget(id);
+      onGone?.();
+    };
+    const started = current?.seats.removeMember(id, mode, Math.random, gone);
+    if (!started) gone();
+  };
+
   return {
     seatCount: SEATS.length,
-    addMember(member, { animate }) {
-      // Without motion they fade in where they sit instead of walking in.
-      const mode = animate ? (reduced ? "fade" : "walk") : "instant";
-      const result = roster.add(member, mode === "instant" ? "seated" : "arriving");
-      if (result !== "added") {
-        console.warn(`Could not seat ${member.id}: ${result}`);
-        return;
-      }
-      // Without a seat's worth of art to draw, nobody sits there.
-      const drawn = current?.seats.addMember(member, mode, Math.random) ?? false;
-      if (!drawn) roster.remove(member.id);
-    },
+    addMember: addMemberTo,
     removeMember(id, { animate }) {
-      const member = roster.members().find((entry) => entry.id === id);
-      if (!member || member.status !== "seated") {
-        console.warn(`Could not send ${id} away: not sitting by the fire`);
+      removeMemberFrom(id, animate, { forgetCooldown: true });
+    },
+    replaceMember(member, { animate }) {
+      const existing = roster.members().find((entry) => entry.id === member.id);
+      if (!existing || existing.status !== "seated") {
+        console.warn(`Could not change ${member.id}: not sitting by the fire`);
         return;
       }
-      // Leaving people stop feeding the fire at once, and their seat stays taken until they are gone.
-      roster.markLeaving(id);
-      const mode = animate ? (reduced ? "fade" : "walk") : "instant";
-      const started = current?.seats.removeMember(id, mode, Math.random, () => {
-        roster.remove(id);
-        cooldowns.forget(id);
+      // The old one walks off and, once gone, the new one walks in to the same seat. The wood cooldown stays: a
+      // new character is the same person.
+      removeMemberFrom(member.id, animate, {
+        forgetCooldown: false,
+        onGone: () => addMemberTo({ ...member, seat: existing.seat }, { animate }),
       });
-      if (!started) {
-        roster.remove(id);
-        cooldowns.forget(id);
-      }
     },
     setSelf(id) {
       selfId = id;

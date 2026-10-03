@@ -2,7 +2,7 @@ import { pickArrival } from "@/scene/demo";
 import type { Random } from "@/scene/random";
 import type { Species } from "@/scene/characters/species";
 import { Emitter } from "./emitter";
-import type { Person, PresenceEvent, PresenceService } from "./types";
+import type { ChangeSpeciesResult, Person, PresenceEvent, PresenceService } from "./types";
 
 interface Options {
   seatCount: number;
@@ -26,9 +26,22 @@ export class MemoryPresence implements PresenceService {
     return this.me;
   }
 
-  async join(): Promise<Person | undefined> {
+  async join(preferred?: Species): Promise<Person | undefined> {
     if (this.me) return this.me;
-    return this.seat("you", true);
+    return this.seat("you", true, preferred);
+  }
+
+  async changeSpecies(species: Species): Promise<ChangeSpeciesResult> {
+    if (!this.me) return { status: "not-seated" };
+    if (this.me.species === species) return { status: "unchanged" };
+    if (this.people().some((person) => person.id !== this.me?.id && person.species === species)) {
+      return { status: "taken" };
+    }
+    const person: Person = { ...this.me, species };
+    this.me = person;
+    this.everyone.set(person.id, person);
+    this.events.emit({ type: "changed", person });
+    return { status: "changed", person };
   }
 
   leave(): void {
@@ -57,13 +70,14 @@ export class MemoryPresence implements PresenceService {
   }
 
   /** Seats someone at a free seat. The visitor is known as such before anyone is told they arrived. */
-  private seat(id: string, isSelf: boolean): Person | undefined {
+  private seat(id: string, isSelf: boolean, preferred?: Species): Person | undefined {
     const people = this.people();
     const arrival = pickArrival(
       this.options.rand,
       this.options.seatCount,
       new Set(people.map((person) => person.seat)),
       new Set<Species>(people.map((person) => person.species)),
+      preferred,
     );
     if (!arrival) return undefined;
     const person: Person = { id, ...arrival };

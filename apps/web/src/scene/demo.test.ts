@@ -87,3 +87,16 @@ describe("pickThrower", () => {
     expect(pickThrower(createRandom(1), [member("a", "arriving")], () => 0)).toBeUndefined();
   });
 });
+
+describe("pickArrival with a preferred animal", () => {
+  it("gives it when it is free and a different one when it is not", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      expect(
+        pickArrival(createRandom(seed), 7, new Set(), new Set<Species>(["owl"]), "cat")?.species,
+      ).toBe("cat");
+      expect(
+        pickArrival(createRandom(seed), 7, new Set(), new Set<Species>(["owl"]), "owl")?.species,
+      ).not.toBe("owl");
+    }
+  });
+});

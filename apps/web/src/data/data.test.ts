@@ -349,3 +349,61 @@ describe("petitionAvailableAt", () => {
     expect(petitionAvailableAt([now - 3000, now - 1000], now, 2)).toBe(now - 3000 + DAY);
   });
 });
+
+describe("MemoryPresence animals", () => {
+  const withOwl = () =>
+    new MemoryPresence({
+      seatCount: 7,
+      rand: createRandom(5),
+      initial: [{ id: "other", species: "owl", seat: 0 }],
+    });
+
+  it("gives the preferred animal when it is free", async () => {
+    for (const species of ["fox", "cat", "bear"] as const) {
+      expect((await withOwl().join(species))?.species).toBe(species);
+    }
+  });
+
+  it("gives a free animal when the preferred one is taken here", async () => {
+    const me = await withOwl().join("owl");
+    expect(me).toBeDefined();
+    expect(me?.species).not.toBe("owl");
+  });
+
+  it("gives a free animal when there is no preference (a first visit)", async () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const service = new MemoryPresence({
+        seatCount: 7,
+        rand: createRandom(seed),
+        initial: [{ id: "other", species: "owl", seat: 0 }],
+      });
+      expect((await service.join())?.species).not.toBe("owl");
+    }
+  });
+
+  it("swaps the visitor's animal in the same seat and tells listeners", async () => {
+    const service = withOwl();
+    const me = await service.join("fox");
+    const events: PresenceEvent[] = [];
+    service.subscribe((event) => events.push(event));
+    const result = await service.changeSpecies("rabbit");
+    expect(result).toEqual({ status: "changed", person: { ...me, species: "rabbit" } });
+    expect(events).toEqual([{ type: "changed", person: { ...me, species: "rabbit" } }]);
+    expect(service.people().filter((person) => person.species === "rabbit")).toHaveLength(1);
+    expect(service.people().some((person) => person.species === "fox")).toBe(false);
+  });
+
+  it("refuses an animal somebody else has, and the same animal again", async () => {
+    const service = withOwl();
+    await service.join("fox");
+    const events: PresenceEvent[] = [];
+    service.subscribe((event) => events.push(event));
+    expect(await service.changeSpecies("owl")).toEqual({ status: "taken" });
+    expect(await service.changeSpecies("fox")).toEqual({ status: "unchanged" });
+    expect(events).toEqual([]);
+  });
+
+  it("cannot swap before sitting down", async () => {
+    expect(await withOwl().changeSpecies("cat")).toEqual({ status: "not-seated" });
+  });
+});
