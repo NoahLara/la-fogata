@@ -67,6 +67,8 @@ export function FogataScene() {
           insets: { top: 0, bottom: BAR_HEIGHT },
           shuffle: flags.shuffle,
           animal: flags.animal,
+          // Only with ?demo (never in production): anonymous stars of other people across the whole sky.
+          otherStars: flags.demo,
         }),
       )
       .then(async (created) => {
@@ -88,8 +90,13 @@ export function FogataScene() {
           created.destroy();
           return;
         }
+        // In the order they were made: the constellation joins them that way (the service lists the newest first).
+        const oldestFirst = [...mine].sort((a, b) => a.createdAt - b.createdAt);
         created.setPetitionStars(
-          mine.map((petition) => ({ id: petition.id, answered: petition.answered !== undefined })),
+          oldestFirst.map((petition) => ({
+            id: petition.id,
+            answered: petition.answered !== undefined,
+          })),
         );
         // The scene follows who the service says is there.
         const unsubscribers = [

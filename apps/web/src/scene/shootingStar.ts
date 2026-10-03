@@ -72,6 +72,34 @@ export function planShootingStar(
   return undefined;
 }
 
+/**
+ * A path that starts at `from`, which a burden's light has just reached in the middle of the sky: a random
+ * downward angle, to the left or to the right, about a second long. Both sides and a few angles are tried, and the
+ * path is shortened if need be, so it stays in the sky and clear of the keepouts. `undefined` only if nothing fits.
+ */
+export function planShootingStarFrom(
+  rand: Random,
+  from: Point,
+  bounds: SkyBounds,
+  keepouts: readonly Keepout[],
+  tries = 30,
+): ShootingStarPlan | undefined {
+  for (let i = 0; i < tries; i++) {
+    const shrink = i < tries / 2 ? 1 : 0.5;
+    const length = between(rand, 0.14, 0.28) * bounds.width * shrink;
+    const angle = toRadians(between(rand, 12, 48));
+    const direction = rand() < 0.5 ? -1 : 1;
+    const to = {
+      x: from.x + Math.cos(angle) * length * direction,
+      y: from.y + Math.sin(angle) * length,
+    };
+    if (to.x < 0 || to.x > bounds.width || to.y > bounds.bottom) continue;
+    if (keepouts.some((k) => distanceToSegment(k, from, to) < k.radius + MARGIN)) continue;
+    return { from, to, duration: between(rand, 0.85, 1.15) };
+  }
+  return undefined;
+}
+
 const SEGMENTS = 16;
 
 /**

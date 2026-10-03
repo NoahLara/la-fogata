@@ -60,7 +60,15 @@ export const en = {
     alreadyToday: "You've already lifted one up today. Tomorrow you can ask again.",
   },
   sky: {
-    groupLabel: "Your stars",
+    // The two buttons at the edges of the sky, an alternative to dragging it.
+    turnControls: "Turn the sky",
+    turnLeft: "Turn the sky left",
+    turnRight: "Turn the sky right",
+    // How many stars the visitor has, said as part of the name of the group of their stars.
+    starCount: { one: "{count} star", other: "{count} stars" },
+    answeredCount: { one: "{count} answered", other: "{count} answered" },
+    // {stars} and {answered} are the two counts above, each in its plural form.
+    groupLabel: "Your stars: {stars}, {answered}",
     // The name of a star for a screen reader. {text} is the start of what they asked.
     star: "Star: {text}",
     starAnswered: "Answered star: {text}",

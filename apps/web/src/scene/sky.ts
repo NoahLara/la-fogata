@@ -2,39 +2,86 @@ import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } fro
 import { verticalGradient } from "./gradient";
 import type { Point, SceneLayout } from "./layout";
 import { between, easeToward, smoothstep, TAU } from "./math";
+import { otherStarCount, placeOtherStars, type OtherStar } from "./otherStars";
+import {
+  PANORAMA_VIEWPORTS,
+  screenX,
+  sectionLeft,
+  sectionOf,
+  visibleSections,
+  wrap,
+} from "./panorama";
 import { pick, type Random } from "./random";
 import {
   drawShootingStar,
   nextShootingStarDelay,
   planShootingStar,
+  planShootingStarFrom,
   type Keepout,
   type ShootingStarPlan,
 } from "./shootingStar";
-import { ANSWER_TURN_SECONDS, placeStar, starArea, starLook, type Tree } from "./petitionStars";
+import {
+  CONSTELLATION_ALPHA,
+  clearanceAbovePines,
+  clusterArea,
+  clusterExclusion,
+  constellationCenter,
+  constellationLines,
+  placeClusterStar,
+  type ConstellationStar,
+} from "./constellation";
+import {
+  ANSWER_TURN_SECONDS,
+  backgroundScale,
+  MY_AURA,
+  STAR_STYLE,
+  starSizes,
+  starArea,
+  starLook,
+  type Tree,
+} from "./petitionStars";
 import { skyGeometry } from "./skyGeometry";
-import { createCanvas, type TextureBag } from "./textures";
+import type { TextureBag } from "./textures";
 
 export interface Sky {
-  /** Gradient, Milky Way, stars, moon, Venus and the shooting star. Sits behind everything. */
+  /** Gradient, Milky Way, stars, moon and the shooting star. Sits behind everything. */
   container: Container;
   update(time: number, reduced: boolean): void;
-  /** Where the star of this petition is, or will be, given the petition stars already in the sky. */
+  /** Turns the panorama so `offset` pixels of it have gone off the left edge. Only the sections in view are drawn. */
+  setOffset(offset: number): void;
+  /** Where the star of this petition is on screen now, or will be, given the petition stars already in the sky. */
   petitionSpot(id: string): Point;
+  /** Where that star is in the panorama, which doesn't change as the sky turns. */
+  petitionAnchor(id: string): Point;
+  /** Where each star is in the panorama, by petition id. */
+  petitionAnchors(): ReadonlyMap<string, Point>;
+  /**
+   * The x, in the panorama, of the middle of the visitor's constellation, Venus included: where the sky is turned so it
+   * sits in the middle of the screen. `withId` counts a star that isn't in the sky yet (one about to be born).
+   */
+  constellationCenter(withId?: string): number;
   /**
    * Puts a petition's star in the sky at its spot. `bloom` is a star born as a light arrives; `fade` a star that
    * fades in (reduced motion); `instant` one that was there all along.
    */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
-  /** Turns a star golden. `turn` does it in front of the viewer; `instant` is for one that was answered before. */
+  /** Turns a star blue. `turn` does it in front of the viewer; `instant` is for one that was answered before. */
   answerPetitionStar(id: string, mode: "turn" | "instant"): void;
-  /** Takes a star out of the sky: it dims away (`dim`) or goes at once. Its place stays reserved so no other star moves. */
+  /** Takes a star out of the sky: it dims away (`dim`) or goes at once. Its place stays taken so no other star moves. */
   removePetitionStar(id: string, mode: "dim" | "instant"): void;
-  /** Where each star is now, by petition id. */
+  /** Where each star is on screen now, by petition id: off screen for one in a part of the panorama that is turned away. */
   petitionSpots(): ReadonlyMap<string, Point>;
   /** Dims every petition star a little (a word is over them) or brings them back. */
   dimPetitionStars(dimmed: boolean): void;
-  /** A shooting star crosses the sky now. Nothing with reduced motion. */
-  shootingStar(): void;
+  /** A shooting star crosses the sky now: from the middle of a light that has just arrived (`from`), or anywhere. Nothing with reduced motion. */
+  shootingStar(from?: Point): void;
+}
+
+export interface SkyOptions {
+  /** How far the panorama is turned, in pixels. */
+  offset: number;
+  /** Stars of other people, anonymous, across the whole panorama. Development only. */
+  otherStars: boolean;
 }
 
 /** The petition stars a sky starts with, in the order they became stars. */
@@ -58,104 +105,6 @@ function starColor(rand: Random): number {
   return pick(rand, WARM);
 }
 
-/** The diagonal strip of sky the Milky Way follows. */
-interface Band {
-  cx: number;
-  cy: number;
-  /** Unit vector along the band. */
-  dx: number;
-  dy: number;
-  length: number;
-  halfWidth: number;
-}
-
-function milkyWayBand(width: number, skyHeight: number): Band {
-  const from = { x: width * 0.1, y: -skyHeight * 0.05 };
-  const to = { x: width * 0.72, y: skyHeight * 1.0 };
-  const length = Math.hypot(to.x - from.x, to.y - from.y);
-  return {
-    cx: (from.x + to.x) / 2,
-    cy: (from.y + to.y) / 2,
-    dx: (to.x - from.x) / length,
-    dy: (to.y - from.y) / length,
-    length,
-    halfWidth: skyHeight * 0.2,
-  };
-}
-
-/**
- * The Milky Way, baked once: soft haze along the band, with darker dust lanes cut out of it, fading out
- * toward the horizon. Painted in the band's own frame (x along it, y across) and kept faint.
- */
-function bakeMilkyWay(
-  textures: TextureBag,
-  band: Band,
-  width: number,
-  skyHeight: number,
-  rand: Random,
-): Texture {
-  const resolution = 0.5;
-  const { canvas, g } = createCanvas(width, skyHeight, resolution);
-  g.translate(band.cx, band.cy);
-  g.rotate(Math.atan2(band.dy, band.dx));
-
-  const blob = (x: number, y: number, radius: number, color: string, alpha: number) => {
-    const gradient = g.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, `rgba(${color},${alpha})`);
-    gradient.addColorStop(1, `rgba(${color},0)`);
-    g.fillStyle = gradient;
-    g.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-  };
-
-  // Haze: many faint blobs, thickest along the middle line, with a bright bulge or two along its length.
-  g.globalCompositeOperation = "lighter";
-  const bulges = [between(rand, -0.3, 0), between(rand, 0.05, 0.3)];
-  for (let i = 0; i < 380; i++) {
-    const along = between(rand, -0.5, 0.5);
-    const across = (rand() + rand() + rand() - 1.5) * band.halfWidth * 1.2;
-    const bulge = bulges.reduce((sum, b) => sum + Math.exp(-(((along - b) / 0.14) ** 2)), 0);
-    const color = pick(rand, ["150,165,235", "190,200,240", "170,150,220", "225,205,210"]);
-    blob(
-      along * band.length,
-      across,
-      between(rand, 0.3, 0.9) * band.halfWidth,
-      color,
-      between(rand, 0.05, 0.12) * (0.7 + bulge),
-    );
-  }
-
-  // Dust lanes: long thin dark streaks that wander, taken out of the haze.
-  g.globalCompositeOperation = "destination-out";
-  for (let lane = 0; lane < 5; lane++) {
-    const offset = between(rand, -0.45, 0.45) * band.halfWidth;
-    const start = between(rand, -0.45, 0.1) * band.length;
-    const reach = between(rand, 0.2, 0.45) * band.length;
-    const wobble = between(rand, 0.1, 0.3) * band.halfWidth;
-    const phase = rand() * TAU;
-    for (let step = 0; step <= 28; step++) {
-      const f = step / 28;
-      blob(
-        start + reach * f,
-        offset + Math.sin(f * 5 + phase) * wobble * 0.5,
-        between(rand, 0.1, 0.2) * band.halfWidth,
-        "0,0,0",
-        0.35 * Math.sin(f * Math.PI) + 0.06,
-      );
-    }
-  }
-
-  // Fade out toward the horizon, where the sky is already pale.
-  g.setTransform(resolution, 0, 0, resolution, 0, 0);
-  g.globalCompositeOperation = "destination-in";
-  const fade = g.createLinearGradient(0, 0, 0, skyHeight);
-  fade.addColorStop(0, "rgba(0,0,0,.8)");
-  fade.addColorStop(0.55, "rgba(0,0,0,1)");
-  fade.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = fade;
-  g.fillRect(0, 0, width, skyHeight);
-  return textures.fromCanvas(canvas, resolution);
-}
-
 /** Something that twinkles: it holds a base alpha and dims from it slowly. */
 interface Twinkler {
   alpha: number;
@@ -172,36 +121,24 @@ interface Stars {
   twinklers: Twinkler[];
 }
 
-function buildStars(
+/** The background stars of one section of the panorama, `sectionWidth` wide: plain small dots, scattered evenly. */
+function buildSectionStars(
   layout: SceneLayout,
   textures: TextureBag,
   rand: Random,
-  band: Band,
+  sectionWidth: number,
   skyHeight: number,
-  moon: Keepout,
-  venus: Keepout,
 ): Stars {
-  const { width, u } = layout;
+  const { u } = layout;
   const twinklers: Twinkler[] = [];
 
-  const place = (clear: readonly Keepout[], bandShare: number): Point | undefined => {
-    for (let attempt = 0; attempt < 24; attempt++) {
-      let x = rand() * width;
-      let y = rand() * skyHeight;
-      if (rand() < bandShare) {
-        const along = between(rand, -0.5, 0.5) * band.length;
-        const across = (rand() + rand() + rand() - 1.5) * band.halfWidth * 1.1;
-        x = band.cx + band.dx * along - band.dy * across;
-        y = band.cy + band.dy * along + band.dx * across;
-      }
-      if (x < 0 || x > width || y < 0 || y > skyHeight) continue;
-      if (clear.some((k) => Math.hypot(x - k.x, y - k.y) < k.radius)) continue;
-      return { x, y };
-    }
-    return undefined;
-  };
+  /** A spot in the section, in its own coordinates. */
+  const place = (from = 0, to = 1): Point => ({
+    x: between(rand, from, to) * sectionWidth,
+    y: rand() * skyHeight,
+  });
 
-  // Layers 1 and 2: dots in particle containers. The tiny ones are bare pixels, the medium ones soft and round.
+  // Layers 1 and 2: small dots in particle containers. The tiny ones are bare pixels, the medium ones round.
   const dot = textures.radial([
     [0, 1],
     [0.45, 0.7],
@@ -214,19 +151,16 @@ function buildStars(
     brightness: readonly [number, number],
     amplitude: number,
     speeds: readonly [number, number],
-    bandShare: number,
-    clear: readonly Keepout[],
-    soft: boolean,
   ): ParticleContainer => {
     const container = new ParticleContainer({
       texture,
       dynamicProperties: { color: true },
     });
     for (let i = 0; i < count; i++) {
-      const at = place(clear, bandShare);
-      if (!at) continue;
-      const size = between(rand, sizes[0], sizes[1]) * Math.max(1, u * 0.8);
-      const span = soft ? size * 2.4 : size;
+      const at = place();
+      // Never more than 1.5 px across: the stars that matter must stand out.
+      const size = between(rand, sizes[0], sizes[1]) * backgroundScale(u);
+      const span = size;
       const particle = new Particle({
         texture,
         x: at.x - span / 2,
@@ -249,8 +183,7 @@ function buildStars(
     return container;
   };
 
-  const area = width * skyHeight;
-  const nearMoon: Keepout[] = [{ ...moon, radius: moon.radius * 2.6 }, venus];
+  const area = sectionWidth * skyHeight;
   const tiny = dotLayer(
     Texture.WHITE,
     Math.round(area / 900),
@@ -258,41 +191,20 @@ function buildStars(
     [0.3, 0.7],
     0.4,
     [0.25, 1.1],
-    0.45,
-    nearMoon,
-    false,
   );
-  const medium = dotLayer(
-    dot,
-    Math.round(area / 7000),
-    [1, 1.5],
-    [0.55, 0.9],
-    0.32,
-    [0.3, 1],
-    0.2,
-    nearMoon,
-    true,
-  );
+  const medium = dotLayer(dot, Math.round(area / 7000), [1, 1.5], [0.55, 0.9], 0.32, [0.3, 1]);
 
-  // Layer 3: a handful of bright stars, each with a tiny four-point glint.
+  // Layer 3: a handful of brighter dots.
   const bright = new Container();
   const placed: Point[] = [];
   const brightCount = Math.max(5, Math.min(9, Math.round(area / 55000)));
-  const spacing = width * 0.09;
+  const spacing = sectionWidth * 0.09;
   for (let i = 0; i < brightCount; i++) {
     let at: Point | undefined;
     for (let attempt = 0; attempt < 40 && !at; attempt++) {
-      const candidate = place(
-        [
-          { ...moon, radius: moon.radius * 5 },
-          { ...venus, radius: venus.radius * 3 },
-        ],
-        0,
-      );
+      // Away from the section's ends, so two neighbours' bright stars never crowd each other.
+      const candidate = place(0.15, 0.85);
       if (
-        candidate &&
-        candidate.x > width * 0.2 &&
-        candidate.x < width * 0.8 &&
         candidate.y < skyHeight * 0.75 &&
         placed.every((p) => Math.hypot(p.x - candidate.x, p.y - candidate.y) > spacing)
       )
@@ -300,26 +212,19 @@ function buildStars(
     }
     if (!at) continue;
     placed.push(at);
-    const tint = starColor(rand);
-    const glint = new Sprite(textures.glint());
-    glint.anchor.set(0.5);
-    glint.position.set(at.x, at.y);
-    glint.width = glint.height = between(rand, 13, 21) * Math.max(0.85, u);
-    glint.tint = tint;
-    glint.blendMode = "add";
+    // A plain round dot: nothing in the background gets a flare, so the stars that matter stand out.
     const core = new Sprite(dot);
     core.anchor.set(0.5);
     core.position.set(at.x, at.y);
-    core.width = core.height = 6.5 * Math.max(0.85, u);
-    core.tint = tint;
-    bright.addChild(glint, core);
+    core.width = core.height = between(rand, 1.2, 1.5) * backgroundScale(u);
+    core.tint = starColor(rand);
+    bright.addChild(core);
     twinklers.push({
       alpha: between(rand, 0.75, 1),
       amplitude: 0.22,
       speed: between(rand, 0.25, 0.7),
       phase: rand() * TAU,
       apply: (alpha) => {
-        glint.alpha = alpha;
         core.alpha = Math.min(1, alpha + 0.1);
       },
     });
@@ -340,20 +245,20 @@ const DIMMED_STARS = 0.35;
 /** How long a petition star takes to fade in, and how long its bloom lasts. */
 const STAR_FADE_SECONDS = 1.5;
 const STAR_BLOOM_SECONDS = 1.5;
-const PETITION_WARM = 0xfff1dc;
-const PETITION_GLOW = 0xffd9a0;
 
 interface PetitionStar {
+  /** Where it is in the panorama. */
   spot: Point;
+  /** The soft glow that says it is the visitor's. */
+  aura: Sprite;
   glow: Sprite;
-  glint: Sprite;
   core: Sprite;
   mode: "bloom" | "fade" | "instant";
   /** When it was born, in scene time; set on the first frame. */
   born: number | undefined;
   phase: number;
   answered: boolean;
-  /** When it turned golden in front of the viewer, in scene time; set on the first frame. `undefined` once it has. */
+  /** When it turned blue in front of the viewer, in scene time; set on the first frame. `undefined` once it has. */
   turning: "pending" | number | undefined;
   /** Dimming away: when that began (`"pending"` until the first frame). */
   leaving: "pending" | number | undefined;
@@ -362,14 +267,39 @@ interface PetitionStar {
 /** How long a star takes to dim away when it goes back to the fire. */
 const STAR_DIM_SECONDS = 0.7;
 
+/** A star of someone else: anonymous, and the same as yours in every state. */
+interface OtherStarSprites {
+  star: OtherStar;
+  section: Section;
+  glow: Sprite;
+  core: Sprite;
+}
+
+/** One viewport-wide slice of the panorama, drawn only while it is on screen. */
+interface Section {
+  index: number;
+  /** Where it starts in the panorama. */
+  left: number;
+  container: Container;
+  twinklers: Twinkler[];
+  others: OtherStarSprites[];
+  visible: boolean;
+}
+
+/** Sections within this many pixels of the screen are still drawn, so a glow at an edge isn't cut off. */
+const SECTION_PAD = 48;
+
 export function createSky(
   layout: SceneLayout,
   textures: TextureBag,
   rand: Random,
   petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
   trees: readonly Tree[] = [],
+  options: SkyOptions = { offset: 0, otherStars: false },
 ): Sky {
   const { width, horizon, u } = layout;
+  /** The sky is a panorama this wide, drawn in sections as wide as the screen. */
+  const panorama = width * PANORAMA_VIEWPORTS;
   const container = new Container();
   container.addChild(
     new Graphics().rect(0, 0, width, horizon + 4).fill(
@@ -381,21 +311,56 @@ export function createSky(
     ),
   );
 
-  // Moon, and Venus a little below and to its left.
-  const { moon: moonZone, venus: venusZone, skyHeight } = skyGeometry(layout);
+  // The moon and Venus hang in the panorama and turn with it. Venus is where the visitor's constellation begins.
+  const { moon: moonZone, skyHeight } = skyGeometry(layout);
   const { x: mx, y: my, radius: mr } = moonZone;
-  const { x: vx, y: vy } = venusZone;
+  const cluster = clusterArea(layout, trees);
+  const { x: vx, y: vy } = cluster.venus;
+  /** What hangs in the panorama over the stars: where it is, how far its glow reaches, and what draws it. */
+  const bodies: { x: number; reach: number; body: Container }[] = [];
 
-  const band = milkyWayBand(width, skyHeight);
-  const haze = new Sprite(bakeMilkyWay(textures, band, width, skyHeight, rand));
-  haze.width = width;
-  haze.height = skyHeight;
-  haze.alpha = 0.3;
-  container.addChild(haze);
+  // The panorama: its stars and the petition stars, in sections that move together.
+  const sections: Section[] = [];
+  for (let index = 0; index < PANORAMA_VIEWPORTS; index++) {
+    const left = index * width;
+    const section: Section = {
+      index,
+      left,
+      container: new Container(),
+      twinklers: [],
+      others: [],
+      visible: true,
+    };
+    const stars = buildSectionStars(layout, textures, rand, width, skyHeight);
+    section.container.addChild(...stars.layers);
+    section.twinklers = stars.twinklers;
+    sections.push(section);
+  }
+  container.addChild(...sections.map((section) => section.container));
 
-  const stars = buildStars(layout, textures, rand, band, skyHeight, moonZone, venusZone);
-  container.addChild(...stars.layers);
+  let offset = wrap(options.offset, panorama);
+  const setOffset = (value: number) => {
+    offset = wrap(value, panorama);
+    const shown = new Set(visibleSections(offset, panorama, width, SECTION_PAD));
+    for (const section of sections) {
+      section.container.x = sectionLeft(section.index, offset, panorama, width);
+      section.visible = shown.has(section.index);
+      section.container.visible = section.visible;
+    }
+    for (const { x, reach, body } of bodies) {
+      body.x = screenX(x, offset, panorama, width);
+      body.visible = body.x > -reach && body.x < width + reach;
+    }
+  };
+  const toScreen = (spot: Point): Point => ({
+    x: screenX(spot.x, offset, panorama, width),
+    y: spot.y,
+  });
+  const sectionAt = (x: number): Section => sections[sectionOf(x, panorama)] as Section;
 
+  // The moon hangs over the stars. Each body is drawn around its own origin and moved with the sky.
+  const moonBody = new Container();
+  moonBody.y = my;
   const halo = new Sprite(
     textures.radial([
       [0, 1],
@@ -403,23 +368,24 @@ export function createSky(
     ]),
   );
   halo.anchor.set(0.5);
-  halo.position.set(mx, my);
   halo.width = halo.height = mr * 14;
   halo.tint = 0xdcd7f0;
   halo.alpha = 0.16;
-  container.addChild(halo);
-
-  const moon = new Graphics().circle(mx, my, mr).fill(0xebe5d4);
+  moonBody.addChild(halo);
+  const moon = new Graphics().circle(0, 0, mr).fill(0xebe5d4);
   for (const [a, b, r] of [
     [-0.3, -0.2, 0.22],
     [0.25, 0.15, 0.16],
     [-0.05, 0.4, 0.12],
   ] as const) {
-    moon.circle(mx + a * mr, my + b * mr, r * mr).fill({ color: 0xaaa096, alpha: 0.32 });
+    moon.circle(a * mr, b * mr, r * mr).fill({ color: 0xaaa096, alpha: 0.32 });
   }
-  container.addChild(moon);
+  moonBody.addChild(moon);
+  bodies.push({ x: mx, reach: mr * 7, body: moonBody });
 
   // Venus: a steady, slightly warm point with a round glow. A planet doesn't twinkle, so nothing here moves.
+  const venusBody = new Container();
+  venusBody.y = vy;
   const soft = textures.radial([
     [0, 1],
     [0.35, 0.45],
@@ -431,74 +397,138 @@ export function createSky(
   ] as const) {
     const glow = new Sprite(soft);
     glow.anchor.set(0.5);
-    glow.position.set(vx, vy);
     glow.width = glow.height = size;
     glow.tint = 0xfff0d8;
     glow.alpha = alpha;
     glow.blendMode = "add";
-    container.addChild(glow);
+    venusBody.addChild(glow);
   }
-  container.addChild(new Graphics().circle(vx, vy, Math.max(2.4, mr * 0.13)).fill(0xfff8ea));
+  venusBody.addChild(new Graphics().circle(0, 0, Math.max(2.4, mr * 0.13)).fill(0xfff8ea));
+  bodies.push({ x: vx, reach: mr * 3.5, body: venusBody });
+  container.addChild(moonBody, venusBody);
 
   // Shooting star: one about every 50 s, never near the moon or Venus, and none with reduced motion.
   const meteor = new Graphics();
   container.addChild(meteor);
   const bounds = { width, top: 10 * u, bottom: skyHeight * 0.62 };
-  const keepouts: Keepout[] = [
-    { x: mx, y: my, radius: mr * 3 },
-    { x: vx, y: vy, radius: mr * 1.7 },
+  /** Where the moon and Venus are on screen now: the shooting star keeps clear of them. */
+  const keepoutsNow = (): Keepout[] => [
+    { x: screenX(mx, offset, panorama, width), y: my, radius: mr * 3 },
+    { x: screenX(vx, offset, panorama, width), y: vy, radius: mr * 1.7 },
   ];
   let nextAt = -1;
   let active: { plan: ShootingStarPlan; start: number } | undefined;
-  /** Asked for from outside (a petition was answered): it starts on the next frame. */
-  let requested = false;
+  /** Asked for from outside (a petition was answered, a burden has burned): it starts on the next frame. */
+  let requested: { from?: Point } | undefined;
 
-  // Petition stars: a bit bigger than the bright stars, warm white, with a soft glow and a gentle pulse.
-  const petitionLayer = new Container();
-  // Under the shooting star, over the other stars.
-  container.addChildAt(petitionLayer, container.getChildIndex(meteor));
+  // Petition stars: small and white, a core with a tight soft halo, steady; an answered one is the same star, twinkling.
   const area = starArea(layout, trees);
   const petitionStars = new Map<string, PetitionStar>();
-  /** Where stars that went back to the fire were: nothing is placed on them, so the others keep their spots. */
-  const reserved = new Map<string, Point>();
+  // Where the visitor's stars go: a compact cluster, each new star near an earlier one, in the order they were made.
+  // A star that went back to the fire keeps its place in the list, so the others never move.
+  const placements: (ConstellationStar & { index: number })[] = [];
+  const placementOf = (id: string) => placements.find((entry) => entry.id === id);
+  /** The spot of this petition's star, which is only settled once it has been added (a star that isn't there yet is previewed). */
+  const spotFor = (id: string): Point =>
+    placementOf(id)?.spot ?? placeClusterStar(id, placements.length, cluster, placements).spot;
+  const commitPlacement = (id: string) => {
+    if (placementOf(id)) return;
+    const placed = placeClusterStar(id, placements.length, cluster, placements);
+    placements.push({ id, index: placements.length, ...placed });
+  };
+  // The halo is tight and soft; the core is a small, crisp round dot.
   const glowTexture = textures.radial([
     [0, 1],
     [0.3, 0.4],
     [1, 0],
   ]);
-  const spotFor = (id: string): Point =>
-    petitionStars.get(id)?.spot ??
-    reserved.get(id) ??
-    placeStar(id, area, [
-      ...[...petitionStars.values()].map((star) => star.spot),
-      ...reserved.values(),
-    ]);
+  const coreTexture = textures.radial([
+    [0, 1],
+    [0.6, 1],
+    [1, 0],
+  ]);
+
+  // Stars of other people: the same look as yours (a waiting one is warm white and steady, an answered one gold with a
+  // cross and a twinkle), anonymous, with no text and nothing to tap. They are in the sky for the look of it, across
+  // the whole panorama and never within a margin of your cluster or Venus, so a star with no line is never one of yours.
+  const addOthers = () => {
+    const stars = placeOtherStars(
+      {
+        count: otherStarCount(panorama, area.top, area.bottom),
+        width: panorama,
+        top: area.top,
+        bottom: area.bottom,
+        spacing: area.minDistance * 0.5,
+        exclude: clusterExclusion(cluster),
+        keepouts: cluster.keepouts,
+        // Above the real pine silhouette with a margin, like yours: none among the trees. The pines are laid out for one
+        // screen, so a star is checked against them at its place on the screen of its own section.
+        isClear: (spot) =>
+          clearanceAbovePines(cluster, { x: wrap(spot.x, width), y: spot.y }) >= cluster.treeMargin,
+      },
+      rand,
+    );
+    for (const star of stars) {
+      const section = sectionAt(star.x);
+      const at = { x: star.x - section.left, y: star.y };
+      const glow = new Sprite(glowTexture);
+      glow.anchor.set(0.5);
+      glow.position.set(at.x, at.y);
+      glow.width = glow.height = starSizes("waiting", false, u).halo;
+      glow.blendMode = "add";
+      const core = new Sprite(coreTexture);
+      core.anchor.set(0.5);
+      core.position.set(at.x, at.y);
+      core.width = core.height = starSizes("waiting", false, u).core;
+      section.container.addChild(glow, core);
+      section.others.push({ star, section, glow, core });
+    }
+  };
+
+  // Your constellation: thin gold lines join each star to the nearest one before it. They live in the first section,
+  // where your stars are placed. Faint always: they are what tells your stars from other people's.
+  let linesChanged = true;
+  const constellation = new Graphics();
+  sections[0]?.container.addChild(constellation);
+  const drawConstellation = () => {
+    linesChanged = false;
+    constellation.clear();
+    const left = sections[0]?.left ?? 0;
+    const lines = constellationLines(placements, new Set(petitionStars.keys()));
+    for (const [from, to] of lines) {
+      constellation.moveTo(from.x - left, from.y).lineTo(to.x - left, to.y);
+    }
+    constellation.stroke({ width: 1, color: 0xf2c45a, alpha: 1 });
+  };
+
   const addPetitionStar = (id: string, mode: PetitionStar["mode"]) => {
     if (petitionStars.has(id)) return;
+    commitPlacement(id);
     const spot = spotFor(id);
-    const scale = Math.max(0.85, u);
+    const at = { x: spot.x - sectionAt(spot.x).left, y: spot.y };
+    // The soft aura that says this star is yours.
+    const aura = new Sprite(glowTexture);
+    aura.anchor.set(0.5);
+    aura.position.set(at.x, at.y);
+    aura.width = aura.height = starSizes("waiting", true, u).aura;
+    aura.blendMode = "add";
     const glow = new Sprite(glowTexture);
     glow.anchor.set(0.5);
-    glow.position.set(spot.x, spot.y);
-    glow.width = glow.height = 38 * scale;
-    glow.tint = PETITION_GLOW;
+    glow.position.set(at.x, at.y);
+    glow.width = glow.height = starSizes("waiting", true, u).halo;
+    glow.tint = STAR_STYLE.waiting.glow;
     glow.blendMode = "add";
-    const glint = new Sprite(textures.glint());
-    glint.anchor.set(0.5);
-    glint.position.set(spot.x, spot.y);
-    glint.width = glint.height = 27 * scale;
-    glint.tint = PETITION_WARM;
-    glint.blendMode = "add";
-    const core = new Sprite(glowTexture);
+    const core = new Sprite(coreTexture);
     core.anchor.set(0.5);
-    core.position.set(spot.x, spot.y);
-    core.width = core.height = 9 * scale;
-    core.tint = PETITION_WARM;
-    petitionLayer.addChild(glow, glint, core);
+    core.position.set(at.x, at.y);
+    core.width = core.height = starSizes("waiting", true, u).core;
+    core.tint = STAR_STYLE.waiting.core;
+    sectionAt(spot.x).container.addChild(aura, glow, core);
+    linesChanged = true;
     petitionStars.set(id, {
       spot,
+      aura,
       glow,
-      glint,
       core,
       mode,
       born: undefined,
@@ -511,21 +541,21 @@ export function createSky(
   const dropStar = (id: string) => {
     const star = petitionStars.get(id);
     if (!star) return;
+    star.aura.destroy();
     star.glow.destroy();
-    star.glint.destroy();
     star.core.destroy();
     petitionStars.delete(id);
+    linesChanged = true;
   };
   const removePetitionStar = (id: string, mode: "dim" | "instant") => {
     const star = petitionStars.get(id);
     if (!star) return;
-    reserved.set(id, star.spot);
     if (mode === "instant") dropStar(id);
     else star.leaving ??= "pending";
   };
   for (const id of petitions.ids) {
     if (petitions.retired.has(id)) {
-      reserved.set(id, spotFor(id));
+      commitPlacement(id);
       continue;
     }
     addPetitionStar(id, "instant");
@@ -534,6 +564,8 @@ export function createSky(
       if (star) star.answered = true;
     }
   }
+  if (options.otherStars) addOthers();
+  setOffset(offset);
 
   let dimTarget = 1;
   let dimNow = 1;
@@ -541,8 +573,8 @@ export function createSky(
   const updatePetitionStars = (time: number, reduced: boolean) => {
     dimNow = reduced ? dimTarget : easeToward(dimNow, dimTarget, Math.max(0, time - dimTime), 0.35);
     dimTime = time;
-    petitionLayer.alpha = dimNow;
-    const scale = Math.max(0.85, u);
+    if (linesChanged) drawConstellation();
+    constellation.alpha = CONSTELLATION_ALPHA * dimNow;
     for (const [id, star] of [...petitionStars]) {
       star.born ??= time;
       const age = time - star.born;
@@ -551,7 +583,14 @@ export function createSky(
       const turned =
         typeof star.turning === "number" ? (time - star.turning) / ANSWER_TURN_SECONDS : 1;
       if (turned >= 1) star.turning = undefined;
-      const look = starLook(star.answered, time, star.phase, reduced, turned);
+      const look = starLook(
+        star.answered ? "answered" : "waiting",
+        time,
+        star.phase,
+        reduced,
+        turned,
+        true,
+      );
       const farewell =
         typeof star.leaving === "number"
           ? 1 - smoothstep(0, STAR_DIM_SECONDS, time - star.leaving)
@@ -560,7 +599,7 @@ export function createSky(
         dropStar(id);
         continue;
       }
-      star.core.tint = star.glint.tint = look.core;
+      star.core.tint = look.core;
       star.glow.tint = look.glow;
       const arriving = star.mode === "instant" ? 1 : smoothstep(0, STAR_FADE_SECONDS, age);
       // A soft bloom as the light settles into it, then the glow returns to its size.
@@ -569,28 +608,56 @@ export function createSky(
           ? Math.sin((Math.PI * age) / STAR_BLOOM_SECONDS)
           : 0;
       const alpha =
-        (star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving) * farewell;
+        (star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving) *
+        farewell *
+        dimNow;
       star.core.alpha = Math.min(1, alpha * (look.level + 0.1));
-      star.glint.alpha = alpha * look.level;
-      star.glow.alpha = alpha * (0.6 * look.level + bloom * 0.45);
-      star.glow.scale.set(((38 * scale) / glowTexture.width) * (1 + bloom * 1.6));
+      star.aura.alpha = alpha * look.aura * MY_AURA.alpha;
+      // The halo of an answered star is brighter as it swells, so its breathing reads.
+      star.glow.alpha = Math.min(1, alpha * (0.4 * look.level * look.scale + bloom * 0.45));
+      star.glow.scale.set(
+        (starSizes("waiting", true, u).halo / glowTexture.width) * (1 + bloom * 1.6) * look.scale,
+      );
     }
   };
 
   const update = (time: number, reduced: boolean) => {
-    for (const star of stars.twinklers) star.apply(reduced ? star.alpha : twinkle(star, time));
+    // Only what is on screen changes: the sections turned away are left as they are.
+    for (const section of sections) {
+      if (!section.visible) continue;
+      for (const star of section.twinklers) star.apply(reduced ? star.alpha : twinkle(star, time));
+      for (const other of section.others) {
+        // The same look as one of yours in the same state.
+        const look = starLook(
+          other.star.answered ? "answered" : "waiting",
+          time,
+          other.star.phase,
+          reduced,
+        );
+        other.core.tint = look.core;
+        other.glow.tint = look.glow;
+        other.core.alpha = Math.min(1, look.level + 0.1);
+        other.glow.alpha = 0.4 * look.level * look.scale;
+        other.glow.scale.set(
+          (starSizes("waiting", false, u).halo / glowTexture.width) * look.scale,
+        );
+      }
+    }
     updatePetitionStars(time, reduced);
 
     if (reduced) {
       if (active) meteor.clear();
       active = undefined;
-      requested = false;
+      requested = undefined;
       nextAt = -1;
       return;
     }
     if (requested) {
-      requested = false;
-      const plan = planShootingStar(rand, bounds, keepouts);
+      const { from } = requested;
+      requested = undefined;
+      const plan =
+        (from && planShootingStarFrom(rand, from, bounds, keepoutsNow())) ||
+        planShootingStar(rand, bounds, keepoutsNow());
       if (plan) {
         active = { plan, start: time };
         // The next ambient one comes after this has had its moment.
@@ -600,7 +667,7 @@ export function createSky(
     // The first one comes a little early so nobody waits a full minute to see it.
     if (nextAt < 0) nextAt = time + between(rand, 10, 25);
     if (!active && time >= nextAt) {
-      const plan = planShootingStar(rand, bounds, keepouts);
+      const plan = planShootingStar(rand, bounds, keepoutsNow());
       if (plan) active = { plan, start: time };
       nextAt = time + (plan ? nextShootingStarDelay(rand) : 5);
     }
@@ -619,7 +686,15 @@ export function createSky(
   return {
     container,
     update,
-    petitionSpot: spotFor,
+    setOffset,
+    petitionSpot: (id) => toScreen(spotFor(id)),
+    petitionAnchor: spotFor,
+    constellationCenter: (withId) => {
+      const spots = [...petitionStars.values()].map((star) => star.spot);
+      if (withId && !petitionStars.has(withId)) spots.push(spotFor(withId));
+      return constellationCenter(cluster, spots);
+    },
+    petitionAnchors: () => new Map([...petitionStars].map(([id, star]) => [id, star.spot])),
     addPetitionStar,
     answerPetitionStar(id, mode) {
       const star = petitionStars.get(id);
@@ -628,12 +703,12 @@ export function createSky(
       star.turning = mode === "turn" ? "pending" : undefined;
     },
     removePetitionStar,
-    petitionSpots: () => new Map([...petitionStars].map(([id, star]) => [id, star.spot])),
+    petitionSpots: () => new Map([...petitionStars].map(([id, star]) => [id, toScreen(star.spot)])),
     dimPetitionStars(dimmed) {
       dimTarget = dimmed ? DIMMED_STARS : 1;
     },
-    shootingStar() {
-      requested = true;
+    shootingStar(from) {
+      requested = { from };
     },
   };
 }
