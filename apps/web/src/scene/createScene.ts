@@ -1,13 +1,31 @@
 import { Application, Container } from "pixi.js";
 import { createBackground, type Background } from "./background";
-import type { SkyPetitions } from "./sky";
+import type { SkyOptions, SkyPetitions } from "./sky";
 import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
-import { createLightEffects, type LightEffects } from "./lightEffect";
+import { createLightEffects, type LightEffects, type LightHandle } from "./lightEffect";
 import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
 import { easeToward } from "./math";
-import { computeLayout, wordBandBottom, type Insets, type SceneLayout } from "./layout";
+import {
+  computeLayout,
+  skyDragBottom,
+  wordBandBottom,
+  type Insets,
+  type SceneLayout,
+} from "./layout";
+import {
+  comfortMargin,
+  panoramaWidth,
+  turnToBring,
+  screenX,
+  turnToCenter,
+  turnToCenterShowing,
+  type BringView,
+} from "./panorama";
+import { GLIDE_SECONDS, RISE_SECONDS } from "./lightFlight";
+import { skyGeometry } from "./skyGeometry";
+import { SkyView } from "./skyView";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
 import { Roster, type MemberInfo, type MemberSpec } from "./roster";
 import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
@@ -60,7 +78,7 @@ export interface FogataScene {
   offerPetition(id: string, request: PetitionRequest): BurdenResult;
   /** Puts these petitions' stars in the sky, all at once: the visitor's own, when the page loads. Ones already there stay. */
   setPetitionStars(stars: readonly { id: string; answered: boolean }[]): void;
-  /** A petition was marked answered: its star turns golden and a shooting star crosses the sky (none with reduced motion). */
+  /** A petition was marked answered: its star turns blue and a shooting star crosses the sky (none with reduced motion). */
   answerPetition(id: string): void;
   /**
    * A petition goes back to the fire: its star dims into a small golden light, which glides in an arc down to the
@@ -68,8 +86,13 @@ export interface FogataScene {
    * Nobody walks. `onDone` is called when nothing of it is left.
    */
   returnPetition(id: string, onDone: () => void): void;
-  /** Where each petition star is, in pixels from the top left of the scene. */
+  /**
+   * Where each petition star is on screen now, in pixels from the top left of the scene. A star in a part of the
+   * panorama that is turned away is off screen: its x is below 0 or past the width.
+   */
   petitionSpots(): ReadonlyMap<string, { x: number; y: number }>;
+  /** The sky is a panorama about four screens wide that turns: how to see it and turn it. */
+  readonly sky: SkyControls;
   /** Called whenever the stars may have moved (the scene was laid out again, one was added or went). Returns a way to stop. */
   onLayout(listener: () => void): () => void;
   /**
@@ -93,6 +116,45 @@ export interface FogataScene {
   woodCooldown(id: string): number;
   members(): MemberInfo[];
   destroy(): void;
+}
+
+/** What the page sees of the sky's view, whenever it changes. */
+export interface SkyViewState {
+  /** How far the panorama is turned, in pixels. */
+  offset: number;
+  /** The panorama's width and the screen's. */
+  panorama: number;
+  viewport: number;
+}
+
+export interface SkyControls {
+  state(): SkyViewState;
+  /** Called whenever the sky turns (every frame while it does). Returns a way to stop. */
+  onView(listener: (state: SkyViewState) => void): () => void;
+  /** A finger went down on the sky: it follows the finger until it lifts, and then goes on turning. */
+  beginDrag(time: number): void;
+  /** The finger moved `dx` pixels to the right: the sky follows. */
+  drag(dx: number, time: number): void;
+  /** The finger lifted: the sky coasts on (unless motion is reduced). */
+  endDrag(time: number): void;
+  /**
+   * Sets the sky turning like a carousel, and it keeps turning: with `1` the stars move to the left (the sky
+   * reveals what is to the right), with `-1` to the right. With reduced motion nothing keeps turning: the sky
+   * turns half a screen at a time.
+   */
+  carousel(direction: 1 | -1): void;
+  /** Turns the sky smoothly by `delta` pixels (positive moves the stars to the left). */
+  turnBy(delta: number): void;
+  /**
+   * Turns the sky, if needed, so this star is comfortably in view, then calls `then` (at once if it already is). Does nothing, and never calls `then`, if there is no such star.
+   */
+  bringIntoView(id: string, then?: () => void): void;
+  /** Stops the sky turning by itself while a star's card is open, until the returned function is called. */
+  pauseAutoTurn(): () => void;
+  /** Where each petition star is in the panorama, which doesn't change as the sky turns. */
+  anchors(): ReadonlyMap<string, { x: number; y: number }>;
+  /** Where the sky ends for turning it by hand: the bottom edge of the strip a drag may start in. */
+  dragBottom(): number;
 }
 
 export interface BurdenRequest {
@@ -125,6 +187,8 @@ interface SceneOptions {
   insets?: Insets;
   /** Randomizes who sits where, once per scene, and seats everyone at the start. For checking every animal in every seat. */
   shuffle?: boolean;
+  /** Puts anonymous stars of other people across the whole sky. For development only. */
+  otherStars?: boolean;
   /** Seats this species in every seat at the start, to see it from every angle. Takes precedence over `shuffle`. Ignored if it isn't a species. */
   animal?: string;
 }
@@ -158,10 +222,11 @@ function build(
   youLabel: string,
   fonts: SceneFonts,
   petitions: SkyPetitions,
+  sky: SkyOptions,
 ): Built {
   const layout = computeLayout(width, height, insets);
   const textures = new TextureBag();
-  const background = createBackground(layout, textures, petitions);
+  const background = createBackground(layout, textures, petitions, sky);
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
   const effects = createWoodEffects(layout);
@@ -235,6 +300,17 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const answeredIds = new Set<string>();
   const retiredIds = new Set<string>();
   let starsDimmed = false;
+  // The panorama's turn is kept as a share of it, so it survives a resize or a rotated phone.
+  const view = new SkyView(0);
+  const viewListeners = new Set<(state: SkyViewState) => void>();
+  const viewState = (): SkyViewState => {
+    const viewport = current?.layout.width ?? Math.max(1, host.clientWidth);
+    return { offset: view.offset, panorama: view.width, viewport };
+  };
+  const notifyView = () => {
+    const state = viewState();
+    for (const listener of [...viewListeners]) listener(state);
+  };
   const layoutListeners = new Set<() => void>();
   const notifyLayout = () => {
     for (const listener of [...layoutListeners]) listener();
@@ -275,6 +351,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     // Anyone still walking in sits down where they were headed.
     roster.removeLeaving();
     roster.markAllSeated();
+    view.setWidth(panoramaWidth(width));
     current = build(
       app,
       width,
@@ -286,6 +363,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       youLabel,
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
+      { offset: view.offset, otherStars: options.otherStars === true },
     );
     current.background.dimPetitionStars(starsDimmed);
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
@@ -295,6 +373,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     for (let i = 0; i < warmUp; i++) current.fire.update(1 / 30, time + i / 30, reduced);
     app.stage.addChild(current.root);
     notifyLayout();
+    notifyView();
   };
   rebuild();
 
@@ -323,6 +402,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     current.lights.update(dt);
     updateYou();
     current.fire.update(dt, time, reduced);
+    if (view.step(dt, reduced)) {
+      current.background.setOffset(view.offset);
+      notifyView();
+    }
     current.background.update(time, reduced, current.fire.state.light);
     current.seats.update(time, dt, reduced);
   });
@@ -340,6 +423,14 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   });
   observer.observe(host);
 
+  // Nothing runs while the tab is hidden: the ticker stops, and starts again (without a jump) when it is back.
+  const onVisibility = () => {
+    if (document.hidden) app.ticker.stop();
+    else app.ticker.start();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  if (document.hidden) app.ticker.stop();
+
   const stopWatchingMotion = watchReducedMotion((value) => {
     reduced = value;
     rebuild();
@@ -348,23 +439,128 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** What follows a note's burning, once it has burned: it starts and returns a way to end it at once. */
   type AfterBurn = (done: () => void) => () => void;
 
-  /** A petition's light is born in the flames and becomes its star; with reduced motion the star just fades in. */
+  /** How the sky is turned now, for working out how to bring a star into view. */
+  const bringView = (built: Built): BringView => ({
+    offset: view.offset,
+    viewport: built.layout.width,
+    width: view.width,
+    margin: comfortMargin(built.layout.width),
+  });
+
+  /**
+   * Turns the sky at once so the middle of the visitor's constellation is in the middle of the screen. Only when the
+   * page loads: after that nothing moves the sky but the visitor, and it never stops turning by itself.
+   */
+  const centerNow = () => {
+    const built = current;
+    if (!built) return;
+    const center = built.background.constellationCenter();
+    const delta = turnToCenter(center, view.offset, view.width, built.layout.width);
+    if (Math.abs(delta) < 1) return;
+    view.setOffset(view.offset + delta);
+    built.background.setOffset(view.offset);
+    notifyView();
+  };
+
+  /**
+   * Turns the sky, smoothly, until the middle of the visitor's constellation (with this star in it, even one that isn't
+   * born yet) is in the middle of the screen, and the star in view; then calls `then`. The sky goes on turning by
+   * itself while the star's light flies (`lead` seconds), so it is turned that much short of centre: the
+   * constellation is in the middle when the light arrives. Returns a way to cancel (`then` is then not called).
+   */
+  const turnToStar = (id: string, built: Built, lead: number, then: () => void): (() => void) => {
+    const shift = view.autoSpeed(reduced) * lead;
+    const anchor = built.background.petitionAnchor(id);
+    const delta = turnToCenterShowing(
+      built.background.constellationCenter(id) - shift,
+      { x: anchor.x - shift, y: anchor.y },
+      bringView(built),
+    );
+    return view.glideBy(delta, { reduced, viewport: built.layout.width, done: then });
+  };
+
+  /**
+   * Where a star's light should aim: the star's place on the screen when the light gets there. The sky never stops, so
+   * the star will have moved on by then; the spot is worked out for that moment, and kept on the screen so the
+   * light is always seen (a star born off to the side is then reached by a light that heads that way).
+   */
+  const arrivalSpot = (built: Built, id: string, seconds: number): { x: number; y: number } => {
+    const anchor = built.background.petitionAnchor(id);
+    const offset = view.offset + view.autoSpeed(reduced) * seconds;
+    const x = screenX(anchor.x, offset, view.width, built.layout.width);
+    const edge = 14 * built.layout.u;
+    return { x: Math.min(Math.max(x, edge), built.layout.width - edge), y: anchor.y };
+  };
+
+  /**
+   * A petition's light is born in the flames and becomes its star; with reduced motion the star just fades in.
+   * First the sky turns to the visitor's constellation (to "Mi cielo"), where the star is born; it never stops, so the
+   * light aims at where the star will be when it arrives.
+   */
   const becomeStar: (petitionId: string, done: () => void) => () => void = (petitionId, done) => {
     const built = current;
     if (!built) {
       done();
       return () => {};
     }
+    let ended = false;
+    let shown = false;
+    let flight: LightHandle | undefined;
+    const end = () => {
+      if (ended) return;
+      ended = true;
+      done();
+    };
     const show = (mode: "bloom" | "fade") => {
+      if (shown) return;
+      shown = true;
       if (!petitionIds.includes(petitionId)) petitionIds.push(petitionId);
       built.background.addPetitionStar(petitionId, mode);
       notifyLayout();
     };
-    const hooks = { onArrive: () => show(reduced ? "fade" : "bloom"), onDone: done };
-    if (reduced) return built.lights.fade(hooks).finish;
-    const { cx, cy, u } = built.layout;
+    const start = () => {
+      const hooks = { onArrive: () => show(reduced ? "fade" : "bloom"), onDone: end };
+      if (reduced) {
+        flight = built.lights.fade(hooks);
+        return;
+      }
+      const { cx, cy, u } = built.layout;
+      const flames = { x: cx, y: cy - 30 * u };
+      const to = arrivalSpot(built, petitionId, RISE_SECONDS + GLIDE_SECONDS);
+      flight = built.lights.launch(flames, to, hooks);
+    };
+    const cancelTurn = turnToStar(petitionId, built, RISE_SECONDS + GLIDE_SECONDS, start);
+    return () => {
+      if (ended) return;
+      cancelTurn();
+      if (flight) flight.finish();
+      else show("fade");
+      end();
+    };
+  };
+
+  /**
+   * What follows a burden's burning: its light rises from the flames exactly as a petition's does, but goes to the
+   * middle of the sky that is passing at that moment, and there it is born as a shooting star that crosses and is
+   * gone. The sky doesn't move for it. With reduced motion there is nothing more.
+   */
+  const becomeShootingStar: AfterBurn = (done) => {
+    const built = current;
+    if (!built || reduced) {
+      done();
+      return () => {};
+    }
+    const { cx, cy, u, width } = built.layout;
     const flames = { x: cx, y: cy - 30 * u };
-    return built.lights.launch(flames, built.background.petitionSpot(petitionId), hooks).finish;
+    const { skyHeight } = skyGeometry(built.layout);
+    const middle = { x: width * (0.5 + (Math.random() - 0.5) * 0.3), y: skyHeight * 0.3 };
+    const flight = built.lights.launch(flames, middle, {
+      onArrive: () => built.background.shootingStar(middle),
+      onDone: () => {},
+    });
+    // The ritual itself is over now (the gestures are free again); the light goes on its way by itself.
+    done();
+    return flight.finish;
   };
 
   /**
@@ -515,7 +711,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         height: NOTE_HEIGHT_UNITS * hand.scale,
       };
     },
-    handOverBurden: (id, { onDone }) => errand(id, onDone),
+    handOverBurden: (id, { onDone }) => errand(id, onDone, becomeShootingStar),
     offerPetition(id, { petitionId, onDone }) {
       return errand(id, onDone, (done) => becomeStar(petitionId, done));
     },
@@ -530,6 +726,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         }
       }
       notifyLayout();
+      // On load the view is centred on the visitor's constellation.
+      centerNow();
     },
     answerPetition(id) {
       if (!petitionIds.includes(id) || retiredIds.has(id) || answeredIds.has(id)) return;
@@ -539,16 +737,26 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     },
     returnPetition(id, onDone) {
       const built = current;
-      const spot = built?.background.petitionSpots().get(id);
-      if (!built || !spot || retiredIds.has(id)) {
+      if (!built || !built.background.petitionAnchors().has(id) || retiredIds.has(id)) {
         onDone();
         return;
       }
       // From now on the star is gone: a rebuild in the middle of the flight shows the sky without it.
       retiredIds.add(id);
+      // The sky keeps turning; the star dims where it is and its light sinks into the fire from there.
+      const spot = built.background.petitionSpots().get(id);
+      if (!spot) {
+        onDone();
+        return;
+      }
+      const edge = 14 * built.layout.u;
+      const from = {
+        x: Math.min(Math.max(spot.x, edge), built.layout.width - edge),
+        y: spot.y,
+      };
       const { cx, cy, u } = built.layout;
       built.lights.descend(
-        spot,
+        from,
         { x: cx, y: cy - 30 * u },
         {
           onDim: () => built.background.removePetitionStar(id, "dim"),
@@ -568,6 +776,48 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         if (!retiredIds.has(id)) spots.set(id, { x: spot.x, y: spot.y });
       }
       return spots;
+    },
+    sky: {
+      state: viewState,
+      onView(listener) {
+        viewListeners.add(listener);
+        return () => viewListeners.delete(listener);
+      },
+      beginDrag: (time) => view.begin(time),
+      drag: (dx, time) => view.drag(dx, time),
+      endDrag: (time) => view.release(time, reduced),
+      carousel(direction) {
+        if (!current) return;
+        if (reduced) {
+          view.glideBy((direction * current.layout.width) / 2, {
+            reduced,
+            viewport: current.layout.width,
+          });
+          return;
+        }
+        view.setCarousel(direction);
+      },
+      turnBy(delta) {
+        if (!current) return;
+        view.glideBy(delta, { reduced, viewport: current.layout.width });
+      },
+      bringIntoView(id, then) {
+        const built = current;
+        const anchor = built?.background.petitionAnchors().get(id);
+        if (!built || !anchor) return;
+        const delta = turnToBring(anchor, bringView(built));
+        if (delta === 0) then?.();
+        else view.glideBy(delta, { reduced, viewport: built.layout.width, done: then });
+      },
+      pauseAutoTurn: () => view.pauseAuto(),
+      anchors() {
+        const anchors = new Map<string, { x: number; y: number }>();
+        for (const [id, spot] of current?.background.petitionAnchors() ?? []) {
+          if (!retiredIds.has(id)) anchors.set(id, { x: spot.x, y: spot.y });
+        }
+        return anchors;
+      },
+      dragBottom: () => (current ? skyDragBottom(current.layout) : 0),
     },
     onLayout(listener) {
       layoutListeners.add(listener);
@@ -598,6 +848,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     destroy() {
       rebuildWhenSettled.cancel();
       observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
       stopWatchingMotion();
       app.destroy({ removeView: true }, { children: true });
       if (current) {

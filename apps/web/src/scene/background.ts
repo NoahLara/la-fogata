@@ -5,7 +5,7 @@ import type { Point, SceneLayout } from "./layout";
 import { between, clamp } from "./math";
 import { createRandom, type Random } from "./random";
 import type { Tree } from "./petitionStars";
-import { createSky, type SkyPetitions } from "./sky";
+import { createSky, type SkyOptions, type SkyPetitions } from "./sky";
 import type { TextureBag } from "./textures";
 
 export interface Background {
@@ -15,20 +15,28 @@ export interface Background {
   front: Container;
   /** `light` is the fire's current flicker, 1 at rest: the ground near it brightens and dims with it. */
   update(time: number, reduced: boolean, light?: number): void;
-  /** Where this petition's star is, or will be, in the sky. */
+  /** Turns the sky's panorama so `offset` pixels of it are off the left edge. The trees and ground stay; the moon and Venus turn with it. */
+  setOffset(offset: number): void;
+  /** Where this petition's star is on screen now, or will be, in the sky. */
   petitionSpot(id: string): Point;
+  /** Where that star is in the panorama, which stays as the sky turns. */
+  petitionAnchor(id: string): Point;
+  /** Where each star is in the panorama, by petition id. */
+  petitionAnchors(): ReadonlyMap<string, Point>;
+  /** The x, in the panorama, of the middle of the visitor's constellation (Venus included); `withId` counts a star about to be born. */
+  constellationCenter(withId?: string): number;
   /** Puts a petition's star in the sky: it blooms as a light arrives, fades in (reduced motion) or was always there. */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
   /** Turns a star golden; `turn` in front of the viewer, `instant` for one answered before. */
   answerPetitionStar(id: string, mode: "turn" | "instant"): void;
   /** Takes a star out of the sky: it dims away, or goes at once. */
   removePetitionStar(id: string, mode: "dim" | "instant"): void;
-  /** Where each star is now, by petition id. */
+  /** Where each star is on screen now, by petition id: off screen for one in a part of the sky turned away. */
   petitionSpots(): ReadonlyMap<string, Point>;
   /** Dims the petition stars a little while a word is over them, or brings them back. */
   dimPetitionStars(dimmed: boolean): void;
-  /** A shooting star crosses the sky now (none with reduced motion). */
-  shootingStar(): void;
+  /** A shooting star crosses the sky now (none with reduced motion), from the point `from` if given. */
+  shootingStar(from?: Point): void;
 }
 
 /** How strongly the firelit copy of the ground shows at a flicker of 1. */
@@ -71,7 +79,6 @@ function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Land {
     ),
   );
   land.addChild(ground.soil, ground.lit);
-
   const trees = new Graphics();
   const standing: Tree[] = [];
   const planted = (x: number, base: number, h: number, w: number, color: number) => {
@@ -97,11 +104,25 @@ function buildLand(layout: SceneLayout, rand: Random, ground: Ground): Land {
           ? -30 * u + i * between(rand, 35, 65) * u
           : width + 30 * u - i * between(rand, 35, 65) * u;
       const h = between(rand, 220, 330) * u;
-      planted(px, horizon + between(rand, 60, 110) * u, h, h * 0.46, 0x06070f);
+      // These huge pines used to stand so far down the soil that their flat bases made a hard black edge across the
+      // ground, which shows most on a phone. Their tops stay where they were, but they now stand at the tree line, in the mist.
+      const drop = between(rand, 60, 110) * u;
+      const base = horizon + drop * 0.35;
+      const height = h - drop * 0.65;
+      planted(px, base, height, height * 0.46, 0x06070f);
     }
   }
   // The grass at the tree line stands in front of the trees' bases.
-  land.addChild(trees, ground.tufts);
+  // A low mist over the bases of the pines and the top of the soil: no hard saw-tooth line where they meet.
+  const mist = new Graphics().rect(0, horizon - 30 * u, width, 90 * u).fill(
+    verticalGradient([
+      [0, "rgba(14,17,38,0)"],
+      [0.3, "rgba(14,17,38,.85)"],
+      [0.62, "rgba(14,17,38,.85)"],
+      [1, "rgba(14,17,38,0)"],
+    ]),
+  );
+  land.addChild(trees, mist, ground.tufts);
   return { container: land, trees: standing };
 }
 
@@ -128,6 +149,7 @@ export function createBackground(
   layout: SceneLayout,
   textures: TextureBag,
   petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
+  sky: SkyOptions = { offset: 0, otherStars: false },
 ): Background {
   const rand = createRandom(20240601);
   // The trees were laid out from the same random stream as the old stars, 7 draws per star. Skipping them
@@ -138,23 +160,27 @@ export function createBackground(
   const ground = bakeGround(layout, textures, createRandom(33011));
   // The land comes first: the sky needs to know where the pines are. They don't share a random stream.
   const land = buildLand(layout, rand, ground);
-  const sky = createSky(layout, textures, createRandom(70013), petitions, land.trees);
+  const skyLayer = createSky(layout, textures, createRandom(70013), petitions, land.trees, sky);
   const back = new Container();
-  back.addChild(sky.container, land.container);
+  back.addChild(skyLayer.container, land.container);
   const front = buildFront(layout, textures, ground);
 
   return {
     back,
     front,
-    petitionSpot: sky.petitionSpot,
-    addPetitionStar: sky.addPetitionStar,
-    answerPetitionStar: sky.answerPetitionStar,
-    removePetitionStar: sky.removePetitionStar,
-    petitionSpots: sky.petitionSpots,
-    dimPetitionStars: sky.dimPetitionStars,
-    shootingStar: sky.shootingStar,
+    setOffset: skyLayer.setOffset,
+    petitionSpot: skyLayer.petitionSpot,
+    petitionAnchor: skyLayer.petitionAnchor,
+    petitionAnchors: skyLayer.petitionAnchors,
+    constellationCenter: skyLayer.constellationCenter,
+    addPetitionStar: skyLayer.addPetitionStar,
+    answerPetitionStar: skyLayer.answerPetitionStar,
+    removePetitionStar: skyLayer.removePetitionStar,
+    petitionSpots: skyLayer.petitionSpots,
+    dimPetitionStars: skyLayer.dimPetitionStars,
+    shootingStar: skyLayer.shootingStar,
     update(time, reduced, light = 1) {
-      sky.update(time, reduced);
+      skyLayer.update(time, reduced);
       ground.lit.alpha = LIT_ALPHA * clamp(light, 0, 1.4);
     },
   };

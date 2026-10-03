@@ -1,6 +1,5 @@
-import type { Point, SceneLayout } from "./layout";
-import { between, clamp, mixColor } from "./math";
-import { createRandom } from "./random";
+import type { SceneLayout } from "./layout";
+import { clamp } from "./math";
 import type { Keepout } from "./shootingStar";
 import { skyGeometry } from "./skyGeometry";
 
@@ -12,7 +11,7 @@ export interface Tree {
   width: number;
 }
 
-/** Where a petition star may sit, and how it must keep from the moon, Venus, the pines and the stars already there. */
+/** Where a petition star may sit, and how it must keep from the moon, the pines and the stars already there. */
 export interface StarArea {
   left: number;
   right: number;
@@ -39,23 +38,20 @@ export function treeLineAt(trees: readonly Tree[], x: number): number {
 }
 
 /**
- * The upper sky: away from the screen edges, and clear of the moon (with its halo), Venus and the real outline of
+ * The upper sky: away from the screen edges, and clear of the moon (with its halo) and the real outline of
  * the pines, which `trees` describes: a spot must be a margin above the pine at its own x, wherever the trees are
  * tall or short.
  */
 export function starArea(layout: SceneLayout, trees: readonly Tree[] = []): StarArea {
   const { width, u, sceneTop } = layout;
-  const { moon, venus, skyHeight } = skyGeometry(layout);
+  const { moon, skyHeight } = skyGeometry(layout);
   const top = Math.max(sceneTop + 14 * u, skyHeight * 0.08);
   return {
     left: width * 0.08,
     right: width * 0.92,
     top,
     bottom: Math.max(top + skyHeight * 0.3, skyHeight * 0.8),
-    keepouts: [
-      { ...moon, radius: moon.radius * 3.2 },
-      { ...venus, radius: venus.radius * 2 },
-    ],
+    keepouts: [{ ...moon, radius: moon.radius * 3.2 }],
     minDistance: Math.max(26, 56 * u),
     trees,
     treeMargin: Math.max(12, 22 * u),
@@ -72,62 +68,61 @@ export function hashId(id: string): number {
   return hash >>> 0;
 }
 
-const ATTEMPTS = 80;
-
-const nearest = (point: Point, others: readonly Point[]): number =>
-  others.reduce(
-    (least, other) => Math.min(least, Math.hypot(point.x - other.x, point.y - other.y)),
-    Infinity,
-  );
+/** The three kinds of star in the sky, from the quietest to the loudest. */
+export type StarKind = "background" | "waiting" | "answered";
 
 /**
- * The spot of a petition's star, from its id alone: the same id and the same stars before it always give the
- * same spot, so a star stays where it was. A spot is inside the area, outside the keepouts, above the pines and at least
- * `minDistance` from `others`. If the sky is so crowded that no random spot keeps that distance, the one farthest
- * from the rest is taken, so there is always a place.
+ * What each kind looks like. Every petition star, yours and other people's, waiting or answered, is the same size and
+ * white: a core of about 2.8 px with a tight, soft halo (about 8 px in radius, at a low alpha). A waiting star is
+ * steady; an answered one is exactly the same star, only it twinkles (and holds still with reduced motion). No
+ * crosses, no spikes. A petition star still reads clearly bigger than a background dot (1.5 px or less). Yours also
+ * have a soft aura (`MY_AURA`) that the others' don't. Sizes are diameters in px before the screen's scale
+ * (`starScale`, `backgroundScale`); 0 means there is none.
  */
-export function placeStar(id: string, area: StarArea, others: readonly Point[]): Point {
-  const rand = createRandom(hashId(id));
-  let best: Point | undefined;
-  let bestDistance = -1;
-  // If the pines leave no room at all, the spot with the most sky above its pine is the least bad.
-  let clearest: Point | undefined;
-  let clearestBy = -Infinity;
-  let fallback: Point | undefined;
-  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-    const candidate = {
-      x: between(rand, area.left, area.right),
-      y: between(rand, area.top, area.bottom),
-    };
-    fallback ??= candidate;
-    if (area.keepouts.some((k) => Math.hypot(candidate.x - k.x, candidate.y - k.y) < k.radius))
-      continue;
-    const clearance = treeLineAt(area.trees, candidate.x) - candidate.y;
-    if (clearance < area.treeMargin) {
-      if (clearance > clearestBy) {
-        clearest = candidate;
-        clearestBy = clearance;
-      }
-      continue;
-    }
-    const distance = nearest(candidate, others);
-    if (distance >= area.minDistance) return candidate;
-    if (distance > bestDistance) {
-      best = candidate;
-      bestDistance = distance;
-    }
-  }
-  return (
-    best ??
-    clearest ??
-    fallback ?? { x: (area.left + area.right) / 2, y: (area.top + area.bottom) / 2 }
-  );
+export const STAR_STYLE = {
+  background: { core: 0xffffff, glow: 0xffffff, coreSize: 1.5, glowSize: 0 },
+  waiting: { core: 0xffffff, glow: 0xffffff, coreSize: 2.8, glowSize: 16 },
+  answered: { core: 0xffffff, glow: 0xffffff, coreSize: 2.8, glowSize: 16 },
+} as const satisfies Record<
+  StarKind,
+  { core: number; glow: number; coreSize: number; glowSize: number }
+>;
+
+/**
+ * The soft aura that identifies your own stars: a white glow about 22 px in radius (44 px across), clearly visible
+ * but smaller and dimmer than Venus's glow. Other people's stars have none.
+ */
+export const MY_AURA = { size: 44, alpha: 0.22 } as const;
+
+/** The sizes of a petition star on a screen with layout scale `u`, in px across: the same whoever's it is and waiting or answered. */
+export function starSizes(
+  kind: "waiting" | "answered",
+  mine: boolean,
+  u: number,
+): { core: number; halo: number; aura: number } {
+  const style = STAR_STYLE[kind];
+  const scale = starScale(u);
+  return {
+    core: style.coreSize * scale,
+    halo: style.glowSize * scale,
+    aura: mine ? MY_AURA.size * scale : 0,
+  };
 }
 
-/** Colours of a petition star: warm white while it waits, golden once it is answered. */
-export const WAITING_STAR = { core: 0xfff1dc, glow: 0xffd9a0 } as const;
-export const ANSWERED_STAR = { core: 0xffdc82, glow: 0xffb030 } as const;
-/** How long a star takes to turn golden when it is answered in front of you. */
+/**
+ * How much to scale the sizes above on a screen with layout scale `u`, so stars look the same on a phone and on a
+ * wide screen: a petition star between 0.85 and 1.25 times its size, a background dot never more than its size.
+ */
+export const starScale = (u: number): number => clamp(u, 0.85, 1.25);
+export const backgroundScale = (u: number): number => clamp(u * 0.8, 0.8, 1);
+
+/** How bright a waiting petition star is, steady; an answered one twinkles around this, between `TWINKLE_LOW` and 1. */
+export const WAITING_LEVEL = 0.95;
+export const TWINKLE_LOW = 0.35;
+/** How much an answered star's halo breathes with its twinkle, as a share of its size either side. */
+export const TWINKLE_BREATH = 0.28;
+
+/** How long a star takes to start twinkling when it is answered in front of you. */
 export const ANSWER_TURN_SECONDS = 1.2;
 
 export interface StarLook {
@@ -135,26 +130,60 @@ export interface StarLook {
   glow: number;
   /** How bright the star is right now, around 1. */
   level: number;
+  /** How big its halo is right now, as a share of its size: 1, except that an answered star's breathes with its twinkle. */
+  scale: number;
+  /** How strong the soft aura of the visitor's own stars is: 0 for anyone else's. */
+  aura: number;
 }
 
 /**
- * How a petition star looks. A waiting star is steady: the same at any time. An answered one is golden and
- * twinkles, except with reduced motion, when it is golden and still. `turned` (0 to 1) is how far a star that was
- * just answered has turned from white to gold; a star that was already answered is at 1.
+ * How a star looks at `time` (`phase` keeps stars out of step with each other). A background star twinkles softly. A
+ * waiting petition star is steady: the same at any time. An answered one is exactly a waiting one that twinkles; with
+ * reduced motion it holds still, like a waiting one. Mine and other people's are alike, but mine (`mine`) also have
+ * the soft aura. `turned` (0 to 1) eases the twinkle in for a star that was just answered; one that was already
+ * answered is at 1.
  */
 export function starLook(
-  answered: boolean,
+  kind: StarKind,
   time: number,
   phase: number,
   reduced: boolean,
   turned = 1,
+  mine = false,
 ): StarLook {
-  if (!answered) return { core: WAITING_STAR.core, glow: WAITING_STAR.glow, level: 0.95 };
-  const t = clamp(turned, 0, 1);
-  const wave = 0.7 * Math.sin(time * 2.1 + phase) + 0.3 * Math.sin(time * 0.9 + phase * 1.7);
-  return {
-    core: mixColor(WAITING_STAR.core, ANSWERED_STAR.core, t),
-    glow: mixColor(WAITING_STAR.glow, ANSWERED_STAR.glow, t),
-    level: reduced ? 1 : 0.85 + 0.15 * wave,
-  };
+  const style = STAR_STYLE[kind];
+  switch (kind) {
+    case "background":
+      return {
+        core: style.core,
+        glow: style.glow,
+        level: reduced ? 0.65 : 0.65 + 0.2 * Math.sin(time * 1.1 + phase),
+        scale: 1,
+        aura: 0,
+      };
+    case "waiting":
+      return {
+        core: style.core,
+        glow: style.glow,
+        level: WAITING_LEVEL,
+        scale: 1,
+        aura: mine ? 1 : 0,
+      };
+    case "answered": {
+      const t = clamp(turned, 0, 1);
+      const wave = 0.7 * Math.sin(time * 2.1 + phase) + 0.3 * Math.sin(time * 7.2 + phase * 1.7);
+      // The same star as a waiting one that twinkles: its brightness moves between `TWINKLE_LOW` and 1. With reduced
+      // motion it holds still, exactly like a waiting star. `turned` eases the twinkle in when it has just been answered.
+      const twinkle = reduced
+        ? WAITING_LEVEL
+        : TWINKLE_LOW + (1 - TWINKLE_LOW) * (0.5 + 0.5 * wave);
+      return {
+        core: style.core,
+        glow: style.glow,
+        level: WAITING_LEVEL + (twinkle - WAITING_LEVEL) * t,
+        scale: reduced ? 1 : 1 + TWINKLE_BREATH * wave * t,
+        aura: mine ? 1 : 0,
+      };
+    }
+  }
 }

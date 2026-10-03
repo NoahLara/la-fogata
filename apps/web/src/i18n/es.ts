@@ -64,7 +64,15 @@ export const es = {
     alreadyToday: "Ya elevaste una hoy. Mañana podrás pedir otra.",
   },
   sky: {
-    groupLabel: "Tus peticiones",
+    // The two buttons at the edges of the sky, an alternative to dragging it.
+    turnControls: "Girar el cielo",
+    turnLeft: "Girar el cielo a la izquierda",
+    turnRight: "Girar el cielo a la derecha",
+    // How many stars the visitor has, said as part of the name of the group of their stars.
+    starCount: { one: "{count} estrella", other: "{count} estrellas" },
+    answeredCount: { one: "{count} respondida", other: "{count} respondidas" },
+    // {stars} and {answered} are the two counts above, each in its plural form.
+    groupLabel: "Tus peticiones: {stars}, {answered}",
     // The name of a star for a screen reader. {text} is the start of the petition.
     star: "Petición: {text}",
     starAnswered: "Petición respondida: {text}",

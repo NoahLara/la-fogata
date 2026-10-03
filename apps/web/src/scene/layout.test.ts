@@ -5,6 +5,7 @@ import {
   directionToFire,
   NEAR_SCALE_RATIO,
   seatPosition,
+  skyDragBottom,
   wordBandBottom,
 } from "./layout";
 
@@ -114,6 +115,24 @@ describe("wordBandBottom", () => {
     for (const degrees of [225, 255, 300]) {
       const seat = seatPosition(layout, degrees, 0.8);
       expect(bottom).toBeLessThanOrEqual(seat.y - layout.characterHeight * seat.scale);
+    }
+  });
+});
+
+describe("skyDragBottom", () => {
+  it("ends above the horizon and above the far characters' heads, on every screen", () => {
+    for (const [w, h] of [
+      [390, 844],
+      [820, 1180],
+      [1280, 720],
+      [1920, 1080],
+    ] as const) {
+      const layout = computeLayout(w, h, { top: 0, bottom: 72 });
+      const bottom = skyDragBottom(layout);
+      expect(bottom).toBeGreaterThanOrEqual(0);
+      expect(bottom).toBeLessThanOrEqual(layout.horizon);
+      expect(bottom).toBeLessThanOrEqual(layout.cy - layout.ry - layout.characterHeight);
+      expect(bottom).toBeLessThan(layout.cy - layout.ry);
     }
   });
 });

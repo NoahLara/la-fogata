@@ -111,3 +111,11 @@ export function wordBandBottom(layout: SceneLayout): number {
   const aboveHeads = layout.cy - layout.ry - layout.characterHeight - 24;
   return Math.max(0, Math.min(aboveTrees, aboveHeads));
 }
+
+/**
+ * Where the sky ends for turning it by hand: its bottom edge, above the pines' base and above the head of any
+ * character on the far side of the fire, so a drag that starts on the fire or on a character never turns it.
+ */
+export function skyDragBottom(layout: SceneLayout): number {
+  return Math.max(0, Math.min(layout.horizon, layout.cy - layout.ry - layout.characterHeight));
+}

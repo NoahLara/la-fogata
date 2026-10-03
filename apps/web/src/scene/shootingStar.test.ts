@@ -4,6 +4,7 @@ import {
   distanceToSegment,
   nextShootingStarDelay,
   planShootingStar,
+  planShootingStarFrom,
   SHOOTING_STAR_INTERVAL,
   type Keepout,
 } from "./shootingStar";
@@ -35,7 +36,7 @@ describe("nextShootingStarDelay", () => {
 });
 
 describe("planShootingStar", () => {
-  it("stays in the sky and never passes over the moon or Venus", () => {
+  it("stays in the sky and never passes over the moon", () => {
     let planned = 0;
     for (let seed = 1; seed <= 400; seed++) {
       const plan = planShootingStar(createRandom(seed), BOUNDS, KEEPOUTS);
@@ -59,5 +60,52 @@ describe("planShootingStar", () => {
   it("gives up with undefined when nothing fits", () => {
     const everything: Keepout[] = [{ x: 600, y: 140, radius: 5000 }];
     expect(planShootingStar(createRandom(1), BOUNDS, everything)).toBeUndefined();
+  });
+});
+
+describe("planShootingStarFrom", () => {
+  const bounds = { width: 800, top: 10, bottom: 300 };
+  const from = { x: 400, y: 120 };
+
+  it("starts at the point it is given, heads down and stays in the sky", () => {
+    for (let seed = 1; seed < 40; seed++) {
+      const plan = planShootingStarFrom(createRandom(seed), from, bounds, []);
+      expect(plan).toBeDefined();
+      expect(plan?.from).toEqual(from);
+      expect(plan!.to.y).toBeGreaterThan(from.y);
+      expect(plan!.to.x).toBeGreaterThanOrEqual(0);
+      expect(plan!.to.x).toBeLessThanOrEqual(bounds.width);
+      expect(plan!.to.y).toBeLessThanOrEqual(bounds.bottom);
+      expect(plan!.duration).toBeGreaterThanOrEqual(0.85);
+      expect(plan!.duration).toBeLessThanOrEqual(1.15);
+    }
+  });
+
+  it("goes to either side", () => {
+    const sides = new Set<number>();
+    for (let seed = 1; seed < 40; seed++) {
+      const plan = planShootingStarFrom(createRandom(seed), from, bounds, []);
+      sides.add(Math.sign(plan!.to.x - from.x));
+    }
+    expect(sides.size).toBe(2);
+  });
+
+  it("keeps clear of the moon and Venus", () => {
+    const moon = { x: 520, y: 150, radius: 40 };
+    for (let seed = 1; seed < 40; seed++) {
+      const plan = planShootingStarFrom(createRandom(seed), from, bounds, [moon]);
+      if (plan)
+        expect(distanceToSegment(moon, plan.from, plan.to)).toBeGreaterThanOrEqual(moon.radius);
+    }
+  });
+
+  it("is the same for the same seed", () => {
+    expect(planShootingStarFrom(createRandom(3), from, bounds, [])).toEqual(
+      planShootingStarFrom(createRandom(3), from, bounds, []),
+    );
+  });
+
+  it("finds nothing only when nothing fits", () => {
+    expect(planShootingStarFrom(createRandom(1), { x: 400, y: 295 }, bounds, [])).toBeUndefined();
   });
 });

@@ -1,22 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
 import type { Petition } from "@/data/types";
 import { nextStarIndex, orderStars, starAfterRemoval } from "@/design/rovingFocus";
 import { format } from "@/i18n/format";
 import { useI18n } from "@/i18n/I18nProvider";
-import type { FogataScene } from "@/scene/createScene";
+import type { FogataScene, SkyViewState } from "@/scene/createScene";
+import { screenX, wrapSigned } from "@/scene/panorama";
 import { HelpScreen } from "../help/HelpScreen";
 import { useInteraction } from "../scene/Interaction";
+import { skyCounts, groupName } from "./skySummary";
+import { SkyChevrons } from "./SkyChevrons";
 import { StarCard } from "./StarCard";
+import { useEdgeHover } from "./useEdgeHover";
+import { useSkyDrag } from "./useSkyDrag";
 
 /** The size of the touch target over each star, in pixels. */
 const TARGET = 44;
 /** The longest stretch of a petition a screen reader hears as the star's name. */
 const NAME_LENGTH = 60;
-/** How long the star takes to turn golden and the shooting star to cross, so the gestures wait for both. */
+/** How long the star takes to turn gold and the shooting star to cross, so the gestures wait for both. */
 const ANSWER_ANIMATION_MS = 1400;
 
 const shorten = (text: string) => {
@@ -33,19 +38,30 @@ interface Star {
 
 /**
  * The visitor's own stars as real buttons over the scene: one invisible 44 px target per star. The sky is a single
- * tab stop (arrow keys move between stars), and Enter or a tap opens the star's card.
+ * tab stop (arrow keys move between stars), and Enter or a tap opens the star's card. The buttons follow the
+ * sky as it turns, moved through refs rather than state, and one that takes keyboard focus turns the sky until it
+ * is in view. Your stars are known by the constellation's lines alone; the group's name says how many there are.
+ * Dragging the sky strip turns it. Without dragging (WCAG 2.5.7), two arrows appear when the mouse is near the sky's
+ * edges or one has keyboard focus (they stay in the tab order), and a tap on empty sky in the outer tenth of
+ * either side turns it a step.
  */
 export function PetitionSky({ scene }: { scene: FogataScene }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { petitions } = useServices();
   const { busy, hold, say, reportDialog } = useInteraction();
   const [mine, setMine] = useState<readonly Petition[]>([]);
+  // Where the stars are in the panorama, which doesn't change as the sky turns.
   const [spots, setSpots] = useState<ReadonlyMap<string, { x: number; y: number }>>(new Map());
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [dragBottom, setDragBottom] = useState(0);
   const [activeId, setActiveId] = useState<string>();
   const [openId, setOpenId] = useState<string>();
+  const [openSpot, setOpenSpot] = useState({ x: 0, y: 0 });
+  /** How far the sky was turned when the card opened. */
+  const openedAt = useRef<number | undefined>(undefined);
   const [help, setHelp] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
   // A star's card or help screen is open: the fire doesn't speak over it.
   useEffect(() => {
     reportDialog("sky", help ? "help" : openId ? "dialog" : "none");
@@ -73,7 +89,10 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
 
   // Where the stars are, and how big the scene is, whenever the scene is laid out again.
   useEffect(() => {
-    const update = () => setSpots(scene.petitionSpots());
+    const update = () => {
+      setSpots(scene.sky.anchors());
+      setDragBottom(scene.sky.dragBottom());
+    };
     update();
     return scene.onLayout(update);
   }, [scene]);
@@ -107,15 +126,72 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   // The one tab stop: the star last used, or else the first.
   const tabStop = stars.find((star) => star.id === activeId)?.id ?? stars[0]?.id;
 
+  // The buttons follow the sky as it turns: set through refs, so turning never re-renders anything.
+  const starsRef = useRef(stars);
+  const place = useCallback((state: SkyViewState) => {
+    for (const star of starsRef.current) {
+      const button = buttons.current.get(star.id);
+      if (!button) continue;
+      const x = screenX(star.x, state.offset, state.panorama, state.viewport);
+      button.style.transform = `translate3d(${x - TARGET / 2}px, ${star.y - TARGET / 2}px, 0)`;
+    }
+  }, []);
+  useLayoutEffect(() => {
+    starsRef.current = stars;
+    place(scene.sky.state());
+  }, [stars, scene, place]);
+  useEffect(
+    () =>
+      scene.sky.onView((state) => {
+        place(state);
+        // A card stays beside its star where it opened: if the sky is turned (by hand, or by an arrow) it closes.
+        const opened = openedAt.current;
+        if (
+          opened !== undefined &&
+          Math.abs(wrapSigned(state.offset - opened, state.panorama)) > 1
+        ) {
+          openedAt.current = undefined;
+          setOpenId(undefined);
+        }
+      }),
+    [scene, place],
+  );
+
+  // The sky stops turning by itself while a star's card is open, so the card (and what is read on it) stays put.
+  const cardOpen = openId !== undefined;
+  useEffect(() => (cardOpen ? scene.sky.pauseAutoTurn() : undefined), [scene, cardOpen]);
+
+  const drag = useSkyDrag(scene, () => setOpenId(undefined));
+  const edge = useEdgeHover(dragBottom);
+
   const focusStar = useCallback((id: string) => {
     setActiveId(id);
     window.requestAnimationFrame(() =>
-      overlayRef.current?.querySelector<HTMLElement>(`[data-star-id="${CSS.escape(id)}"]`)?.focus(),
+      overlayRef.current
+        ?.querySelector<HTMLElement>(`[data-star-id="${CSS.escape(id)}"]`)
+        // The sky turns by itself to bring it into view, so the browser must not scroll to it as well.
+        ?.focus({ preventScroll: true }),
     );
   }, []);
 
+  const openCard = (star: Star) => {
+    // The card stays beside the star where it is now.
+    setOpenSpot(scene.petitionSpots().get(star.id) ?? { x: star.x, y: star.y });
+    openedAt.current = scene.sky.state().offset;
+    setOpenId(star.id);
+  };
+  const toggleCard = (star: Star) => {
+    if (openId === star.id) {
+      openedAt.current = undefined;
+      setOpenId(undefined);
+      return;
+    }
+    openCard(star);
+  };
+
   const closeCard = (refocus: boolean) => {
     const id = openId;
+    openedAt.current = undefined;
     setOpenId(undefined);
     if (refocus && id) focusStar(id);
   };
@@ -136,7 +212,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     say(t.sky.announceAnswered);
     setOpenId(undefined);
     focusStar(petition.id);
-    // The star turns golden and a shooting star crosses; the gestures wait for it (nothing moves with reduced motion).
+    // The star turns gold and a shooting star crosses; the gestures wait for it (nothing moves with reduced motion).
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const release = hold();
       timers.current.add(window.setTimeout(release, ANSWER_ANIMATION_MS));
@@ -172,9 +248,27 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const open = stars.find((star) => star.id === openId);
 
   return (
-    <div ref={overlayRef} className="pointer-events-none absolute inset-0 z-[5]">
+    <div
+      ref={overlayRef}
+      className="pointer-events-none absolute inset-0 z-[5] overflow-clip"
+      {...drag}
+      onPointerMove={(event) => {
+        drag.onPointerMove(event);
+        edge.onPointerMove(event);
+      }}
+      onPointerLeave={edge.onPointerLeave}
+    >
+      {/* The strip of sky a drag may start in: above the fire and the characters. */}
+      <div
+        data-sky-drag
+        data-sky-surface
+        aria-hidden="true"
+        style={{ height: dragBottom }}
+        className="pointer-events-auto absolute inset-x-0 top-0 cursor-grab touch-none active:cursor-grabbing"
+      />
+      <SkyChevrons scene={scene} bottom={dragBottom} near={edge.near} />
       {stars.length > 0 && (
-        <div role="group" aria-label={t.sky.groupLabel}>
+        <div role="group" aria-label={groupName(locale, t.sky, skyCounts(mine))}>
           {stars.map((star, index) => {
             const { petition } = star;
             const name = format(petition.answered ? t.sky.starAnswered : t.sky.star, {
@@ -183,14 +277,24 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
             return (
               <button
                 key={star.id}
+                ref={(node) => {
+                  if (node) buttons.current.set(star.id, node);
+                  else buttons.current.delete(star.id);
+                }}
                 type="button"
                 data-star-id={star.id}
+                data-sky-drag
                 aria-label={name}
                 aria-haspopup="dialog"
                 aria-expanded={openId === star.id}
                 tabIndex={star.id === tabStop ? 0 : -1}
-                onFocus={() => setActiveId(star.id)}
-                onClick={() => setOpenId(openId === star.id ? undefined : star.id)}
+                onFocus={(event) => {
+                  setActiveId(star.id);
+                  // Reached by the keyboard: turn the sky so the star is in view.
+                  if (event.currentTarget.matches(":focus-visible"))
+                    scene.sky.bringIntoView(star.id);
+                }}
+                onClick={() => toggleCard(star)}
                 onKeyDown={(event) => {
                   const to = nextStarIndex(event.key, index, stars.length);
                   if (to === undefined) return;
@@ -198,13 +302,8 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
                   const target = stars[to];
                   if (target) focusStar(target.id);
                 }}
-                style={{
-                  left: star.x - TARGET / 2,
-                  top: star.y - TARGET / 2,
-                  width: TARGET,
-                  height: TARGET,
-                }}
-                className="pointer-events-auto absolute cursor-pointer rounded-full bg-transparent focus-visible:shadow-focus focus-visible:outline-none"
+                style={{ width: TARGET, height: TARGET }}
+                className="pointer-events-auto absolute left-0 top-0 cursor-pointer touch-none rounded-full bg-transparent focus-visible:shadow-focus focus-visible:outline-none"
               />
             );
           })}
@@ -215,7 +314,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
           // A fresh card for each star.
           key={open.id}
           petition={open.petition}
-          star={open}
+          star={openSpot}
           scene={size}
           busy={busy}
           onClose={closeCard}
