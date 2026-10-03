@@ -3,6 +3,8 @@ import { Atkinson_Hyperlegible_Next, Caveat, Fraunces } from "next/font/google";
 import { DICTIONARIES } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { getLocale } from "@/i18n/server";
+import { SettingsProvider } from "@/preferences/SettingsProvider";
+import { TEXT_SIZE_SCRIPT } from "@/preferences/preferences";
 import "./globals.css";
 
 // Self-hosted at build time: visitors never contact Google.
@@ -24,10 +26,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang={locale}
+      // The text-size script below sets data-text-size before React sees the page.
+      suppressHydrationWarning
       className={`${fraunces.variable} ${atkinson.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="font-ui flex min-h-full flex-col">
-        <I18nProvider initialLocale={locale}>{children}</I18nProvider>
+        <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_SCRIPT }} />
+        <I18nProvider initialLocale={locale}>
+          <SettingsProvider>{children}</SettingsProvider>
+        </I18nProvider>
       </body>
     </html>
   );

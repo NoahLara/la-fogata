@@ -93,6 +93,34 @@ export const en = {
     notFound: "That star is gone. It stays where it is.",
     failed: "That didn't work. The star stays where it is.",
   },
+  entrance: {
+    title: "La Fogata",
+    tagline: "A place to sit by the fire tonight. No names, no profiles.",
+    enter: "Sit by the fire",
+    chooseCharacter: "Choose my character",
+    pickerTitle: "Choose your character",
+    pickerDone: "Done",
+  },
+  settings: {
+    // The name of the gear button, and the title of its panel.
+    open: "Settings",
+    title: "Settings",
+    character: { legend: "Character", random: "Random" },
+    language: { legend: "Language" },
+    textSize: { legend: "Text size", small: "Small", normal: "Normal", large: "Large" },
+    // A gentle note when the character they picked is already at this campfire; it is saved for next time.
+    characterTaken: "That character is already at this fire. It'll keep you company next time.",
+  },
+  // The names of the 7 characters, as shown in the picker.
+  species: {
+    panda: "Panda",
+    cat: "Cat",
+    owl: "Owl",
+    fox: "Fox",
+    capybara: "Capybara",
+    rabbit: "Rabbit",
+    bear: "Bear",
+  },
   fire: {
     // The name of the invisible button over the flames.
     listen: "Listen to the fire",

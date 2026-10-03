@@ -7,6 +7,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene as Scene } from "@/scene/createScene";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
+import { Entrance } from "../settings/Entrance";
+import { SettingsButton } from "../settings/SettingsButton";
 import { PetitionSky } from "../sky/PetitionSky";
 import { InteractionProvider } from "./Interaction";
 import { DemoControls } from "./DemoControls";
@@ -41,6 +43,7 @@ export function FogataScene() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState<Mounted>();
   const [demo, setDemo] = useState(false);
+  const [skipIntro, setSkipIntro] = useState(false);
   const { t } = useI18n();
   // The scene is built once, in the language of that first render; `setLabels` below follows later changes.
   const labels = useRef({ label: t.scene.ariaLabel, you: t.scene.you });
@@ -102,6 +105,8 @@ export function FogataScene() {
         const unsubscribers = [
           services.presence.subscribe((event) => {
             if (event.type === "joined") created.addMember(event.person, { animate: true });
+            else if (event.type === "changed")
+              created.replaceMember(event.person, { animate: true });
             else created.removeMember(event.id, { animate: true });
           }),
           // Everyone sees a log thrown; the service has already enforced the cooldown.
@@ -109,9 +114,9 @@ export function FogataScene() {
         ];
         stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
         setDemo(flags.demo);
+        setSkipIntro(flags.skipIntro);
+        // Nobody sits down until the entrance says so (or ?skipIntro, in development).
         setMounted({ scene: created, services });
-        const me = await services.presence.join();
-        if (me && !disposed) created.setSelf(me.id);
       })
       .catch((error: unknown) => console.error("Could not start the campfire scene", error));
 
@@ -136,6 +141,8 @@ export function FogataScene() {
             <WordFromFire scene={mounted.scene} unlimited={demo} />
             <PetitionSky scene={mounted.scene} />
             <GestureBar scene={mounted.scene} />
+            <SettingsButton />
+            <Entrance scene={mounted.scene} skipIntro={skipIntro} />
             {demo && <DemoControls local={mounted.services} scene={mounted.scene} />}
           </InteractionProvider>
         </DataProvider>

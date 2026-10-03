@@ -97,6 +97,34 @@ export const es = {
     notFound: "Esa petición ya no está. La estrella sigue en su lugar.",
     failed: "No se pudo. La estrella sigue en su lugar.",
   },
+  entrance: {
+    title: "La Fogata",
+    tagline: "Un lugar para sentarte junto al fuego esta noche. Sin nombres, sin perfiles.",
+    enter: "Sentarme junto al fuego",
+    chooseCharacter: "Elegir mi personaje",
+    pickerTitle: "Elige tu personaje",
+    pickerDone: "Listo",
+  },
+  settings: {
+    // The name of the gear button, and the title of its panel.
+    open: "Ajustes",
+    title: "Ajustes",
+    character: { legend: "Personaje", random: "Al azar" },
+    language: { legend: "Idioma" },
+    textSize: { legend: "Tamaño del texto", small: "Pequeña", normal: "Normal", large: "Grande" },
+    // A gentle note when the character they picked is already at this campfire; it is saved for next time.
+    characterTaken: "Ese personaje ya está en esta fogata. Te acompañará la próxima vez.",
+  },
+  // The names of the 7 characters, as shown in the picker.
+  species: {
+    panda: "Panda",
+    cat: "Gato",
+    owl: "Búho",
+    fox: "Zorro",
+    capybara: "Capibara",
+    rabbit: "Conejo",
+    bear: "Oso",
+  },
   fire: {
     // The name of the invisible button over the flames.
     listen: "Escuchar al fuego",

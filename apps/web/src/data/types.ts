@@ -17,13 +17,30 @@ export interface Person {
   seat: number;
 }
 
-export type PresenceEvent = { type: "joined"; person: Person } | { type: "left"; id: string };
+export type PresenceEvent =
+  | { type: "joined"; person: Person }
+  | { type: "left"; id: string }
+  /** The same person, in the same seat, now as another animal: the old one leaves and the new one arrives. */
+  | { type: "changed"; person: Person };
+
+export type ChangeSpeciesResult =
+  | { status: "changed"; person: Person }
+  /** Someone else at this campfire already has that animal: one of each. */
+  | { status: "taken" }
+  /** It is the animal they already are. */
+  | { status: "unchanged" }
+  | { status: "not-seated" };
 
 export interface PresenceService {
   /** Who the visitor is once they have sat down; undefined before that, or when every seat is taken. */
   readonly self: Person | undefined;
-  /** Sits the visitor at a free seat with a free animal. Resolves to undefined when the campfire has no room. */
-  join(): Promise<Person | undefined>;
+  /**
+   * Sits the visitor at a free seat. They get their `preferred` animal if it is free at this campfire, otherwise
+   * a free one. Resolves to undefined when the campfire has no room.
+   */
+  join(preferred?: Species): Promise<Person | undefined>;
+  /** Swaps the visitor's animal, keeping their seat, when nobody else here is that animal. */
+  changeSpecies(species: Species): Promise<ChangeSpeciesResult>;
   leave(): void;
   /** Everyone around the fire now, the visitor included. */
   people(): readonly Person[];
