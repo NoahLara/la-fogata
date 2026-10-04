@@ -187,3 +187,18 @@ export function starLook(
     }
   }
 }
+
+/** How long a star's soft pulse lasts, and how long the shorter one with reduced motion does. */
+export const PULSE_SECONDS = 1.1;
+export const PULSE_SECONDS_REDUCED = 0.6;
+
+/**
+ * How much brighter a star is, 0 to 1, `elapsed` seconds into its pulse: it swells and settles, once. Only the
+ * brightness changes, never the size. With reduced motion it is a shorter, softer fade up and down.
+ */
+export function pulseLevel(elapsed: number, reduced: boolean): number {
+  const seconds = reduced ? PULSE_SECONDS_REDUCED : PULSE_SECONDS;
+  if (elapsed <= 0 || elapsed >= seconds) return 0;
+  const swell = Math.sin((Math.PI * elapsed) / seconds);
+  return reduced ? 0.6 * swell : swell * swell;
+}

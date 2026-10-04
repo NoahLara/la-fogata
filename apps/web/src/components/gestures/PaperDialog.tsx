@@ -186,7 +186,7 @@ export function PaperDialog({
         // Escape must not cut the ritual short.
         if (stage !== "writing") event.preventDefault();
       }}
-      className="paper-dialog m-auto w-[min(92vw,30rem)] max-sm:fixed max-sm:inset-x-0 max-sm:top-auto max-sm:bottom-[var(--keyboard,0px)] max-sm:m-0 max-sm:w-full"
+      className="paper-dialog m-auto w-[min(92vw,30rem)] max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:bottom-[var(--keyboard,0px)] max-sm:m-auto max-sm:h-fit"
       style={
         {
           "--keyboard": `${inset}px`,
@@ -198,8 +198,7 @@ export function PaperDialog({
         ref={paperRef}
         data-focused={focused ? "" : undefined}
         data-edge={edge}
-        // Wider than the screen on phones, so the tilted corners never show a gap.
-        className={`paper-sheet relative max-sm:-mx-2 max-sm:-mb-3 ${stage === "leaving" ? "opacity-0 transition-opacity duration-200 motion-reduce:transition-none" : ""}`}
+        className={`paper-sheet relative ${stage === "leaving" ? "opacity-0 transition-opacity duration-200 motion-reduce:transition-none" : ""}`}
       >
         <svg
           viewBox="0 0 100 100"
@@ -222,7 +221,7 @@ export function PaperDialog({
             event.preventDefault();
             submit();
           }}
-          className={`relative flex flex-col gap-3 px-8 pt-9 pb-6 max-sm:px-9 max-sm:pb-8 sm:px-11 ${stage === "folding" || stage === "done" ? "invisible" : ""}`}
+          className={`relative flex flex-col gap-3 px-8 pt-9 pb-6 max-sm:px-8 sm:px-11 ${stage === "folding" || stage === "done" ? "invisible" : ""}`}
         >
           <h2
             id={titleId}

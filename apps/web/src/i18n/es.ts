@@ -74,8 +74,13 @@ export const es = {
     // {stars} and {answered} are the two counts above, each in its plural form.
     groupLabel: "Tus peticiones: {stars}, {answered}",
     // The name of a star for a screen reader. {text} is the start of the petition.
-    star: "Petición: {text}",
-    starAnswered: "Petición respondida: {text}",
+    star: "Tu estrella: {text}",
+    starAnswered: "Tu estrella, respondida: {text}",
+    // Another person's star: a waiting one is named by its text alone.
+    starOther: "{text}",
+    starOtherAnswered: "Respondida: {text}",
+    // The name of the group of every star in the sky, for a screen reader.
+    groupAll: "Estrellas del cielo",
     cardLabel: "Tu petición",
     answered: "Respondida",
     markAnswered: "Marcar como respondida",
@@ -96,6 +101,25 @@ export const es = {
     noteRequired: "Cuenta cómo pasó para marcarla como respondida.",
     notFound: "Esa petición ya no está. La estrella sigue en su lugar.",
     failed: "No se pudo. La estrella sigue en su lugar.",
+    // Another person's star. The card has no visible words except in reporting: what follows is for screen readers.
+    otherCardLabel: "Una petición",
+    accompany: "Estoy contigo",
+    accompanyCount: {
+      one: "{count} persona acompaña esto",
+      other: "{count} personas acompañan esto",
+    },
+    ownAccompanyCount: {
+      one: "{count} persona te acompaña",
+      other: "{count} personas te acompañan",
+    },
+    announceAccompanied: "Alguien te acompaña.",
+    // Said to a screen reader (and not shown) when the taps allowed in a session have run out.
+    tooMany: "Por ahora es suficiente. Puedes acompañar otra más tarde.",
+    // Reporting is a safety feature, so these are the only words shown on the card.
+    report: "Reportar",
+    reportQuestion: "¿Reportar esta petición?",
+    reportConfirm: "Reportar",
+    reportDone: "Gracias. Ya no la verás.",
   },
   entrance: {
     title: "La Fogata",
@@ -190,5 +214,6 @@ export const es = {
     burden: "Alguien entrega una carga",
     farFireAdd: "+ fogata lejana",
     farFireRemove: "− fogata lejana",
+    someoneAccompanies: "Alguien acompaña mi estrella",
   },
 } as const;

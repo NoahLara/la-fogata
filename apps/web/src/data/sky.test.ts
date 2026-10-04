@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRandom } from "@/scene/random";
 import { ANSWERED_LIFETIME_MS, DAY, PETITION_LIFETIME_MS, SKY_SIZE } from "./limits";
-import { expiresAt, isAlive, pickSky } from "./sky";
+import { expiresAt, isAlive, pickSky, skyLimit } from "./sky";
 
 const star = (prayers: number, createdAt = 0, answered?: { at: number }) => ({
   createdAt,
@@ -53,5 +53,17 @@ describe("pickSky", () => {
     const all = [star(2), star(1)];
     pickSky(all, 0, createRandom(4));
     expect(all.map((petition) => petition.prayers)).toEqual([2, 1]);
+  });
+});
+
+describe("skyLimit", () => {
+  it("is about thirty for every screen width of the panorama", () => {
+    expect(skyLimit(4000, 1000)).toBe(SKY_SIZE * 4);
+    expect(skyLimit(1560, 390)).toBe(SKY_SIZE * 4);
+  });
+
+  it("never drops under one screen's worth, and copes with no size yet", () => {
+    expect(skyLimit(500, 1000)).toBe(SKY_SIZE);
+    expect(skyLimit(0, 0)).toBe(SKY_SIZE);
   });
 });

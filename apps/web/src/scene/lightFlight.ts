@@ -122,3 +122,38 @@ export function returnAt(plan: ReturnPlan, elapsed: number): Point {
     y: a * plan.from.y + b * plan.control.y + c * plan.to.y,
   };
 }
+
+/** The small light one person sends another's star: it rises from their animal and glides in a soft arc. */
+export interface GiftPlan {
+  from: Point;
+  /** Bends the arc. */
+  control: Point;
+  to: Point;
+  duration: number;
+}
+
+export const GIFT_SECONDS = 1.8;
+
+/** Plans the flight from `from` (the animal's paws) to `to` (the star). */
+export function planGift(from: Point, to: Point): GiftPlan {
+  // The control point sits between the two in height, nearer the star and close to the paws sideways: the light climbs
+  // at first and then leans in, and never goes above its star or back down.
+  return {
+    from,
+    control: { x: from.x + (to.x - from.x) * 0.1, y: from.y + (to.y - from.y) * 0.7 },
+    to,
+    duration: GIFT_SECONDS,
+  };
+}
+
+/** Where the gift is after `elapsed` seconds: at `from` at 0 and at `to` from `duration` on, never going back. */
+export function giftAt(plan: GiftPlan, elapsed: number): Point {
+  const e = ease(clamp(elapsed / plan.duration, 0, 1));
+  const a = (1 - e) * (1 - e);
+  const b = 2 * (1 - e) * e;
+  const c = e * e;
+  return {
+    x: a * plan.from.x + b * plan.control.x + c * plan.to.x,
+    y: a * plan.from.y + b * plan.control.y + c * plan.to.y,
+  };
+}

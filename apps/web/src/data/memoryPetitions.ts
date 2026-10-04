@@ -21,6 +21,7 @@ import type {
   PrayerService,
   PrayResult,
   RemovePetitionResult,
+  ReportPetitionResult,
 } from "./types";
 
 interface Options {
@@ -53,14 +54,17 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   private readonly records = new Map<string, Stored>();
   private readonly events = new Emitter<PetitionEvent>();
   private readonly prayedFor = new Set<string>();
+  /** What the visitor reported: kept for review (the database will hold them) and hidden from their sky. */
+  private readonly reported = new Set<string>();
   private prayerTaps = 0;
   /** When the visitor made each petition: only the moments, never the text, so returning one doesn't give the day's back. */
   private readonly madeAt: number[] = [];
 
   constructor(private readonly options: Options) {}
 
-  async sky(): Promise<readonly Petition[]> {
-    const alive = pickSky(this.living(), this.options.now(), this.options.rand);
+  async sky(limit?: number): Promise<readonly Petition[]> {
+    const shown = this.living().filter((record) => !this.reported.has(record.id));
+    const alive = pickSky(shown, this.options.now(), this.options.rand, limit);
     return alive.map((record) => this.view(record));
   }
 
@@ -113,9 +117,25 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     return { status: "removed" };
   }
 
+  async report(id: string): Promise<ReportPetitionResult> {
+    const record = this.records.get(id);
+    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (this.isMine(record)) return { status: "own" };
+    this.reported.add(id);
+    this.events.emit({ type: "hidden", id });
+    return { status: "reported" };
+  }
+
+  /** The ids the visitor has reported, for review. */
+  reportedIds(): readonly string[] {
+    return [...this.reported];
+  }
+
   async pray(petitionId: string): Promise<PrayResult> {
     const record = this.records.get(petitionId);
-    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (!record || !isAlive(record, this.options.now()) || this.reported.has(petitionId))
+      return { status: "not-found" };
+    if (this.isMine(record)) return { status: "own" };
     if (this.prayedFor.has(petitionId))
       return { status: "already-prayed", prayers: record.prayers };
     if (this.prayerTaps >= (this.options.prayersPerSession ?? PRAYERS_PER_SESSION)) {
@@ -133,11 +153,30 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   }
 
   /** Demo and tests only: a petition someone else wrote. */
-  seedOther(text: string, options: { prayers?: number; createdAt?: number } = {}): Petition {
+  seedOther(
+    text: string,
+    options: { prayers?: number; createdAt?: number; answered?: string } = {},
+  ): Petition {
     const record = this.add(text, "someone-else");
     record.prayers = options.prayers ?? 0;
     if (options.createdAt !== undefined) record.createdAt = options.createdAt;
+    if (options.answered !== undefined) {
+      record.answered = {
+        at: this.options.now(),
+        ...(options.answered ? { note: options.answered } : {}),
+      };
+    }
     return this.view(record);
+  }
+
+  /** Demo and tests only: someone else is with one of the visitor's petitions. */
+  simulateAccompany(id: string): boolean {
+    const record = this.records.get(id);
+    if (!record || !isAlive(record, this.options.now()) || !this.isMine(record)) return false;
+    record.prayers++;
+    const petition = this.view(record);
+    this.events.emit({ type: "accompanied", petition });
+    return true;
   }
 
   private add(text: string, ownerKey: string): Stored {

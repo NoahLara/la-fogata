@@ -2,7 +2,7 @@ import { Container, Graphics, Particle, ParticleContainer, Sprite, Texture } fro
 import { verticalGradient } from "./gradient";
 import type { Point, SceneLayout } from "./layout";
 import { between, easeToward, smoothstep, TAU } from "./math";
-import { otherStarCount, placeOtherStars, type OtherStar } from "./otherStars";
+import { placeOtherStar, type OtherStar } from "./otherStars";
 import {
   PANORAMA_VIEWPORTS,
   screenX,
@@ -11,7 +11,7 @@ import {
   visibleSections,
   wrap,
 } from "./panorama";
-import { pick, type Random } from "./random";
+import { createRandom, pick, type Random } from "./random";
 import {
   drawShootingStar,
   nextShootingStarDelay,
@@ -33,6 +33,8 @@ import {
 import {
   ANSWER_TURN_SECONDS,
   backgroundScale,
+  hashId,
+  pulseLevel,
   MY_AURA,
   STAR_STYLE,
   starSizes,
@@ -73,6 +75,14 @@ export interface Sky {
   petitionSpots(): ReadonlyMap<string, Point>;
   /** Dims every petition star a little (a word is over them) or brings them back. */
   dimPetitionStars(dimmed: boolean): void;
+  /**
+   * The stars of other people's petitions: these and no others are in the sky across the whole panorama. Each keeps
+   * its spot (set from its id) while it is listed; one no longer listed goes at once, and one that has become
+   * answered starts to twinkle. A petition with no room for a star is left out.
+   */
+  setOtherStars(stars: readonly { id: string; answered: boolean }[]): void;
+  /** One soft pulse of light in this star, yours or another's (its size never changes). */
+  pulseStar(id: string): void;
   /** A shooting star crosses the sky now: from the middle of a light that has just arrived (`from`), or anywhere. Nothing with reduced motion. */
   shootingStar(from?: Point): void;
 }
@@ -80,8 +90,8 @@ export interface Sky {
 export interface SkyOptions {
   /** How far the panorama is turned, in pixels. */
   offset: number;
-  /** Stars of other people, anonymous, across the whole panorama. Development only. */
-  otherStars: boolean;
+  /** The stars of other people's petitions, to start with. */
+  others: readonly { id: string; answered: boolean }[];
 }
 
 /** The petition stars a sky starts with, in the order they became stars. */
@@ -262,17 +272,23 @@ interface PetitionStar {
   turning: "pending" | number | undefined;
   /** Dimming away: when that began (`"pending"` until the first frame). */
   leaving: "pending" | number | undefined;
+  /** When its soft pulse began (`"pending"` until the first frame). */
+  pulse: "pending" | number | undefined;
 }
 
 /** How long a star takes to dim away when it goes back to the fire. */
 const STAR_DIM_SECONDS = 0.7;
 
-/** A star of someone else: anonymous, and the same as yours in every state. */
+/** A star of someone else's petition: the same as yours in every state, without the aura. */
 interface OtherStarSprites {
   star: OtherStar;
   section: Section;
   glow: Sprite;
   core: Sprite;
+  /** When its soft pulse began (`"pending"` until the first frame). */
+  pulse: "pending" | number | undefined;
+  /** When it became answered in front of the viewer, in scene time. */
+  turning: "pending" | number | undefined;
 }
 
 /** One viewport-wide slice of the panorama, drawn only while it is on screen. */
@@ -295,7 +311,7 @@ export function createSky(
   rand: Random,
   petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
   trees: readonly Tree[] = [],
-  options: SkyOptions = { offset: 0, otherStars: false },
+  options: SkyOptions = { offset: 0, others: [] },
 ): Sky {
   const { width, horizon, u } = layout;
   /** The sky is a panorama this wide, drawn in sections as wide as the screen. */
@@ -448,27 +464,49 @@ export function createSky(
     [1, 0],
   ]);
 
-  // Stars of other people: the same look as yours (a waiting one is warm white and steady, an answered one gold with a
-  // cross and a twinkle), anonymous, with no text and nothing to tap. They are in the sky for the look of it, across
-  // the whole panorama and never within a margin of your cluster or Venus, so a star with no line is never one of yours.
-  const addOthers = () => {
-    const stars = placeOtherStars(
-      {
-        count: otherStarCount(panorama, area.top, area.bottom),
-        width: panorama,
-        top: area.top,
-        bottom: area.bottom,
-        spacing: area.minDistance * 0.5,
-        exclude: clusterExclusion(cluster),
-        keepouts: cluster.keepouts,
-        // Above the real pine silhouette with a margin, like yours: none among the trees. The pines are laid out for one
-        // screen, so a star is checked against them at its place on the screen of its own section.
-        isClear: (spot) =>
-          clearanceAbovePines(cluster, { x: wrap(spot.x, width), y: spot.y }) >= cluster.treeMargin,
-      },
-      rand,
-    );
-    for (const star of stars) {
+  // Stars of other people's petitions: the same look as yours (a waiting one is white and steady, an answered one twinkles)
+  // but with no aura, and each one a real petition that can be tapped. They are across the whole panorama and never within
+  // a margin of your cluster or Venus, so a star with no line is never one of yours.
+  const otherSprites = new Map<string, OtherStarSprites>();
+  const otherSpec = {
+    width: panorama,
+    top: area.top,
+    bottom: area.bottom,
+    spacing: area.minDistance * 0.5,
+    exclude: clusterExclusion(cluster),
+    keepouts: cluster.keepouts,
+    // Above the real pine silhouette with a margin, like yours: none among the trees. The pines are laid out for one
+    // screen, so a star is checked against them at its place on the screen of its own section.
+    isClear: (spot: Point) =>
+      clearanceAbovePines(cluster, { x: wrap(spot.x, width), y: spot.y }) >= cluster.treeMargin,
+  };
+  const dropOther = (id: string) => {
+    const other = otherSprites.get(id);
+    if (!other) return;
+    other.glow.destroy();
+    other.core.destroy();
+    other.section.others.splice(other.section.others.indexOf(other), 1);
+    otherSprites.delete(id);
+  };
+  const setOtherStars = (list: readonly { id: string; answered: boolean }[]) => {
+    const wanted = new Map(list.map((entry) => [entry.id, entry.answered]));
+    for (const id of [...otherSprites.keys()]) if (!wanted.has(id)) dropOther(id);
+    // In a fixed order, so the same petitions get the same spots after the scene is laid out again.
+    const fresh = list
+      .filter((entry) => !otherSprites.has(entry.id))
+      .sort((a, b) => hashId(a.id) - hashId(b.id) || (a.id < b.id ? -1 : 1));
+    for (const [id, answered] of wanted) {
+      const other = otherSprites.get(id);
+      if (other && answered && !other.star.answered) {
+        other.star.answered = true;
+        other.turning = "pending";
+      }
+    }
+    for (const entry of fresh) {
+      const taken = [...otherSprites.values()].map(({ star }) => star);
+      const spot = placeOtherStar(otherSpec, taken, createRandom(hashId(entry.id)));
+      if (!spot) continue;
+      const star: OtherStar = { id: entry.id, ...spot, answered: entry.answered };
       const section = sectionAt(star.x);
       const at = { x: star.x - section.left, y: star.y };
       const glow = new Sprite(glowTexture);
@@ -481,7 +519,16 @@ export function createSky(
       core.position.set(at.x, at.y);
       core.width = core.height = starSizes("waiting", false, u).core;
       section.container.addChild(glow, core);
-      section.others.push({ star, section, glow, core });
+      const sprites: OtherStarSprites = {
+        star,
+        section,
+        glow,
+        core,
+        pulse: undefined,
+        turning: undefined,
+      };
+      section.others.push(sprites);
+      otherSprites.set(star.id, sprites);
     }
   };
 
@@ -536,6 +583,7 @@ export function createSky(
       answered: false,
       turning: undefined,
       leaving: undefined,
+      pulse: undefined,
     });
   };
   const dropStar = (id: string) => {
@@ -564,7 +612,7 @@ export function createSky(
       if (star) star.answered = true;
     }
   }
-  if (options.otherStars) addOthers();
+  setOtherStars(options.others);
   setOffset(offset);
 
   let dimTarget = 1;
@@ -580,6 +628,9 @@ export function createSky(
       const age = time - star.born;
       if (star.turning === "pending") star.turning = time;
       if (star.leaving === "pending") star.leaving = time;
+      if (star.pulse === "pending") star.pulse = time;
+      const pulse = typeof star.pulse === "number" ? pulseLevel(time - star.pulse, reduced) : 0;
+      if (typeof star.pulse === "number" && time - star.pulse > 2) star.pulse = undefined;
       const turned =
         typeof star.turning === "number" ? (time - star.turning) / ANSWER_TURN_SECONDS : 1;
       if (turned >= 1) star.turning = undefined;
@@ -611,10 +662,13 @@ export function createSky(
         (star.mode === "bloom" && !reduced ? Math.min(1, 0.35 + age * 2) : arriving) *
         farewell *
         dimNow;
-      star.core.alpha = Math.min(1, alpha * (look.level + 0.1));
+      star.core.alpha = Math.min(1, alpha * (look.level + 0.1 + pulse * 0.25));
       star.aura.alpha = alpha * look.aura * MY_AURA.alpha;
       // The halo of an answered star is brighter as it swells, so its breathing reads.
-      star.glow.alpha = Math.min(1, alpha * (0.4 * look.level * look.scale + bloom * 0.45));
+      star.glow.alpha = Math.min(
+        1,
+        alpha * (0.4 * look.level * look.scale + bloom * 0.45 + pulse * 0.5),
+      );
       star.glow.scale.set(
         (starSizes("waiting", true, u).halo / glowTexture.width) * (1 + bloom * 1.6) * look.scale,
       );
@@ -627,17 +681,25 @@ export function createSky(
       if (!section.visible) continue;
       for (const star of section.twinklers) star.apply(reduced ? star.alpha : twinkle(star, time));
       for (const other of section.others) {
+        if (other.pulse === "pending") other.pulse = time;
+        const pulse = typeof other.pulse === "number" ? pulseLevel(time - other.pulse, reduced) : 0;
+        if (typeof other.pulse === "number" && time - other.pulse > 2) other.pulse = undefined;
+        if (other.turning === "pending") other.turning = time;
+        const turned =
+          typeof other.turning === "number" ? (time - other.turning) / ANSWER_TURN_SECONDS : 1;
+        if (turned >= 1) other.turning = undefined;
         // The same look as one of yours in the same state.
         const look = starLook(
           other.star.answered ? "answered" : "waiting",
           time,
           other.star.phase,
           reduced,
+          Math.min(1, turned),
         );
         other.core.tint = look.core;
         other.glow.tint = look.glow;
-        other.core.alpha = Math.min(1, look.level + 0.1);
-        other.glow.alpha = 0.4 * look.level * look.scale;
+        other.core.alpha = Math.min(1, (look.level + 0.1 + pulse * 0.25) * dimNow);
+        other.glow.alpha = Math.min(1, (0.4 * look.level * look.scale + pulse * 0.5) * dimNow);
         other.glow.scale.set(
           (starSizes("waiting", false, u).halo / glowTexture.width) * look.scale,
         );
@@ -694,7 +756,11 @@ export function createSky(
       if (withId && !petitionStars.has(withId)) spots.push(spotFor(withId));
       return constellationCenter(cluster, spots);
     },
-    petitionAnchors: () => new Map([...petitionStars].map(([id, star]) => [id, star.spot])),
+    petitionAnchors: () =>
+      new Map<string, Point>([
+        ...[...petitionStars].map(([id, star]): [string, Point] => [id, star.spot]),
+        ...[...otherSprites].map(([id, other]): [string, Point] => [id, other.star]),
+      ]),
     addPetitionStar,
     answerPetitionStar(id, mode) {
       const star = petitionStars.get(id);
@@ -703,7 +769,18 @@ export function createSky(
       star.turning = mode === "turn" ? "pending" : undefined;
     },
     removePetitionStar,
-    petitionSpots: () => new Map([...petitionStars].map(([id, star]) => [id, toScreen(star.spot)])),
+    petitionSpots: () =>
+      new Map<string, Point>([
+        ...[...petitionStars].map(([id, star]): [string, Point] => [id, toScreen(star.spot)]),
+        ...[...otherSprites].map(([id, other]): [string, Point] => [id, toScreen(other.star)]),
+      ]),
+    setOtherStars,
+    pulseStar(id) {
+      const own = petitionStars.get(id);
+      if (own) own.pulse = "pending";
+      const other = otherSprites.get(id);
+      if (other) other.pulse = "pending";
+    },
     dimPetitionStars(dimmed) {
       dimTarget = dimmed ? DIMMED_STARS : 1;
     },

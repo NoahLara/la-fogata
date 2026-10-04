@@ -74,7 +74,7 @@ export interface Petition {
   answered?: { at: number; note?: string };
   /** The visitor wrote this one. */
   mine: boolean;
-  /** The visitor has already prayed for it. */
+  /** The visitor is already with it (the one counter, whether it is waiting or answered). */
   prayed: boolean;
 }
 
@@ -98,17 +98,27 @@ export type AnswerPetitionResult =
 export type RemovePetitionResult =
   { status: "removed" } | { status: "not-yours" } | { status: "not-found" };
 
+export type ReportPetitionResult =
+  { status: "reported" } | { status: "own" } | { status: "not-found" };
+
 export type PetitionEvent =
   | { type: "added"; petition: Petition }
   | { type: "changed"; petition: Petition }
+  /** Someone is with the visitor's own petition: its star pulses softly. */
+  | { type: "accompanied"; petition: Petition }
+  /** The visitor reported it: its star is hidden for them from now on. */
+  | { type: "hidden"; id: string }
   /** An answered petition: a shooting star crosses every sky. */
   | { type: "answered"; petition: Petition }
   /** The author returned it to the fire: its star is gone. */
   | { type: "removed"; id: string };
 
 export interface PetitionService {
-  /** The petitions the sky shows now: about `SKY_SIZE`, those with fewer prayers first. */
-  sky(): Promise<readonly Petition[]>;
+  /**
+   * The petitions the sky shows now, those with fewer prayers first: `limit` of them, which grows with the width of
+   * the panorama (about `SKY_SIZE` per screen). Petitions the visitor reported are never among them.
+   */
+  sky(limit?: number): Promise<readonly Petition[]>;
   /** The visitor's own petitions that are still alive. */
   mine(): Promise<readonly Petition[]>;
   /** Whether the visitor has already left all the petitions a day allows. */
@@ -118,6 +128,8 @@ export interface PetitionService {
   answer(id: string, note: string): Promise<AnswerPetitionResult>;
   /** The author returns it to the fire, for good. The day's petition stays used. */
   remove(id: string): Promise<RemovePetitionResult>;
+  /** The visitor reports someone else's petition: it is saved for review and hidden from their sky. */
+  report(id: string): Promise<ReportPetitionResult>;
   subscribe(listener: (event: PetitionEvent) => void): Unsubscribe;
 }
 
@@ -127,6 +139,8 @@ export type PrayResult =
   | { status: "prayed"; prayers: number }
   | { status: "already-prayed"; prayers: number }
   | { status: "rate-limited" }
+  /** Nobody is with their own petition. */
+  | { status: "own" }
   | { status: "not-found" };
 
 export interface PrayerService {
