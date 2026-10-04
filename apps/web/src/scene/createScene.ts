@@ -95,6 +95,19 @@ export interface FogataScene {
    */
   returnPetition(id: string, onDone: () => void): void;
   /**
+   * Sets the stars of other people's petitions: these are the only stars of theirs in the sky, spread across the whole
+   * panorama. Stars already there stay where they are; one no longer listed goes at once. Never any text.
+   */
+  setOtherStars(stars: readonly { id: string; answered: boolean }[]): void;
+  /**
+   * The visitor sends a tiny warm light to a star that is someone else's: it rises from their animal to the star,
+   * which then gives one soft pulse (its size never changes). With reduced motion nothing flies and the star just
+   * pulses as a brief fade. `onArrive` is called when the light reaches the star.
+   */
+  sendLight(fromId: string, petitionId: string, onArrive?: () => void): void;
+  /** One soft pulse of light in a star, yours or another's: someone is with it. */
+  pulseStar(id: string): void;
+  /**
    * Where each petition star is on screen now, in pixels from the top left of the scene. A star in a part of the
    * panorama that is turned away is off screen: its x is below 0 or past the width.
    */
@@ -199,8 +212,6 @@ interface SceneOptions {
   insets?: Insets;
   /** Randomizes who sits where, once per scene, and seats everyone at the start. For checking every animal in every seat. */
   shuffle?: boolean;
-  /** Puts anonymous stars of other people across the whole sky. For development only. */
-  otherStars?: boolean;
   /** Seats this species in every seat at the start, to see it from every angle. Takes precedence over `shuffle`. Ignored if it isn't a species. */
   animal?: string;
 }
@@ -312,6 +323,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** Of those, the ones answered, and the ones that went back to the fire (which only keep their place). */
   const answeredIds = new Set<string>();
   const retiredIds = new Set<string>();
+  /** The stars of other people's petitions, as the page last listed them: they keep their spots across rebuilds. */
+  let otherStars: readonly { id: string; answered: boolean }[] = [];
   let starsDimmed = false;
   /** The other campfires, each in the spot it keeps for as long as it burns, across rebuilds. */
   const distantBoard = new DistantFireBoard();
@@ -380,7 +393,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       youLabel,
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
-      { offset: view.offset, otherStars: options.otherStars === true },
+      { offset: view.offset, others: otherStars },
       { fires: distantFires, slots: distantSlots },
     );
     current.background.dimPetitionStars(starsDimmed);
@@ -768,6 +781,34 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       notifyLayout();
       // On load the view is centred on the visitor's constellation.
       centerNow();
+    },
+    setOtherStars(stars) {
+      otherStars = stars.map(({ id, answered }) => ({ id, answered }));
+      current?.background.setOtherStars(otherStars);
+      notifyLayout();
+    },
+    sendLight(fromId, petitionId, onArrive) {
+      const built = current;
+      const spot = built?.background.petitionSpots().get(petitionId);
+      const hand = built?.seats.hand(fromId);
+      const member = roster.members().find((entry) => entry.id === fromId);
+      const arrive = () => {
+        built?.background.pulseStar(petitionId);
+        onArrive?.();
+      };
+      if (!built || !spot || !hand || member?.status !== "seated") {
+        arrive();
+        return;
+      }
+      const edge = 14 * built.layout.u;
+      const to = {
+        x: Math.min(Math.max(spot.x, edge), built.layout.width - edge),
+        y: spot.y,
+      };
+      built.lights.gift({ x: hand.x, y: hand.y }, to, arrive, reduced);
+    },
+    pulseStar(id) {
+      current?.background.pulseStar(id);
     },
     answerPetition(id) {
       if (!petitionIds.includes(id) || retiredIds.has(id) || answeredIds.has(id)) return;

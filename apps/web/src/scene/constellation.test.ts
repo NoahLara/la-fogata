@@ -378,7 +378,6 @@ describe("the stars of other people stay above the pines", () => {
     const { layout, area } = setup(width, height);
     const stars = placeOtherStars(
       {
-        count: 600,
         width: width * 4,
         top: area.limits.top,
         bottom: area.limits.bottom,
@@ -387,6 +386,7 @@ describe("the stars of other people stay above the pines", () => {
         isClear: (spot) =>
           clearanceAbovePines(area, { x: spot.x % layout.width, y: spot.y }) >= area.treeMargin,
       },
+      600,
       createRandom(21),
     );
     expect(stars.length).toBeGreaterThan(20);
@@ -409,7 +409,6 @@ describe("the stars of other people keep out of the cluster", () => {
       expect(boxes).toHaveLength(1);
       const stars = placeOtherStars(
         {
-          count: 400,
           width: width * 4,
           top: area.limits.top,
           bottom: area.limits.bottom,
@@ -417,6 +416,7 @@ describe("the stars of other people keep out of the cluster", () => {
           exclude: boxes,
           keepouts: area.keepouts,
         },
+        400,
         createRandom(11),
       );
       expect(stars.length).toBeGreaterThan(50);

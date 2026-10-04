@@ -70,8 +70,13 @@ export const en = {
     // {stars} and {answered} are the two counts above, each in its plural form.
     groupLabel: "Your stars: {stars}, {answered}",
     // The name of a star for a screen reader. {text} is the start of what they asked.
-    star: "Star: {text}",
-    starAnswered: "Answered star: {text}",
+    star: "Your star: {text}",
+    starAnswered: "Your star, answered: {text}",
+    // Another person's star: a waiting one is named by its text alone.
+    starOther: "{text}",
+    starOtherAnswered: "Answered: {text}",
+    // The name of the group of every star in the sky, for a screen reader.
+    groupAll: "Stars in the sky",
     cardLabel: "Your star",
     answered: "Answered",
     markAnswered: "Mark as answered",
@@ -92,6 +97,19 @@ export const en = {
     noteRequired: "Write how it happened to mark it as answered.",
     notFound: "That star is gone. It stays where it is.",
     failed: "That didn't work. The star stays where it is.",
+    // Another person's star. The card has no visible words except in reporting: what follows is for screen readers.
+    otherCardLabel: "A star",
+    accompany: "I'm with you",
+    accompanyCount: { one: "{count} person is with this", other: "{count} people are with this" },
+    ownAccompanyCount: { one: "{count} person is with you", other: "{count} people are with you" },
+    announceAccompanied: "Someone is with you.",
+    // Said to a screen reader (and not shown) when the taps allowed in a session have run out.
+    tooMany: "That's enough for now. You can be with another one later.",
+    // Reporting is a safety feature, so these are the only words shown on the card.
+    report: "Report",
+    reportQuestion: "Report this star?",
+    reportConfirm: "Report",
+    reportDone: "Thank you. You won't see it again.",
   },
   entrance: {
     title: "La Fogata",
@@ -185,5 +203,6 @@ export const en = {
     burden: "Someone hands over a burden",
     farFireAdd: "+ distant fire",
     farFireRemove: "− distant fire",
+    someoneAccompanies: "Someone is with my star",
   },
 } satisfies Messages;

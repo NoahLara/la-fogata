@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   flightProgress,
+  GIFT_SECONDS,
+  giftAt,
+  planGift,
   lightAt,
   planFlight,
   planReturn,
@@ -116,5 +119,29 @@ describe.each(cases)("the light's flight back to the fire ($name)", ({ to: star,
       y: star.y + (FIRE.y - star.y) * t,
     };
     expect(Math.hypot(middle.x - straight.x, middle.y - straight.y)).toBeGreaterThan(1);
+  });
+});
+
+describe("the small light sent to another person's star", () => {
+  const paws = { x: 200, y: 460 };
+  const star = { x: 330, y: 90 };
+
+  it("starts at the animal's paws and ends in the star", () => {
+    const plan = planGift(paws, star);
+    expect(giftAt(plan, 0)).toEqual(paws);
+    const end = giftAt(plan, GIFT_SECONDS);
+    expect(end.x).toBeCloseTo(star.x, 5);
+    expect(end.y).toBeCloseTo(star.y, 5);
+    expect(giftAt(plan, GIFT_SECONDS + 3)).toEqual(giftAt(plan, GIFT_SECONDS));
+  });
+
+  it("always rises toward the star, never dipping back", () => {
+    const plan = planGift(paws, star);
+    let lastY = Infinity;
+    for (let t = 0; t <= GIFT_SECONDS; t += 0.1) {
+      const { y } = giftAt(plan, t);
+      expect(y).toBeLessThanOrEqual(lastY + 1e-6);
+      lastY = y;
+    }
   });
 });

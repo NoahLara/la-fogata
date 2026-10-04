@@ -30,3 +30,9 @@ export function pickSky<T extends Pick<Petition, "createdAt" | "answered" | "pra
     .sort((a, b) => a.prayers - b.prayers)
     .slice(0, size);
 }
+
+/** How many petitions a sky of this width shows: about `SKY_SIZE` for every screen width of the panorama. */
+export function skyLimit(panorama: number, viewport: number): number {
+  if (!(viewport > 0) || !(panorama > 0)) return SKY_SIZE;
+  return Math.max(SKY_SIZE, Math.round((SKY_SIZE * panorama) / viewport));
+}

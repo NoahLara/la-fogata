@@ -120,20 +120,17 @@ body {
   }
 }
 
-/* On phones the sheet slides up from the bottom. */
-@keyframes sheet-up {
-  from {
-    transform: translateY(105%) rotate(-1deg);
+/* A tiny, gentle shake of the fish when its taps have run out (only where motion is allowed). */
+@keyframes fish-shake {
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  to {
-    transform: translateY(0) rotate(-1deg);
+  25% {
+    transform: translateX(-3px);
   }
-}
-
-@media (max-width: 639px) {
-  .paper-sheet {
-    animation-name: sheet-up;
-    animation-duration: 0.4s;
+  75% {
+    transform: translateX(3px);
   }
 }
 

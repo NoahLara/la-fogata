@@ -26,6 +26,13 @@ export function DemoControls({ local, scene }: { local: LocalServices; scene: Fo
     if (others.length) scene.handOverBurden(pick(Math.random, others).id, { onDone: () => {} });
   };
 
+  // Someone else is with one of the visitor's stars: it pulses and a polite word is said.
+  const accompany = async () => {
+    const mine = await local.petitions.mine();
+    const star = mine[0];
+    if (star) local.petitions.simulateAccompany(star.id);
+  };
+
   return (
     <div
       role="group"
@@ -40,6 +47,9 @@ export function DemoControls({ local, scene }: { local: LocalServices; scene: Fo
       </button>
       <button type="button" onClick={burden} className={BUTTON}>
         {t.demo.burden}
+      </button>
+      <button type="button" onClick={() => void accompany()} className={BUTTON}>
+        {t.demo.someoneAccompanies}
       </button>
       <button type="button" onClick={() => local.distantFires.addDemo()} className={BUTTON}>
         {t.demo.farFireAdd}

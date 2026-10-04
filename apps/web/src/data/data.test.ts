@@ -429,3 +429,80 @@ describe("MemoryDistantFires", () => {
     expect(new Set(service.fires().map((fire) => fire.id)).size).toBe(2);
   });
 });
+
+describe("MemoryPetitions: one counter for waiting and answered stars", () => {
+  it("lets the visitor be with a waiting star and an answered one, once each", async () => {
+    const { service } = petitions();
+    const waiting = service.seedOther("espera", { prayers: 1 });
+    const answered = service.seedOther("respondida", { prayers: 4, answered: "pasó así" });
+    expect(await service.pray(waiting.id)).toEqual({ status: "prayed", prayers: 2 });
+    expect(await service.pray(answered.id)).toEqual({ status: "prayed", prayers: 5 });
+    expect(await service.pray(answered.id)).toEqual({ status: "already-prayed", prayers: 5 });
+  });
+
+  it("has nobody be with their own star", async () => {
+    const { service } = petitions();
+    const made = await service.create("Paz");
+    if (made.status !== "created") throw new Error("not created");
+    expect((await service.pray(made.petition.id)).status).toBe("own");
+  });
+});
+
+describe("MemoryPetitions: reporting", () => {
+  it("hides the reported star from the sky, saves the report and says so", async () => {
+    const { service } = petitions();
+    const other = service.seedOther("ajena");
+    const keep = service.seedOther("otra");
+    const events: string[] = [];
+    service.subscribe((event) => events.push(event.type));
+    expect(await service.report(other.id)).toEqual({ status: "reported" });
+    expect((await service.sky()).map((p) => p.id)).toEqual([keep.id]);
+    expect(service.reportedIds()).toEqual([other.id]);
+    expect(events).toEqual(["hidden"]);
+  });
+
+  it("stops being with a reported star, and can't report what isn't there", async () => {
+    const { service } = petitions();
+    const other = service.seedOther("ajena");
+    await service.report(other.id);
+    expect((await service.pray(other.id)).status).toBe("not-found");
+    expect((await service.report("nope")).status).toBe("not-found");
+  });
+
+  it("never lets the visitor report their own star", async () => {
+    const { service } = petitions();
+    const made = await service.create("Paz");
+    if (made.status !== "created") throw new Error("not created");
+    expect(await service.report(made.petition.id)).toEqual({ status: "own" });
+    expect((await service.mine()).map((p) => p.id)).toEqual([made.petition.id]);
+  });
+});
+
+describe("MemoryPetitions: someone is with the visitor's star", () => {
+  it("counts the company and tells listeners, for the visitor's own star only", async () => {
+    const { service } = petitions();
+    const made = await service.create("Paz");
+    if (made.status !== "created") throw new Error("not created");
+    const other = service.seedOther("ajena");
+    const events: { type: string; prayers?: number }[] = [];
+    service.subscribe((event) => {
+      events.push({
+        type: event.type,
+        ...("petition" in event ? { prayers: event.petition.prayers } : {}),
+      });
+    });
+    expect(service.simulateAccompany(made.petition.id)).toBe(true);
+    expect(service.simulateAccompany(other.id)).toBe(false);
+    expect(events).toEqual([{ type: "accompanied", prayers: 1 }]);
+  });
+});
+
+describe("MemoryPetitions: a sky as wide as the panorama", () => {
+  it("shows as many petitions as the limit says, fewest prayers first", async () => {
+    const { service } = petitions();
+    for (let i = 0; i < 10; i++) service.seedOther(`p${i}`, { prayers: 10 - i });
+    const sky = await service.sky(4);
+    expect(sky).toHaveLength(4);
+    expect(sky.map((p) => p.prayers)).toEqual([1, 2, 3, 4]);
+  });
+});

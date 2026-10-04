@@ -2,7 +2,9 @@ import { Container, Sprite } from "pixi.js";
 import {
   DIM_SECONDS,
   flightProgress,
+  giftAt,
   lightAt,
+  planGift,
   planFlight,
   planReturn,
   returnAt,
@@ -48,6 +50,11 @@ export interface LightEffects {
   descend(from: Point, to: Point, hooks: DescentHooks, still?: boolean): LightHandle;
   /** With reduced motion: nothing flies; the star is born at once and settles. */
   fade(hooks: LightHooks): LightHandle;
+  /**
+   * A tiny warm light rises from `from` (an animal's paws) to `to` (another person's star) and melts into it, then
+   * `onArrive` is called. With `still` nothing flies: `onArrive` is called at once.
+   */
+  gift(from: Point, to: Point, onArrive: () => void, still?: boolean): LightHandle;
   update(dt: number): void;
   /** Ends every light at once, for when the scene is rebuilt. */
   finishAll(): void;
@@ -89,9 +96,22 @@ interface Descent {
   hooks: DescentHooks;
 }
 
+interface Gift {
+  plan: ReturnType<typeof planGift>;
+  glow: Sprite;
+  core: Sprite;
+  elapsed: number;
+  onArrive: () => void;
+  arrived: boolean;
+}
+
+/** How long the tiny light takes to melt into the star it reached. */
+const GIFT_MELT_SECONDS = 0.35;
+
 export function createLightEffects(layout: SceneLayout, textures: TextureBag): LightEffects {
   const container = new Container();
   const lights: Light[] = [];
+  const gifts: Gift[] = [];
   const descents: Descent[] = [];
   const soft = textures.radial([
     [0, 1],
@@ -214,6 +234,42 @@ export function createLightEffects(layout: SceneLayout, textures: TextureBag): L
     if (sunk >= 1) settle(descent);
   };
 
+  const endGift = (gift: Gift) => {
+    const at = gifts.indexOf(gift);
+    if (at < 0) return;
+    gifts.splice(at, 1);
+    gift.glow.destroy();
+    gift.core.destroy();
+    if (!gift.arrived) {
+      gift.arrived = true;
+      gift.onArrive();
+    }
+  };
+
+  const updateGift = (gift: Gift, dt: number) => {
+    gift.elapsed += dt;
+    const { plan } = gift;
+    if (gift.elapsed >= plan.duration) {
+      if (!gift.arrived) {
+        gift.arrived = true;
+        gift.onArrive();
+      }
+      // It melts into the star.
+      const melt = smoothstep(0, GIFT_MELT_SECONDS, gift.elapsed - plan.duration);
+      gift.glow.alpha = 0.7 * (1 - melt);
+      gift.core.alpha = 1 - melt;
+      if (melt >= 1) endGift(gift);
+      return;
+    }
+    const at = giftAt(plan, gift.elapsed);
+    const born = smoothstep(0, 0.4, gift.elapsed);
+    const breath = 0.9 + 0.1 * Math.sin(gift.elapsed * 5);
+    gift.glow.position.set(at.x, at.y);
+    gift.core.position.set(at.x, at.y);
+    gift.glow.alpha = 0.7 * born * breath;
+    gift.core.alpha = born;
+  };
+
   const place = (light: Light, at: Point, strength: number, growth: number) => {
     light.glow.position.set(at.x, at.y);
     light.core.position.set(at.x, at.y);
@@ -244,12 +300,29 @@ export function createLightEffects(layout: SceneLayout, textures: TextureBag): L
       descents.push(descent);
       return { finish: () => settle(descent) };
     },
+    gift(from, to, onArrive, still = false) {
+      if (still) {
+        onArrive();
+        return { finish: () => {} };
+      }
+      const gift: Gift = {
+        plan: planGift(from, to),
+        glow: sprite(GOLD, 16 * u),
+        core: sprite(CORE, 5 * u),
+        elapsed: 0,
+        onArrive,
+        arrived: false,
+      };
+      gifts.push(gift);
+      return { finish: () => endGift(gift) };
+    },
     fade(hooks) {
       const light = make(undefined, hooks);
       arrive(light);
       return { finish: () => finish(light) };
     },
     update(dt) {
+      for (const gift of [...gifts]) updateGift(gift, dt);
       for (const descent of [...descents]) updateDescent(descent, dt);
       for (const light of [...lights]) {
         light.elapsed += dt;
@@ -287,10 +360,12 @@ export function createLightEffects(layout: SceneLayout, textures: TextureBag): L
       }
     },
     finishAll() {
+      for (const gift of [...gifts]) endGift(gift);
       for (const light of [...lights]) finish(light);
       for (const descent of [...descents]) settle(descent);
     },
     destroy() {
+      for (const gift of [...gifts]) endGift(gift);
       for (const light of [...lights]) remove(light);
       descents.length = 0;
     },

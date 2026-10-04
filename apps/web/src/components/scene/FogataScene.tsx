@@ -5,6 +5,8 @@ import { createLocalServices, type LocalServices } from "@/data";
 import { DataProvider } from "@/data/DataProvider";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene as Scene } from "@/scene/createScene";
+import { seedDemoPetitions, type DemoLoader } from "@/data/demoSeed";
+import { skyLimit } from "@/data/sky";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
 import { Entrance } from "../settings/Entrance";
@@ -45,7 +47,10 @@ export function FogataScene() {
   const [mounted, setMounted] = useState<Mounted>();
   const [demo, setDemo] = useState(false);
   const [skipIntro, setSkipIntro] = useState(false);
-  const { t } = useI18n();
+  const [clean, setClean] = useState(false);
+  const { t, locale } = useI18n();
+  // The language the sample petitions of ?demo are written in: the one the page started in.
+  const localeRef = useRef(locale);
   // The scene is built once, in the language of that first render; `setLabels` below follows later changes.
   const labels = useRef({ label: t.scene.ariaLabel, you: t.scene.you });
 
@@ -71,8 +76,6 @@ export function FogataScene() {
           insets: { top: 0, bottom: BAR_HEIGHT },
           shuffle: flags.shuffle,
           animal: flags.animal,
-          // Only with ?demo (never in production): anonymous stars of other people across the whole sky.
-          otherStars: flags.demo,
         }),
       )
       .then(async (created) => {
@@ -88,6 +91,18 @@ export function FogataScene() {
           // Only with ?demo (never in production), so the ritual can be watched over and over.
           unlimitedPetitions: flags.demo,
         });
+        // Only with ?demo, and never in a production build, which drops the dynamic import (and the sample texts with
+        // it) because the condition is a build-time constant. Every star of someone else is a real petition.
+        const loadDemo: DemoLoader | undefined =
+          process.env.NODE_ENV === "production" ? undefined : () => import("@/demo/otherPetitions");
+        if (flags.demo) {
+          const { panorama, viewport } = created.sky.state();
+          await seedDemoPetitions(services.petitions, {
+            count: skyLimit(panorama, viewport),
+            locale: localeRef.current,
+            load: loadDemo,
+          });
+        }
         // Your own sky: your petitions that are still alive are already stars.
         const mine = await services.petitions.mine();
         if (disposed) {
@@ -119,6 +134,7 @@ export function FogataScene() {
         stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
         setDemo(flags.demo);
         setSkipIntro(flags.skipIntro);
+        setClean(flags.clean);
         // Nobody sits down until the entrance says so (or ?skipIntro, in development).
         setMounted({ scene: created, services });
       })
@@ -145,10 +161,10 @@ export function FogataScene() {
             <WordFromFire scene={mounted.scene} unlimited={demo} />
             <Company scene={mounted.scene} />
             <PetitionSky scene={mounted.scene} />
-            <GestureBar scene={mounted.scene} />
+            {!clean && <GestureBar scene={mounted.scene} />}
             <SettingsButton />
             <Entrance scene={mounted.scene} skipIntro={skipIntro} />
-            {demo && <DemoControls local={mounted.services} scene={mounted.scene} />}
+            {demo && !clean && <DemoControls local={mounted.services} scene={mounted.scene} />}
           </InteractionProvider>
         </DataProvider>
       )}

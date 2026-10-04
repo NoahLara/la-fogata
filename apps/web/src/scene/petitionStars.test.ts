@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  PULSE_SECONDS,
+  PULSE_SECONDS_REDUCED,
+  pulseLevel,
   backgroundScale,
   MY_AURA,
   hashId,
@@ -270,5 +273,21 @@ describe("the sizes of a petition star", () => {
       expect(theirs.aura).toBe(0);
       expect({ ...mine, aura: 0 }).toEqual({ ...theirs, aura: 0 });
     }
+  });
+});
+
+describe("a star's soft pulse", () => {
+  it("rises and settles once, and is nothing outside its time", () => {
+    expect(pulseLevel(-1, false)).toBe(0);
+    expect(pulseLevel(0, false)).toBe(0);
+    expect(pulseLevel(PULSE_SECONDS / 2, false)).toBeCloseTo(1, 5);
+    expect(pulseLevel(PULSE_SECONDS, false)).toBe(0);
+    expect(pulseLevel(PULSE_SECONDS + 5, false)).toBe(0);
+  });
+
+  it("is a shorter, softer fade with reduced motion", () => {
+    expect(PULSE_SECONDS_REDUCED).toBeLessThan(PULSE_SECONDS);
+    expect(pulseLevel(PULSE_SECONDS_REDUCED / 2, true)).toBeCloseTo(0.6, 5);
+    expect(pulseLevel(PULSE_SECONDS_REDUCED, true)).toBe(0);
   });
 });

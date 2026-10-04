@@ -3,14 +3,18 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
+import { skyLimit } from "@/data/sky";
 import type { Petition } from "@/data/types";
+import { createAnnounceLimiter } from "@/design/announceLimiter";
+import { nearestStar } from "@/design/hitTarget";
 import { nextStarIndex, orderStars, starAfterRemoval } from "@/design/rovingFocus";
-import { format } from "@/i18n/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene, SkyViewState } from "@/scene/createScene";
 import { screenX, wrapSigned } from "@/scene/panorama";
 import { HelpScreen } from "../help/HelpScreen";
 import { useInteraction } from "../scene/Interaction";
+import { starName } from "./cardState";
+import { OtherStarCard, type AccompanyOutcome } from "./OtherStarCard";
 import { skyCounts, groupName } from "./skySummary";
 import { SkyChevrons } from "./SkyChevrons";
 import { StarCard } from "./StarCard";
@@ -37,8 +41,9 @@ interface Star {
 }
 
 /**
- * The visitor's own stars as real buttons over the scene: one invisible 44 px target per star. The sky is a single
- * tab stop (arrow keys move between stars), and Enter or a tap opens the star's card. The buttons follow the
+ * Every star of a petition as a real button over the scene: one invisible 44 px target per star, the visitor's own and
+ * other people's (where targets overlap, the nearest star wins). The sky is a single tab stop (arrow keys move
+ * between all the stars, left to right), and Enter or a tap opens the star's card. The buttons follow the
  * sky as it turns, moved through refs rather than state, and one that takes keyboard focus turns the sky until it
  * is in view. Your stars are known by the constellation's lines alone; the group's name says how many there are.
  * Dragging the sky strip turns it. Without dragging (WCAG 2.5.7), two arrows appear when the mouse is near the sky's
@@ -47,9 +52,11 @@ interface Star {
  */
 export function PetitionSky({ scene }: { scene: FogataScene }) {
   const { t, locale } = useI18n();
-  const { petitions } = useServices();
-  const { busy, hold, say, reportDialog } = useInteraction();
+  const { petitions, prayers, presence } = useServices();
+  const { busy, hold, say, announce, reportDialog } = useInteraction();
   const [mine, setMine] = useState<readonly Petition[]>([]);
+  // Other people's petitions that have a star in the sky (never one the visitor reported).
+  const [others, setOthers] = useState<readonly Petition[]>([]);
   // Where the stars are in the panorama, which doesn't change as the sky turns.
   const [spots, setSpots] = useState<ReadonlyMap<string, { x: number; y: number }>>(new Map());
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -57,6 +64,10 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const [activeId, setActiveId] = useState<string>();
   const [openId, setOpenId] = useState<string>();
   const [openSpot, setOpenSpot] = useState({ x: 0, y: 0 });
+  /** What the open card shows if its star is gone (the visitor just reported it): the card says thanks and then closes. */
+  const [openSnapshot, setOpenSnapshot] = useState<Petition>();
+  /** Where focus goes when the card of a reported star closes. */
+  const focusAfterReport = useRef<string | undefined>(undefined);
   /** How far the sky was turned when the card opened. */
   const openedAt = useRef<number | undefined>(undefined);
   const [help, setHelp] = useState(false);
@@ -87,6 +98,52 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     };
   }, [petitions]);
 
+  // Other people's petitions, as many as the width of the sky holds, kept up to date. They are loaded once: a star that
+  // has just been accompanied must not drop out of the sky because it now has more company.
+  useEffect(() => {
+    let alive = true;
+    const { panorama, viewport } = scene.sky.state();
+    void petitions.sky(skyLimit(panorama, viewport)).then((list) => {
+      if (alive) setOthers(list.filter((petition) => !petition.mine));
+    });
+    const stop = petitions.subscribe((event) => {
+      if (event.type === "removed" || event.type === "hidden") {
+        setOthers((list) => list.filter((petition) => petition.id !== event.id));
+      } else if (event.type === "changed" || event.type === "answered") {
+        const { petition } = event;
+        setOthers((list) => list.map((entry) => (entry.id === petition.id ? petition : entry)));
+      } else if (event.type === "added" && !event.petition.mine) {
+        const { petition } = event;
+        setOthers((list) =>
+          list.some((entry) => entry.id === petition.id) ? list : [...list, petition],
+        );
+      }
+    });
+    return () => {
+      alive = false;
+      stop();
+    };
+  }, [petitions, scene]);
+  useEffect(() => {
+    scene.setOtherStars(
+      others.map((petition) => ({ id: petition.id, answered: petition.answered !== undefined })),
+    );
+  }, [scene, others]);
+
+  // Someone is with the visitor's star: it pulses softly, and a polite announcement says so (no more than one every 10 s).
+  const latest = useRef({ announce, text: t.sky.announceAccompanied });
+  useEffect(() => {
+    latest.current = { announce, text: t.sky.announceAccompanied };
+  });
+  useEffect(() => {
+    const limiter = createAnnounceLimiter();
+    return petitions.subscribe((event) => {
+      if (event.type !== "accompanied") return;
+      scene.pulseStar(event.petition.id);
+      if (limiter.take()) latest.current.announce(latest.current.text);
+    });
+  }, [petitions, scene]);
+
   // Where the stars are, and how big the scene is, whenever the scene is laid out again.
   useEffect(() => {
     const update = () => {
@@ -116,28 +173,35 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const stars = useMemo<Star[]>(
     () =>
       orderStars(
-        mine.flatMap((petition) => {
+        [...mine, ...others].flatMap((petition) => {
           const spot = spots.get(petition.id);
           return spot ? [{ petition, id: petition.id, ...spot }] : [];
         }),
       ),
-    [mine, spots],
+    [mine, others, spots],
   );
   // The one tab stop: the star last used, or else the first.
   const tabStop = stars.find((star) => star.id === activeId)?.id ?? stars[0]?.id;
 
   // The buttons follow the sky as it turns: set through refs, so turning never re-renders anything.
   const starsRef = useRef(stars);
+  // A star turned away from the screen is left where it is until it comes back, so a sky of many stars stays cheap.
+  const turnedAway = useRef(new Set<string>());
   const place = useCallback((state: SkyViewState) => {
     for (const star of starsRef.current) {
       const button = buttons.current.get(star.id);
       if (!button) continue;
       const x = screenX(star.x, state.offset, state.panorama, state.viewport);
+      const away = x < -TARGET || x > state.viewport + TARGET;
+      if (away && turnedAway.current.has(star.id)) continue;
+      if (away) turnedAway.current.add(star.id);
+      else turnedAway.current.delete(star.id);
       button.style.transform = `translate3d(${x - TARGET / 2}px, ${star.y - TARGET / 2}px, 0)`;
     }
   }, []);
   useLayoutEffect(() => {
     starsRef.current = stars;
+    turnedAway.current.clear();
     place(scene.sky.state());
   }, [stars, scene, place]);
   useEffect(
@@ -178,6 +242,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     // The card stays beside the star where it is now.
     setOpenSpot(scene.petitionSpots().get(star.id) ?? { x: star.x, y: star.y });
     openedAt.current = scene.sky.state().offset;
+    setOpenSnapshot(star.petition);
     setOpenId(star.id);
   };
   const toggleCard = (star: Star) => {
@@ -193,7 +258,59 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     const id = openId;
     openedAt.current = undefined;
     setOpenId(undefined);
-    if (refocus && id) focusStar(id);
+    if (!refocus || !id) return;
+    // A reported star is gone: focus goes to the one after it.
+    focusStar(stars.some((star) => star.id === id) ? id : (focusAfterReport.current ?? id));
+  };
+
+  // The fish: the visitor is with this star. The light and the pulse are the scene's.
+  const accompany = async (petition: Petition): Promise<AccompanyOutcome> => {
+    const result = await prayers.pray(petition.id);
+    if (result.status === "prayed") {
+      const self = presence.self?.id;
+      if (self) scene.sendLight(self, petition.id);
+      else scene.pulseStar(petition.id);
+      return "done";
+    }
+    if (result.status === "already-prayed") return "done";
+    return result.status === "rate-limited" ? "limited" : "failed";
+  };
+
+  // The flag: reported, saved, and the star is hidden for the visitor from now on.
+  const report = async (petition: Petition): Promise<boolean> => {
+    const index = stars.findIndex((star) => star.id === petition.id);
+    const next = starAfterRemoval(
+      stars.filter((star) => star.id !== petition.id),
+      index,
+    );
+    const result = await petitions.report(petition.id);
+    if (result.status !== "reported") return false;
+    focusAfterReport.current = next?.id;
+    return true;
+  };
+
+  // A tap lands on the nearest star when two touch targets overlap.
+  const retarget = (event: React.MouseEvent) => {
+    // A click from the keyboard has no position: it belongs to the star that has focus.
+    if (event.detail === 0 || !(event.target instanceof Element)) return;
+    const hit = event.target.closest("[data-star-id]")?.getAttribute("data-star-id");
+    const rect = overlayRef.current?.getBoundingClientRect();
+    if (!hit || !rect) return;
+    const state = scene.sky.state();
+    const nearest = nearestStar(
+      { x: event.clientX - rect.left, y: event.clientY - rect.top },
+      stars.map((star) => ({
+        id: star.id,
+        x: screenX(star.x, state.offset, state.panorama, state.viewport),
+        y: star.y,
+      })),
+      TARGET / 2,
+    );
+    if (!nearest || nearest === hit) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const star = stars.find((entry) => entry.id === nearest);
+    if (star) toggleCard(star);
   };
 
   const answer = async (petition: Petition, line: string): Promise<string | undefined> => {
@@ -246,11 +363,14 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   };
 
   const open = stars.find((star) => star.id === openId);
+  const cardPetition = open?.petition ?? (openId ? openSnapshot : undefined);
 
   return (
     <div
       ref={overlayRef}
-      className="pointer-events-none absolute inset-0 z-[5] overflow-clip"
+      // While a card is open the whole overlay rises above the gesture bar and every other control, so nothing
+      // is ever drawn over the star's card.
+      className={`pointer-events-none absolute inset-0 overflow-clip ${cardOpen ? "z-40" : "z-[5]"}`}
       {...drag}
       onPointerMove={(event) => {
         drag.onPointerMove(event);
@@ -268,12 +388,18 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
       />
       <SkyChevrons scene={scene} bottom={dragBottom} near={edge.near} />
       {stars.length > 0 && (
-        <div role="group" aria-label={groupName(locale, t.sky, skyCounts(mine))}>
+        <div
+          role="group"
+          aria-label={
+            mine.length > 0
+              ? `${t.sky.groupAll}. ${groupName(locale, t.sky, skyCounts(mine))}`
+              : t.sky.groupAll
+          }
+          onClickCapture={retarget}
+        >
           {stars.map((star, index) => {
             const { petition } = star;
-            const name = format(petition.answered ? t.sky.starAnswered : t.sky.star, {
-              text: shorten(petition.text),
-            });
+            const name = starName(t.sky, petition, shorten);
             return (
               <button
                 key={star.id}
@@ -309,19 +435,32 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
           })}
         </div>
       )}
-      {open && size.width > 0 && (
-        <StarCard
-          // A fresh card for each star.
-          key={open.id}
-          petition={open.petition}
-          star={openSpot}
-          scene={size}
-          busy={busy}
-          onClose={closeCard}
-          onAnswer={(line) => answer(open.petition, line)}
-          onReturn={() => giveBack(open.petition)}
-        />
-      )}
+      {openId &&
+        size.width > 0 &&
+        cardPetition &&
+        (cardPetition.mine ? (
+          <StarCard
+            // A fresh card for each star.
+            key={openId}
+            petition={cardPetition}
+            star={openSpot}
+            scene={size}
+            busy={busy}
+            onClose={closeCard}
+            onAnswer={(line) => answer(cardPetition, line)}
+            onReturn={() => giveBack(cardPetition)}
+          />
+        ) : (
+          <OtherStarCard
+            key={openId}
+            petition={cardPetition}
+            star={openSpot}
+            scene={size}
+            onClose={closeCard}
+            onAccompany={() => accompany(cardPetition)}
+            onReport={() => report(cardPetition)}
+          />
+        ))}
       {help && (
         <div className="pointer-events-auto">
           <HelpScreen kind="petition" onClose={() => setHelp(false)} />

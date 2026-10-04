@@ -38,6 +38,10 @@ export interface Background {
   petitionSpots(): ReadonlyMap<string, Point>;
   /** Dims the petition stars a little while a word is over them, or brings them back. */
   dimPetitionStars(dimmed: boolean): void;
+  /** The stars of other people's petitions: these are the only ones of theirs in the sky. */
+  setOtherStars(stars: readonly { id: string; answered: boolean }[]): void;
+  /** One soft pulse of light in a star, yours or another's. */
+  pulseStar(id: string): void;
   /** A shooting star crosses the sky now (none with reduced motion), from the point `from` if given. */
   shootingStar(from?: Point): void;
   /** The other campfires burning far off at the tree line: `slots` says which spot each has. New ones fade in, gone ones fade out. */
@@ -158,7 +162,7 @@ export function createBackground(
   layout: SceneLayout,
   textures: TextureBag,
   petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
-  sky: SkyOptions = { offset: 0, otherStars: false },
+  sky: SkyOptions = { offset: 0, others: [] },
   distant: { fires: readonly DistantFire[]; slots: ReadonlyMap<string, number> } = {
     fires: [],
     slots: new Map(),
@@ -197,6 +201,8 @@ export function createBackground(
     removePetitionStar: skyLayer.removePetitionStar,
     petitionSpots: skyLayer.petitionSpots,
     dimPetitionStars: skyLayer.dimPetitionStars,
+    setOtherStars: skyLayer.setOtherStars,
+    pulseStar: skyLayer.pulseStar,
     shootingStar: skyLayer.shootingStar,
     setDistantFires(fires, slots, instant) {
       distantLayer.set(placeFires(fires, slots, spots), instant);
