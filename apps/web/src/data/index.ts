@@ -1,3 +1,4 @@
+import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
@@ -10,6 +11,7 @@ export type { Services } from "./types";
 /** The in-memory services behind the UI, plus the demo-only handles a real server won't have. */
 export interface LocalServices extends Services {
   presence: MemoryPresence;
+  distantFires: MemoryDistantFires;
   petitions: MemoryPetitions;
 }
 
@@ -39,6 +41,7 @@ export function createLocalServices(options: LocalOptions): LocalServices {
     newKey: randomKey,
     ...(options.unlimitedPetitions ? { petitionsPerDay: Infinity } : {}),
   });
+  const distantFires = new MemoryDistantFires(rand);
   const fire = new MemoryFire({ presence, now: () => performance.now() / 1000 });
-  return { presence, fire, petitions, prayers: petitions };
+  return { presence, distantFires, fire, petitions, prayers: petitions };
 }

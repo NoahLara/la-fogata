@@ -1,4 +1,7 @@
 import { Container, Graphics, Sprite } from "pixi.js";
+import { createDistantFireLayer } from "./distantFireLayer";
+import { distantSlots, placeFires } from "./distantFires";
+import type { DistantFire } from "@/data/types";
 import { bakeGround, type Ground } from "./ground";
 import { verticalGradient } from "./gradient";
 import type { Point, SceneLayout } from "./layout";
@@ -37,6 +40,12 @@ export interface Background {
   dimPetitionStars(dimmed: boolean): void;
   /** A shooting star crosses the sky now (none with reduced motion), from the point `from` if given. */
   shootingStar(from?: Point): void;
+  /** The other campfires burning far off at the tree line: `slots` says which spot each has. New ones fade in, gone ones fade out. */
+  setDistantFires(
+    fires: readonly DistantFire[],
+    slots: ReadonlyMap<string, number>,
+    instant: boolean,
+  ): void;
 }
 
 /** How strongly the firelit copy of the ground shows at a flicker of 1. */
@@ -150,6 +159,10 @@ export function createBackground(
   textures: TextureBag,
   petitions: SkyPetitions = { ids: [], answered: new Set(), retired: new Set() },
   sky: SkyOptions = { offset: 0, otherStars: false },
+  distant: { fires: readonly DistantFire[]; slots: ReadonlyMap<string, number> } = {
+    fires: [],
+    slots: new Map(),
+  },
 ): Background {
   const rand = createRandom(20240601);
   // The trees were laid out from the same random stream as the old stars, 7 draws per star. Skipping them
@@ -161,6 +174,12 @@ export function createBackground(
   // The land comes first: the sky needs to know where the pines are. They don't share a random stream.
   const land = buildLand(layout, rand, ground);
   const skyLayer = createSky(layout, textures, createRandom(70013), petitions, land.trees, sky);
+  // Far campfires stand in the land, over the mist and under the grass: nothing turns them with the sky.
+  const spots = distantSlots(layout, land.trees);
+  const distantLayer = createDistantFireLayer(textures, spots);
+  distantLayer.set(placeFires(distant.fires, distant.slots, spots), true);
+  land.container.addChildAt(distantLayer.container, land.container.children.length - 1);
+  let lastTime = 0;
   const back = new Container();
   back.addChild(skyLayer.container, land.container);
   const front = buildFront(layout, textures, ground);
@@ -179,8 +198,13 @@ export function createBackground(
     petitionSpots: skyLayer.petitionSpots,
     dimPetitionStars: skyLayer.dimPetitionStars,
     shootingStar: skyLayer.shootingStar,
+    setDistantFires(fires, slots, instant) {
+      distantLayer.set(placeFires(fires, slots, spots), instant);
+    },
     update(time, reduced, light = 1) {
       skyLayer.update(time, reduced);
+      distantLayer.update(time, Math.min(0.1, Math.max(0, time - lastTime)), reduced);
+      lastTime = time;
       ground.lit.alpha = LIT_ALPHA * clamp(light, 0, 1.4);
     },
   };

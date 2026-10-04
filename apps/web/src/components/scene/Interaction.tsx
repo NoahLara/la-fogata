@@ -44,8 +44,15 @@ export function InteractionProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string>();
   const [announcement, setAnnouncement] = useState("");
   const timer = useRef<number | undefined>(undefined);
+  const announceTimer = useRef<number | undefined>(undefined);
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(timer.current);
+      window.clearTimeout(announceTimer.current);
+    },
+    [],
+  );
 
   const hold = useCallback(() => {
     let released = false;
@@ -63,7 +70,12 @@ export function InteractionProvider({ children }: { children: ReactNode }) {
     timer.current = window.setTimeout(() => setMessage(undefined), MESSAGE_MS);
   }, []);
 
-  const announce = useCallback((text: string) => setAnnouncement(text), []);
+  // Cleared first, so the same line twice in a row is read twice.
+  const announce = useCallback((text: string) => {
+    setAnnouncement("");
+    window.clearTimeout(announceTimer.current);
+    announceTimer.current = window.setTimeout(() => setAnnouncement(text), 50);
+  }, []);
 
   const fireEvents = useRef(new Emitter<TriggerEvent>());
   const notifyFire = useCallback((event: TriggerEvent) => fireEvents.current.emit(event), []);

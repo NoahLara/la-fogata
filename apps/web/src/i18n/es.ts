@@ -164,11 +164,31 @@ export const es = {
     back: "Volver a la fogata",
   },
   /** Only shown with ?demo in development. */
+  // The other campfires, and who comes and goes at this one.
+  company: {
+    // Said once when the visitor sits alone, and read as the scene's description. {count} is how many other fires burn.
+    otherFires: {
+      one: "Hay {count} fogata más encendida ahora.",
+      other: "Hay {count} fogatas más encendidas ahora.",
+    },
+    noOtherFires: "No hay otras fogatas encendidas ahora.",
+    // Alone, with no other fires: company without promising anyone will come.
+    keepsCompany: "El fuego te acompaña.",
+    joined: "Alguien se sentó junto al fuego.",
+    left: "Alguien se fue.",
+    // One summary when several changes came within ten seconds. {count} is everyone by the fire now, the visitor included.
+    summary: {
+      one: "Ahora hay {count} junto al fuego.",
+      other: "Ahora son {count} junto al fuego.",
+    },
+  },
   demo: {
     groupLabel: "Controles de demostración",
     arrives: "Alguien llega",
     leaves: "Alguien se va",
     // Plays the ritual for someone else, to check it works for anyone.
     burden: "Alguien entrega una carga",
+    farFireAdd: "+ fogata lejana",
+    farFireRemove: "− fogata lejana",
   },
 } as const;
