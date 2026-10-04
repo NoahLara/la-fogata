@@ -11,6 +11,7 @@ import { Entrance } from "../settings/Entrance";
 import { SettingsButton } from "../settings/SettingsButton";
 import { PetitionSky } from "../sky/PetitionSky";
 import { InteractionProvider } from "./Interaction";
+import { Company } from "./Company";
 import { DemoControls } from "./DemoControls";
 import { WordFromFire } from "./WordFromFire";
 
@@ -109,9 +110,12 @@ export function FogataScene() {
               created.replaceMember(event.person, { animate: true });
             else created.removeMember(event.id, { animate: true });
           }),
+          // Real campfires burning far off; none unless a service lists them (or ?demo makes some).
+          services.distantFires.subscribe((fires) => created.setDistantFires(fires)),
           // Everyone sees a log thrown; the service has already enforced the cooldown.
           services.fire.subscribe((event) => created.throwWood(event.by, { ignoreCooldown: true })),
         ];
+        created.setDistantFires(services.distantFires.fires());
         stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
         setDemo(flags.demo);
         setSkipIntro(flags.skipIntro);
@@ -139,6 +143,7 @@ export function FogataScene() {
         <DataProvider services={mounted.services}>
           <InteractionProvider>
             <WordFromFire scene={mounted.scene} unlimited={demo} />
+            <Company scene={mounted.scene} />
             <PetitionSky scene={mounted.scene} />
             <GestureBar scene={mounted.scene} />
             <SettingsButton />

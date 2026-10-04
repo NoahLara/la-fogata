@@ -159,11 +159,31 @@ export const en = {
     back: "Back to the fire",
   },
   /** Only shown with ?demo in development. */
+  // The other campfires, and who comes and goes at this one.
+  company: {
+    // Said once when the visitor sits alone, and read as the scene's description. {count} is how many other fires burn.
+    otherFires: {
+      one: "There is {count} other fire burning right now.",
+      other: "There are {count} other fires burning right now.",
+    },
+    noOtherFires: "No other fires are burning right now.",
+    // Alone, with no other fires: company without promising anyone will come.
+    keepsCompany: "The fire keeps you company.",
+    joined: "Someone sat down by the fire.",
+    left: "Someone left.",
+    // One summary when several changes came within ten seconds. {count} is everyone by the fire now, the visitor included.
+    summary: {
+      one: "There is {count} by the fire now.",
+      other: "There are {count} by the fire now.",
+    },
+  },
   demo: {
     groupLabel: "Demo controls",
     arrives: "Someone arrives",
     leaves: "Someone leaves",
     // Plays the ritual for someone else, to check it works for anyone.
     burden: "Someone hands over a burden",
+    farFireAdd: "+ distant fire",
+    farFireRemove: "− distant fire",
   },
 } satisfies Messages;

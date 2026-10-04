@@ -30,7 +30,7 @@ export function DemoControls({ local, scene }: { local: LocalServices; scene: Fo
     <div
       role="group"
       aria-label={t.demo.groupLabel}
-      className="absolute bottom-20 left-1/2 z-10 flex -translate-x-1/2 gap-3"
+      className="absolute bottom-20 left-1/2 z-10 flex w-[min(94vw,44rem)] -translate-x-1/2 flex-wrap justify-center gap-3"
     >
       <button type="button" onClick={() => local.presence.addPeer()} className={BUTTON}>
         {t.demo.arrives}
@@ -40,6 +40,12 @@ export function DemoControls({ local, scene }: { local: LocalServices; scene: Fo
       </button>
       <button type="button" onClick={burden} className={BUTTON}>
         {t.demo.burden}
+      </button>
+      <button type="button" onClick={() => local.distantFires.addDemo()} className={BUTTON}>
+        {t.demo.farFireAdd}
+      </button>
+      <button type="button" onClick={() => local.distantFires.removeDemo()} className={BUTTON}>
+        {t.demo.farFireRemove}
       </button>
     </div>
   );

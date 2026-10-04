@@ -133,8 +133,23 @@ export interface PrayerService {
   pray(petitionId: string): Promise<PrayResult>;
 }
 
+// Distant fires
+
+/** Another campfire in the forest: only that it is burning and how many people sit at it. */
+export interface DistantFire {
+  id: string;
+  people: number;
+}
+
+export interface DistantFireService {
+  /** The other campfires that are burning now, this one never included. Real ones only. */
+  fires(): readonly DistantFire[];
+  subscribe(listener: (fires: readonly DistantFire[]) => void): Unsubscribe;
+}
+
 export interface Services {
   presence: PresenceService;
+  distantFires: DistantFireService;
   fire: FireService;
   petitions: PetitionService;
   prayers: PrayerService;

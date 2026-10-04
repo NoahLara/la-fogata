@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRandom } from "@/scene/random";
+import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
@@ -405,5 +406,26 @@ describe("MemoryPresence animals", () => {
 
   it("cannot swap before sitting down", async () => {
     expect(await withOwl().changeSpecies("cat")).toEqual({ status: "not-seated" });
+  });
+});
+
+describe("MemoryDistantFires", () => {
+  it("starts with no other campfires: nothing is made up", () => {
+    expect(new MemoryDistantFires(createRandom(1)).fires()).toEqual([]);
+  });
+
+  it("lists demo campfires and tells listeners, and the last one goes out first", () => {
+    const service = new MemoryDistantFires(createRandom(1));
+    const seen: number[] = [];
+    const stop = service.subscribe((fires) => seen.push(fires.length));
+    service.addDemo();
+    service.addDemo();
+    service.removeDemo();
+    stop();
+    service.addDemo();
+    expect(seen).toEqual([1, 2, 1]);
+    expect(service.fires()).toHaveLength(2);
+    expect(service.fires().every((fire) => fire.people >= 1 && fire.people <= 7)).toBe(true);
+    expect(new Set(service.fires().map((fire) => fire.id)).size).toBe(2);
   });
 });

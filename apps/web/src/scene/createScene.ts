@@ -6,6 +6,8 @@ import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { createLightEffects, type LightEffects, type LightHandle } from "./lightEffect";
 import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
+import type { DistantFire } from "@/data/types";
+import { DistantFireBoard } from "./distantFires";
 import { easeToward } from "./math";
 import {
   computeLayout,
@@ -116,6 +118,10 @@ export interface FogataScene {
   touchFire(): void;
   /** Changes the words drawn in or named on the scene (the language changed). */
   setLabels(labels: { label: string; you: string }): void;
+  /** Names the element that describes the scene to a screen reader (how many other fires burn), or none. */
+  describeBy(id: string | undefined): void;
+  /** The other campfires burning now. Up to eight are drawn far off at the tree line; they fade in and out. */
+  setDistantFires(fires: readonly DistantFire[]): void;
   /** Marks this person as the visitor: their animal gets a label when they arrive and a glow when they do something. */
   setSelf(id: string | undefined): void;
   /** Seconds before they can throw wood again; 0 when they can throw now. */
@@ -229,10 +235,11 @@ function build(
   fonts: SceneFonts,
   petitions: SkyPetitions,
   sky: SkyOptions,
+  distant: { fires: readonly DistantFire[]; slots: ReadonlyMap<string, number> },
 ): Built {
   const layout = computeLayout(width, height, insets);
   const textures = new TextureBag();
-  const background = createBackground(layout, textures, petitions, sky);
+  const background = createBackground(layout, textures, petitions, sky, distant);
   const fire = createFire(layout, textures, intensity);
   const seats = createSeats(app.renderer, layout, textures, fire.state, sprites, onSeated);
   const effects = createWoodEffects(layout);
@@ -306,6 +313,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const answeredIds = new Set<string>();
   const retiredIds = new Set<string>();
   let starsDimmed = false;
+  /** The other campfires, each in the spot it keeps for as long as it burns, across rebuilds. */
+  const distantBoard = new DistantFireBoard();
+  let distantFires: readonly DistantFire[] = [];
+  let distantSlots: ReadonlyMap<string, number> = new Map();
   // The panorama's turn is kept as a share of it, so it survives a resize or a rotated phone.
   const view = new SkyView(0);
   const viewListeners = new Set<(state: SkyViewState) => void>();
@@ -370,6 +381,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
       { offset: view.offset, otherStars: options.otherStars === true },
+      { fires: distantFires, slots: distantSlots },
     );
     current.background.dimPetitionStars(starsDimmed);
     for (const member of roster.members()) current.seats.addMember(member, "instant", Math.random);
@@ -872,6 +884,15 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       canvas.setAttribute("aria-label", labels.label);
       youLabel = labels.you;
       current?.you.setText(labels.you);
+    },
+    describeBy(id) {
+      if (id) canvas.setAttribute("aria-describedby", id);
+      else canvas.removeAttribute("aria-describedby");
+    },
+    setDistantFires(fires) {
+      distantFires = fires;
+      distantSlots = distantBoard.update(fires);
+      current?.background.setDistantFires(fires, distantSlots, reduced);
     },
     destroy() {
       rebuildWhenSettled.cancel();
