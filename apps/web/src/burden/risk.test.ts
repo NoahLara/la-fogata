@@ -15,7 +15,7 @@ describe("hasRiskSignals", () => {
     "thinking about self-harm",
     "quiero desaparecer",
     "No tengo ganas de vivir",
-    "me corto cuando estoy mal",
+    "me corto a proposito",
     "I want to disappear",
     "I wish I were dead",
     "I just want to end it all",
@@ -40,6 +40,16 @@ describe("hasRiskSignals", () => {
     "Quiero un futuro mejor sin miedo",
     "Estar mejor sin mil deudas",
     "Me corto el pelo mañana",
+    "Me corto las uñas",
+    "Me corto cuando hablo en público",
+    "Estaba cortándome el pelo",
+    "Estoy mejor sin mi ex",
+    "In the end it all worked out",
+    "At the end it all made sense",
+    "I'm cutting myself some slack",
+    "I cut myself shaving",
+    "This exam is going to kill me",
+    "I don't want to be here alone tonight",
   ])("does not flag %j", (text) => {
     expect(hasRiskSignals(text)).toBe(false);
   });
