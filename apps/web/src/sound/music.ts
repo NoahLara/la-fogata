@@ -1,8 +1,7 @@
 import { MUSIC_FADE_IN_SECONDS, MUSIC_LEVEL } from "./levels";
 
 /** The background music, streamed from `public/sounds`. */
-export const MUSIC_URL =
-  "/sounds/denis-pavlov-musiac-worship-piano-instrumental-peaceful-prayer-music-223373.mp3";
+export const MUSIC_URL = "/sounds/music.mp3";
 
 export interface Music {
   /** Starts it (or carries on) and fades it in. */
