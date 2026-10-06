@@ -1,7 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import type { SceneLayout } from "./layout";
 import { between, clamp, TAU, toRadians } from "./math";
-import type { Random } from "./random";
+import { createRandom, type Random } from "./random";
 
 const LOG_COUNT = 3;
 
@@ -48,6 +48,8 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
   const front = new Container();
   const bed = new Container();
   const burning: Burning[] = [];
+  // The look of the wood (bark, cracks, ash) comes from its own stream, so it never moves where the logs stand.
+  const deco = createRandom(4242);
   let tallest = 0;
   const crossingHeight = between(rand, 78, 90) * u;
   const thetas: number[] = [];
@@ -104,7 +106,32 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
       };
     };
 
+    const axisDir = { x: dx / length, y: dy / length };
     const body = new Graphics();
+    const foot = new Graphics();
+    // Which face of the log the flames light: the one toward the heart of the fire. The log in front hides the
+    // flames behind it, so it is lit along both edges instead (0).
+    const heart = { x: cx, y: cy - params.crossingY * 0.35 };
+    const middle = along(base, tip, 0.4);
+    const toHeart = (heart.x - middle.x) * normal.x + (heart.y - middle.y) * normal.y;
+    const lit = Math.abs(toHeart) < baseWidth * 0.3 ? 0 : Math.sign(toHeart);
+    /** A strip of the log between two lengths (0 base, 1 tip) and two offsets across it (-1 and 1 are the edges). */
+    const strip = (t0: number, t1: number, s0: number, s1: number) => [
+      edge(t0, s0).x,
+      edge(t0, s0).y,
+      edge(t1, s0).x,
+      edge(t1, s0).y,
+      edge(t1, s1).x,
+      edge(t1, s1).y,
+      edge(t0, s1).x,
+      edge(t0, s1).y,
+    ];
+
+    // A soft shadow where the log meets the ground.
+    foot
+      .ellipse(base.x, base.y + baseWidth * 0.2, baseWidth * 0.8, baseWidth * 0.24)
+      .fill({ color: 0x000000, alpha: 0.34 });
+
     // Bark.
     body
       .poly([
@@ -121,22 +148,53 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
     // The tip is tapered and rounded.
     const tipPoint = along(base, tip, 1);
     body.circle(tipPoint.x, tipPoint.y, tipWidth * 0.5).fill(0x2b1a11);
-    // A lighter edge along one side and darker furrows across it.
-    body
-      .moveTo(edge(0.02, 0.62).x, edge(0.02, 0.62).y)
-      .lineTo(edge(0.95, 0.62).x, edge(0.95, 0.62).y);
-    body.stroke({ width: widthAt(0.3) * 0.2, color: 0x5c3d27, alpha: 0.8, cap: "round" });
-    for (let j = 0; j < 9; j++) {
-      const t = between(rand, 0.05, 0.85);
-      const side = between(rand, -0.45, 0.45);
-      const start = edge(t, side * 2);
-      const end = edge(
-        Math.min(0.98, t + between(rand, 0.06, 0.16)),
-        side * 2 + between(rand, -0.2, 0.2),
-      );
-      body.moveTo(start.x, start.y).lineTo(end.x, end.y);
+    // The round of the log: lighter along the middle, darker toward the edges.
+    body.poly(strip(0.02, 0.98, -0.55, 0.55)).fill({ color: 0x3d2619, alpha: 0.75 });
+    body.poly(strip(0.02, 0.98, -0.25, 0.25)).fill({ color: 0x4a2f1f, alpha: 0.5 });
+    if (lit === 0) {
+      // Backlit by the flames behind it: a warm line along each edge.
+      for (const side of [-1, 1]) {
+        body.poly(strip(0.04, 0.8, side * 0.78, side)).fill({ color: 0xb8622a, alpha: 0.32 });
+        body.poly(strip(0.04, 0.55, side * 0.92, side)).fill({ color: 0xff9a4a, alpha: 0.3 });
+      }
+    } else {
+      // The face toward the fire takes its light, the far face is in shadow.
+      body.poly(strip(0.02, 0.9, lit * 0.1, lit)).fill({ color: 0x8a4a22, alpha: 0.24 });
+      body.poly(strip(0.02, 0.7, lit * 0.45, lit)).fill({ color: 0xb8662c, alpha: 0.26 });
+      body.poly(strip(0.02, 0.5, lit * 0.78, lit)).fill({ color: 0xff9a4a, alpha: 0.22 });
+      body.poly(strip(0.02, 0.98, -lit * 0.55, -lit)).fill({ color: 0x0c0705, alpha: 0.42 });
     }
-    body.stroke({ width: Math.max(0.8, u * 0.9), color: 0x1e120b, alpha: 0.65, cap: "round" });
+    // Ridges of bark running along the grain, some catching a little light.
+    for (let j = 0; j < 12; j++) {
+      const offset = between(deco, -0.85, 0.85);
+      const from = between(deco, 0.03, 0.7);
+      const reach = between(deco, 0.1, 0.32);
+      const ridge: number[] = [];
+      let wander = offset;
+      for (let k = 0; k <= 4; k++) {
+        wander = clamp(wander + between(deco, -0.05, 0.05), -0.95, 0.95);
+        const point = edge(Math.min(0.98, from + (reach * k) / 4), wander);
+        ridge.push(point.x, point.y);
+      }
+      const catchesLight = lit !== 0 && Math.sign(offset) === lit && j % 2 === 0;
+      body.poly(ridge, false).stroke({
+        width: Math.max(0.7, u * 0.8),
+        color: catchesLight ? 0x7a5236 : 0x120a06,
+        alpha: catchesLight ? 0.45 : 0.55,
+        cap: "round",
+        join: "round",
+      });
+    }
+    // Knots.
+    for (let k = 0; k < 2; k++) {
+      const t = between(deco, 0.2, 0.75);
+      const point = edge(t, between(deco, -0.4, 0.4));
+      const radius = widthAt(t) * 0.12;
+      body.circle(point.x, point.y, radius).fill({ color: 0x150c08, alpha: 0.8 });
+      body
+        .circle(point.x, point.y, radius * 1.5)
+        .stroke({ width: Math.max(0.6, u * 0.6), color: 0x6a4630, alpha: 0.4 });
+    }
     // Slightly charred toward the tip: translucent layers starting at different points and all ending at the
     // round tip, so the black deepens gradually and there is no hard edge or notch.
     for (let k = 0; k < 8; k++) {
@@ -155,88 +213,189 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
         .fill({ color: 0x100907, alpha: 0.13 });
       body.circle(tipPoint.x, tipPoint.y, tipWidth * 0.5).fill({ color: 0x100907, alpha: 0.13 });
     }
-    // Lighter cut end at the bottom, where the log meets the ground.
-    body.ellipse(base.x, base.y, baseWidth * 0.55, baseWidth * 0.3).fill(0x9a7048);
-    body.ellipse(base.x, base.y, baseWidth * 0.36, baseWidth * 0.19).fill(0x7a5236);
-    body.ellipse(base.x, base.y, baseWidth * 0.14, baseWidth * 0.08).fill(0x9a7048);
+    // The foot: a rounded, burnt end square to the log, as it lies in the embers (not a pale flat disc).
+    const end = (scale: number) => {
+      const points: number[] = [];
+      for (let a = 0; a < 18; a++) {
+        const angle = (a / 18) * TAU;
+        points.push(
+          base.x +
+            normal.x * Math.cos(angle) * baseWidth * 0.5 * scale -
+            axisDir.x * Math.sin(angle) * baseWidth * 0.2 * scale,
+          base.y +
+            normal.y * Math.cos(angle) * baseWidth * 0.5 * scale -
+            axisDir.y * Math.sin(angle) * baseWidth * 0.2 * scale,
+        );
+      }
+      return points;
+    };
+    body.poly(end(1)).fill(0x140b07);
+    body
+      .poly(end(0.72))
+      .fill({ color: 0x2a1a11, alpha: 0.9 })
+      .stroke({ width: Math.max(0.6, u * 0.6), color: 0x5a3a24, alpha: 0.5 });
 
-    // Lit from inside: glowing cracks, a faint wide glow and embers, all on the lower part.
+    // Lit from inside: a heat that is strongest where the log meets the embers, glowing cracks along the grain, a
+    // glowing ring on the foot and a few embers, all on the lower part.
     const glow = new Graphics();
     glow.blendMode = "add";
     const lowest = 0.62;
-    const centre = [] as number[];
-    for (let t = 0.04; t <= lowest; t += 0.06) {
-      const point = edge(t, between(rand, -0.3, 0.3));
-      centre.push(point.x, point.y);
+    for (let h = 0; h < 6; h++) {
+      glow.poly(strip(0, 0.1 + h * 0.09, -0.9, 0.9)).fill({ color: 0xff5a14, alpha: 0.045 });
     }
-    glow.poly(centre, false).stroke({
-      width: baseWidth * 0.3,
-      color: 0xff5a14,
-      alpha: 0.1,
-      cap: "round",
-      join: "round",
+    glow.poly(end(0.55)).fill({ color: 0xff5a14, alpha: 0.32 });
+    glow.poly(end(0.72), true).stroke({
+      width: Math.max(0.8, u * 0.9),
+      color: 0xff8a30,
+      alpha: 0.5,
     });
     for (let c = 0; c < 3; c++) {
-      const crack = [] as number[];
-      const side = between(rand, -0.5, 0.5);
-      let t = between(rand, 0.03, 0.2);
-      const end = Math.min(lowest, t + between(rand, 0.2, 0.4));
-      for (; t <= end; t += 0.045) {
-        const point = edge(t, side + between(rand, -0.22, 0.22));
+      const crack: number[] = [];
+      let side = between(deco, -0.55, 0.55);
+      const drift = between(deco, -0.05, 0.05);
+      let t = between(deco, 0.04, 0.4);
+      const finish = Math.min(lowest, t + between(deco, 0.14, 0.3));
+      for (; t <= finish; t += 0.035) {
+        side = clamp(side + drift + between(deco, -0.035, 0.035), -0.8, 0.8);
+        const point = edge(t, side);
         crack.push(point.x, point.y);
       }
-      if (crack.length >= 4)
-        glow.poly(crack, false).stroke({
-          width: Math.max(1, u * 1.3),
-          color: 0xff7a24,
-          alpha: 0.85,
-          cap: "round",
-          join: "round",
-        });
+      if (crack.length < 4) continue;
+      glow.poly(crack, false).stroke({
+        width: Math.max(2, baseWidth * 0.1),
+        color: 0xff4a10,
+        alpha: 0.26,
+        cap: "round",
+        join: "round",
+      });
+      glow.poly(crack, false).stroke({
+        width: Math.max(0.8, u * 0.75),
+        color: 0xffa040,
+        alpha: 0.78,
+        cap: "round",
+        join: "round",
+      });
     }
     for (let e = 0; e < 7; e++) {
-      const point = edge(between(rand, 0.02, lowest), between(rand, -0.7, 0.7));
+      const point = edge(between(deco, 0.02, lowest), between(deco, -0.7, 0.7));
       glow
-        .circle(point.x, point.y, between(rand, 0.5, 1.1) * u)
+        .circle(point.x, point.y, between(deco, 0.5, 1.1) * u)
         .fill({ color: 0xffb347, alpha: 0.9 });
+    }
+
+    // Ash and charcoal heaped against the foot, so the log sinks into the embers.
+    const mound = new Graphics();
+    const heap = baseWidth * 0.5;
+    /** A low irregular heap, flatter than it is wide. */
+    const heapShape = (x: number, y: number, rx: number, ry: number) => {
+      const points: number[] = [];
+      for (let v = 0; v < 8; v++) {
+        const angle = (v / 8) * TAU;
+        const reach = between(deco, 0.75, 1.1);
+        points.push(x + Math.cos(angle) * rx * reach, y + Math.sin(angle) * ry * reach);
+      }
+      return points;
+    };
+    for (let m = 0; m < 5; m++) {
+      const spread = (m / 4 - 0.5) * 2;
+      const x = base.x + spread * heap * 0.7;
+      const y = base.y + heap * (0.1 + 0.12 * Math.abs(spread));
+      const rx = heap * between(deco, 0.3, 0.45);
+      const ry = heap * between(deco, 0.14, 0.22);
+      mound.poly(heapShape(x, y, rx, ry)).fill({ color: m % 2 ? 0x2a2420 : 0x3d3732, alpha: 0.9 });
+      mound
+        .poly(heapShape(x - rx * 0.1, y - ry * 0.3, rx * 0.7, ry * 0.5))
+        .fill({ color: 0x5a524a, alpha: 0.55 });
+    }
+    for (let m = 0; m < 4; m++) {
+      mound
+        .circle(
+          base.x + between(deco, -0.8, 0.8) * heap,
+          base.y + heap * between(deco, 0.08, 0.26),
+          between(deco, 0.6, 1.1) * u,
+        )
+        .fill(0x15100d);
+    }
+    const moundGlow = new Graphics();
+    moundGlow.blendMode = "add";
+    for (let m = 0; m < 4; m++) {
+      moundGlow
+        .circle(
+          base.x + between(deco, -0.8, 0.8) * heap,
+          base.y + heap * between(deco, 0.06, 0.24),
+          between(deco, 0.5, 1.1) * u,
+        )
+        .fill({ color: m % 2 ? 0xff7a28 : 0xffb347, alpha: 0.85 });
     }
 
     // Logs on the far side of the fire sit behind the flames, the others in front of them.
     const layer = Math.sin(theta) < 0 ? back : front;
-    layer.addChild(body, glow);
+    layer.addChild(foot, body, glow, mound, moundGlow);
     burning.push({ glow, phase: rand() * TAU });
   }
 
-  // The bed: charcoal and glowing embers on the ground inside the stone ring.
-  const charcoal = new Graphics();
-  for (let i = 0; i < 12; i++) {
-    const a = rand() * TAU;
-    const r = Math.sqrt(rand()) * 31 * u;
-    charcoal
+  // The bed: ash, lumps of charcoal and glowing coals on the ground inside the stone ring.
+  const ash = new Graphics();
+  for (let i = 0; i < 9; i++) {
+    const a = deco() * TAU;
+    const r = Math.sqrt(deco()) * 33 * u;
+    ash
       .ellipse(
         cx + Math.cos(a) * r,
         cy + 2 * u + Math.sin(a) * r * 0.32,
-        between(rand, 3, 6) * u,
-        between(rand, 1.6, 3) * u,
+        between(deco, 4, 9) * u,
+        between(deco, 1.6, 3.2) * u,
       )
-      .fill(0x1a100c);
+      .fill({ color: 0x4a443f, alpha: 0.5 });
+  }
+  const charcoal = new Graphics();
+  const coalGlow = new Graphics();
+  coalGlow.blendMode = "add";
+  /** An irregular lump, flatter than it is wide because the ground is seen at a slant. */
+  const lump = (x: number, y: number, size: number, scale = 1) => {
+    const points: number[] = [];
+    for (let v = 0; v < 7; v++) {
+      const angle = (v / 7) * TAU + between(deco, -0.2, 0.2);
+      const reach = size * between(deco, 0.72, 1.1) * scale;
+      points.push(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach * 0.45);
+    }
+    return points;
+  };
+  for (let i = 0; i < 16; i++) {
+    const a = deco() * TAU;
+    const r = Math.sqrt(deco()) * 30 * u;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + 2 * u + Math.sin(a) * r * 0.32;
+    const size = between(deco, 3, 6) * u;
+    const shape = lump(x, y, size);
+    charcoal.poly(shape).fill(0x1a100c);
+    charcoal
+      .poly(lump(x - size * 0.12, y - size * 0.1, size, 0.7))
+      .fill({ color: 0x33241b, alpha: 0.7 });
+    // Most lumps glow through their cracks, a few are cold and grey.
+    if (i % 4 !== 3) {
+      coalGlow.poly(lump(x, y + size * 0.08, size, 0.55)).fill({
+        color: i % 3 ? 0xff6a20 : 0xff9a3a,
+        alpha: 0.5,
+      });
+    }
   }
   const embersA = new Graphics();
   const embersB = new Graphics();
   embersA.blendMode = embersB.blendMode = "add";
   for (let i = 0; i < 34; i++) {
-    const a = rand() * TAU;
-    const r = Math.sqrt(rand()) * 32 * u;
+    const a = deco() * TAU;
+    const r = Math.sqrt(deco()) * 32 * u;
     const target = i % 2 ? embersA : embersB;
     target
-      .circle(cx + Math.cos(a) * r, cy + 2 * u + Math.sin(a) * r * 0.32, between(rand, 0.8, 2) * u)
+      .circle(cx + Math.cos(a) * r, cy + 2 * u + Math.sin(a) * r * 0.32, between(deco, 0.8, 2) * u)
       .fill({ color: i % 3 ? 0xff8a2e : 0xffc260, alpha: 0.9 });
   }
   const bedGlow = new Graphics();
   bedGlow.blendMode = "add";
   bedGlow.ellipse(cx, cy + 2 * u, 35 * u, 10.5 * u).fill({ color: 0xff5a14, alpha: 0.45 });
   bedGlow.ellipse(cx, cy + 2 * u, 19 * u, 5.5 * u).fill({ color: 0xff9a3a, alpha: 0.5 });
-  bed.addChild(charcoal, bedGlow, embersA, embersB);
+  bed.addChild(ash, charcoal, bedGlow, coalGlow, embersA, embersB);
 
   const update = (time: number, flick: number, swing: number) => {
     for (const log of burning) {
@@ -244,6 +403,7 @@ export function createTeepee(layout: SceneLayout, rand: Random): Teepee {
       log.glow.alpha = clamp(0.55 + 0.45 * clamp(flick + wobble, 0, 1), 0.3, 1);
     }
     bedGlow.alpha = clamp(0.6 + 0.4 * flick, 0.4, 1);
+    coalGlow.alpha = clamp(0.55 + 0.45 * flick + 0.15 * Math.sin(time * 1.7) * swing, 0.35, 1);
     embersA.alpha = clamp(0.55 + 0.45 * Math.sin(time * 2.3) * swing + 0.2, 0.3, 1);
     embersB.alpha = clamp(0.55 + 0.45 * Math.sin(time * 2.3 + Math.PI) * swing + 0.2, 0.3, 1);
   };

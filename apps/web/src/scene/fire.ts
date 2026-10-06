@@ -105,7 +105,25 @@ function buildStones(
   const near = new Graphics();
   const farLit = new Graphics();
   const nearLit = new Graphics();
+  // The shape of each stone comes from its own stream, so the ring itself stays where it was.
+  const shape = createRandom(31);
   const count = 11;
+  /** A rounded, slightly lumpy stone: `scale` shrinks it toward its own centre. */
+  const blob = (
+    x: number,
+    y: number,
+    rx: number,
+    ry: number,
+    bumps: readonly number[],
+    scale = 1,
+  ) => {
+    const points: number[] = [];
+    bumps.forEach((bump, i) => {
+      const angle = (i / bumps.length) * TAU;
+      points.push(x + Math.cos(angle) * rx * bump * scale, y + Math.sin(angle) * ry * bump * scale);
+    });
+    return points;
+  };
   for (let i = 0; i < count; i++) {
     const a = (i / count) * TAU + between(rand, -0.1, 0.1);
     const x = cx + Math.cos(a) * 48 * u;
@@ -113,8 +131,23 @@ function buildStones(
     const rx = between(rand, 8, 11) * u;
     const ry = between(rand, 5, 7) * u;
     const isNear = Math.sin(a) > 0;
-    (isNear ? near : far).ellipse(x, y, rx, ry).fill(0x2b2833);
-    (isNear ? nearLit : farLit).ellipse(x, y - ry * 0.35, rx * 0.78, ry * 0.5).fill(0xff9650);
+    const bumps = Array.from({ length: 9 }, () => between(shape, 0.86, 1.08));
+    const stone = isNear ? near : far;
+    // The stone sits in its own shadow, then a body, a cooler moonlit top and a darker underside.
+    stone.ellipse(x, y + ry * 0.55, rx * 1.05, ry * 0.7).fill({ color: 0x000000, alpha: 0.35 });
+    stone.poly(blob(x, y, rx, ry, bumps)).fill(0x2b2833);
+    stone.poly(blob(x - rx * 0.06, y - ry * 0.22, rx, ry * 0.8, bumps, 0.72)).fill({
+      color: 0x4a4658,
+      alpha: 0.75,
+    });
+    stone.ellipse(x, y + ry * 0.55, rx * 0.8, ry * 0.32).fill({ color: 0x14121a, alpha: 0.35 });
+    stone
+      .ellipse(x - rx * 0.2, y - ry * 0.5, rx * 0.3, ry * 0.14)
+      .fill({ color: 0x7a7690, alpha: 0.45 });
+    // The side toward the fire, lit by it.
+    (isNear ? nearLit : farLit)
+      .poly(blob(x, y - ry * 0.35, rx * 0.78, ry * 0.5, bumps))
+      .fill(0xff9650);
   }
   return { far, near, farLit, nearLit };
 }
