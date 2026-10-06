@@ -1,3 +1,4 @@
+import { clampTrim, CRACKLE_DEFAULT, MUSIC_DEFAULT } from "@/sound/volumeTrim";
 import { SPECIES, type Species } from "@/scene/characters/species";
 
 /** A species, or "random": whoever is free when the visitor sits down. */
@@ -7,14 +8,20 @@ export type TextSize = "small" | "normal" | "large";
 export interface Preferences {
   animal: AnimalChoice;
   textSize: TextSize;
-  /** The visitor has sat by the fire before, so they get the short welcome. */
-  visited: boolean;
+  /** Sound is on. It is on by default, and the visitor can turn it off in the settings. */
+  sound: boolean;
+  /** How loud the fire's crackle is, 0 to 100; the middle is the normal level. */
+  crackle: number;
+  /** How loud the background music is, 0 to 100; the middle is the normal level. */
+  music: number;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
   animal: "random",
   textSize: "small",
-  visited: false,
+  sound: true,
+  crackle: CRACKLE_DEFAULT,
+  music: MUSIC_DEFAULT,
 };
 
 /** The part of `Storage` this module needs, so tests can break it on purpose. */
@@ -26,7 +33,9 @@ export interface StorageLike {
 export const STORAGE_KEYS = {
   animal: "fogata:animal",
   textSize: "fogata:text-size",
-  visited: "fogata:visited",
+  sound: "fogata:sound",
+  crackle: "fogata:crackle",
+  music: "fogata:music",
 } as const;
 
 /** The root font size for each text size (a share of the browser's); every rem size in the UI follows it. */
@@ -73,7 +82,10 @@ export function readPreferences(storage: StorageLike | undefined = browserStorag
   return {
     animal: isAnimalChoice(animal) ? animal : DEFAULT_PREFERENCES.animal,
     textSize: isTextSize(textSize) ? textSize : DEFAULT_PREFERENCES.textSize,
-    visited: read(storage, STORAGE_KEYS.visited) === "1",
+    // Only an explicit "0" turns it off: anything else (missing, unknown) is the default, on.
+    sound: read(storage, STORAGE_KEYS.sound) !== "0",
+    crackle: clampTrim(read(storage, STORAGE_KEYS.crackle), CRACKLE_DEFAULT),
+    music: clampTrim(read(storage, STORAGE_KEYS.music), MUSIC_DEFAULT),
   };
 }
 
@@ -88,8 +100,16 @@ export function saveTextSize(size: TextSize, storage: StorageLike | undefined = 
   write(storage, STORAGE_KEYS.textSize, size);
 }
 
-export function saveVisited(storage: StorageLike | undefined = browserStorage()) {
-  write(storage, STORAGE_KEYS.visited, "1");
+export function saveSound(sound: boolean, storage: StorageLike | undefined = browserStorage()) {
+  write(storage, STORAGE_KEYS.sound, sound ? "1" : "0");
+}
+
+export function saveCrackle(level: number, storage: StorageLike | undefined = browserStorage()) {
+  write(storage, STORAGE_KEYS.crackle, String(clampTrim(level, CRACKLE_DEFAULT)));
+}
+
+export function saveMusic(level: number, storage: StorageLike | undefined = browserStorage()) {
+  write(storage, STORAGE_KEYS.music, String(clampTrim(level, MUSIC_DEFAULT)));
 }
 
 /** Marks the page with the text size; `globals.css` turns "large" into a bigger root font size. */

@@ -6,8 +6,6 @@ interface DevFlags {
   shuffle: boolean;
   /** `?demo`: buttons to make people arrive and leave. */
   demo: boolean;
-  /** `?skipIntro`: sit down at once, without the welcome card. */
-  skipIntro: boolean;
   /** `?clean`: hide the gesture bar and the demo buttons, to look at the sky and the scene alone. */
   clean: boolean;
 }
@@ -17,13 +15,12 @@ interface DevFlags {
  * the URL says, so these can never change what a visitor sees. Kept free of PixiJS so any code can import it.
  */
 export function readDevFlags(search: string, production: boolean): DevFlags {
-  if (production) return { shuffle: false, demo: false, skipIntro: false, clean: false };
+  if (production) return { shuffle: false, demo: false, clean: false };
   const params = new URLSearchParams(search);
   const animal = params.get("animal");
   return {
     shuffle: params.has("shuffle"),
     demo: params.has("demo"),
-    skipIntro: params.has("skipIntro"),
     clean: params.has("clean"),
     ...(animal ? { animal } : {}),
   };

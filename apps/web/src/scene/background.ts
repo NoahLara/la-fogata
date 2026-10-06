@@ -42,8 +42,8 @@ export interface Background {
   setOtherStars(stars: readonly { id: string; answered: boolean }[]): void;
   /** One soft pulse of light in a star, yours or another's. */
   pulseStar(id: string): void;
-  /** A shooting star crosses the sky now (none with reduced motion), from the point `from` if given. */
-  shootingStar(from?: Point): void;
+  /** A shooting star crosses the sky now (none with reduced motion), from the point `from` if given. `onDone` is called when it has gone. */
+  shootingStar(from?: Point, onDone?: () => void): void;
   /** The other campfires burning far off at the tree line: `slots` says which spot each has. New ones fade in, gone ones fade out. */
   setDistantFires(
     fires: readonly DistantFire[],

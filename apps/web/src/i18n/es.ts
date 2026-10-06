@@ -121,13 +121,9 @@ export const es = {
     reportConfirm: "Reportar",
     reportDone: "Gracias. Ya no la verás.",
   },
-  entrance: {
-    title: "La Fogata",
-    tagline: "Un lugar para sentarte junto al fuego esta noche. Sin nombres, sin perfiles.",
-    enter: "Sentarme junto al fuego",
-    chooseCharacter: "Elegir mi personaje",
-    pickerTitle: "Elige tu personaje",
-    pickerDone: "Listo",
+  // The screen shown while the scene is being built.
+  loading: {
+    lighting: "Encendiendo la fogata…",
   },
   settings: {
     // The name of the gear button, and the title of its panel.
@@ -138,6 +134,9 @@ export const es = {
     textSize: { legend: "Tamaño del texto", small: "Pequeña", normal: "Normal", large: "Grande" },
     // A gentle note when the character they picked is already at this campfire; it is saved for next time.
     characterTaken: "Ese personaje ya está en esta fogata. Te acompañará la próxima vez.",
+    sound: { legend: "Sonido", on: "Activado", off: "Desactivado" },
+    crackle: { legend: "Volumen del crepitar del fuego" },
+    music: { legend: "Volumen de la música" },
   },
   // The names of the 7 characters, as shown in the picker.
   species: {

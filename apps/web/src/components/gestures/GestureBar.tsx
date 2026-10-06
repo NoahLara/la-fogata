@@ -21,7 +21,7 @@ const NOTICE_MS = 3000;
 const STAR_AFTERGLOW_MS = 4000;
 
 const GESTURE =
-  "flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-bark/90 px-4 text-sm text-gold ring-1 ring-ember/50 hover:bg-ember/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold aria-disabled:opacity-50";
+  "flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-4 text-sm btn-wood focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold aria-disabled:opacity-50";
 
 function Gesture({
   name,
@@ -165,13 +165,14 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   /** The folded note is at the paws: the animal takes it to the fire. */
   const launch = (): boolean => {
     const self = presence.self;
+    let risky = false;
     const result = self
       ? scene.handOverBurden(self.id, {
           onDone: () => {
             setRitual(false);
             setAfterglow(t.burden.afterglow);
             // Someone whose words showed signs of risk is shown the help screen next: the fire stays quiet.
-            if (!atRisk.current) notifyFire("burden");
+            risky = atRisk.current;
             later(() => {
               setAfterglow(undefined);
               if (atRisk.current) {
@@ -180,6 +181,11 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
               }
               atRisk.current = false;
             }, AFTERGLOW_SECONDS * 1000);
+          },
+          // The word from the fire waits until the light has risen and the shooting star has gone: it never
+          // lands on top of what is still to be seen.
+          onSettled: () => {
+            if (!risky) notifyFire("burden");
           },
         })
       : undefined;

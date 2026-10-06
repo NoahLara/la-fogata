@@ -83,8 +83,11 @@ export interface Sky {
   setOtherStars(stars: readonly { id: string; answered: boolean }[]): void;
   /** One soft pulse of light in this star, yours or another's (its size never changes). */
   pulseStar(id: string): void;
-  /** A shooting star crosses the sky now: from the middle of a light that has just arrived (`from`), or anywhere. Nothing with reduced motion. */
-  shootingStar(from?: Point): void;
+  /**
+   * A shooting star crosses the sky now: from the middle of a light that has just arrived (`from`), or anywhere.
+   * Nothing with reduced motion. `onDone` is called when it has crossed and gone (at once if there is none to see).
+   */
+  shootingStar(from?: Point, onDone?: () => void): void;
 }
 
 export interface SkyOptions {
@@ -433,9 +436,9 @@ export function createSky(
     { x: screenX(vx, offset, panorama, width), y: vy, radius: mr * 1.7 },
   ];
   let nextAt = -1;
-  let active: { plan: ShootingStarPlan; start: number } | undefined;
+  let active: { plan: ShootingStarPlan; start: number; onDone?: () => void } | undefined;
   /** Asked for from outside (a petition was answered, a burden has burned): it starts on the next frame. */
-  let requested: { from?: Point } | undefined;
+  let requested: { from?: Point; onDone?: () => void } | undefined;
 
   // Petition stars: small and white, a core with a tight soft halo, steady; an answered one is the same star, twinkling.
   const area = starArea(layout, trees);
@@ -709,21 +712,26 @@ export function createSky(
 
     if (reduced) {
       if (active) meteor.clear();
+      // Nothing is shown, so whoever was waiting for it to end doesn't wait.
+      const waiting = [active?.onDone, requested?.onDone];
       active = undefined;
       requested = undefined;
       nextAt = -1;
+      for (const done of waiting) done?.();
       return;
     }
     if (requested) {
-      const { from } = requested;
+      const { from, onDone } = requested;
       requested = undefined;
       const plan =
         (from && planShootingStarFrom(rand, from, bounds, keepoutsNow())) ||
         planShootingStar(rand, bounds, keepoutsNow());
       if (plan) {
-        active = { plan, start: time };
+        active = { plan, start: time, onDone };
         // The next ambient one comes after this has had its moment.
         nextAt = Math.max(nextAt, time + 20);
+      } else {
+        onDone?.();
       }
     }
     // The first one comes a little early so nobody waits a full minute to see it.
@@ -737,7 +745,9 @@ export function createSky(
       const t = (time - active.start) / active.plan.duration;
       if (t >= 1) {
         meteor.clear();
+        const done = active.onDone;
         active = undefined;
+        done?.();
       } else {
         drawShootingStar(meteor, active.plan, t, Math.max(1, u));
       }
@@ -784,8 +794,8 @@ export function createSky(
     dimPetitionStars(dimmed) {
       dimTarget = dimmed ? DIMMED_STARS : 1;
     },
-    shootingStar(from) {
-      requested = { from };
+    shootingStar(from, onDone) {
+      requested = { from, onDone };
     },
   };
 }

@@ -14,20 +14,24 @@ import {
   DEFAULT_PREFERENCES,
   readPreferences,
   saveAnimal,
+  saveCrackle,
+  saveMusic,
+  saveSound,
   saveTextSize,
-  saveVisited,
   type AnimalChoice,
   type Preferences,
   type TextSize,
 } from "./preferences";
+import { clampTrim, CRACKLE_DEFAULT, MUSIC_DEFAULT } from "@/sound/volumeTrim";
 
 interface Settings extends Preferences {
   /** The saved choices have been read from the browser. Before that, the defaults stand in. */
   ready: boolean;
   setAnimal: (animal: AnimalChoice) => void;
   setTextSize: (size: TextSize) => void;
-  /** The visitor has sat by the fire: from now on they get the short welcome. */
-  markVisited: () => void;
+  setSound: (sound: boolean) => void;
+  setCrackle: (level: number) => void;
+  setMusic: (level: number) => void;
 }
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
@@ -82,14 +86,30 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     saveTextSize(textSize);
     update({ textSize });
   }, []);
-  const markVisited = useCallback(() => {
-    saveVisited();
-    update({ visited: true });
+  const setSound = useCallback((sound: boolean) => {
+    saveSound(sound);
+    update({ sound });
+  }, []);
+  const setCrackle = useCallback((level: number) => {
+    saveCrackle(level);
+    update({ crackle: clampTrim(level, CRACKLE_DEFAULT) });
+  }, []);
+  const setMusic = useCallback((level: number) => {
+    saveMusic(level);
+    update({ music: clampTrim(level, MUSIC_DEFAULT) });
   }, []);
 
   const value = useMemo(
-    () => ({ ...preferences, ready, setAnimal, setTextSize, markVisited }),
-    [preferences, ready, setAnimal, setTextSize, markVisited],
+    () => ({
+      ...preferences,
+      ready,
+      setAnimal,
+      setTextSize,
+      setSound,
+      setCrackle,
+      setMusic,
+    }),
+    [preferences, ready, setAnimal, setTextSize, setSound, setCrackle, setMusic],
   );
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

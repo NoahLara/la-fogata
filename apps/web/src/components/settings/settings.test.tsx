@@ -11,7 +11,7 @@ import { STORAGE_KEYS } from "@/preferences/preferences";
 import { resetSettingsStore, SettingsProvider } from "@/preferences/SettingsProvider";
 import type { FogataScene } from "@/scene/createScene";
 import { InteractionProvider } from "../scene/Interaction";
-import { Entrance } from "./Entrance";
+import { SitDown } from "../scene/SitDown";
 import { SettingsButton } from "./SettingsButton";
 
 function fakeScene() {
@@ -60,17 +60,15 @@ const note = () => within(screen.getByRole("dialog")).getByRole("status");
 const radio = (name: string) => screen.getByRole("radio", { name });
 
 describe("the settings panel", () => {
-  it("has a gear named Ajustes and three groups", () => {
+  it("has a gear named Ajustes and its groups", () => {
     setup(() => <SettingsButton />);
     openSettings();
     const panel = screen.getByRole("dialog", { name: es.settings.title });
-    for (const legend of [
-      es.settings.character.legend,
-      es.settings.language.legend,
-      es.settings.textSize.legend,
-    ]) {
-      expect(within(panel).getByRole("group", { name: legend })).toBeDefined();
+    expect(within(panel).getByRole("group", { name: es.settings.character.legend })).toBeDefined();
+    for (const legend of [es.settings.language.legend, es.settings.textSize.legend]) {
+      expect(within(panel).getByRole("radiogroup", { name: legend })).toBeDefined();
     }
+    expect(within(panel).getByRole("switch", { name: es.settings.sound.legend })).toBeDefined();
     // The 7 characters plus "Al azar".
     expect(within(panel).getAllByRole("radio")).toHaveLength(8 + 2 + 3);
   });
@@ -133,108 +131,83 @@ describe("the settings panel", () => {
   });
 });
 
-describe("the entrance", () => {
-  it("welcomes a first visit with the card and a random free character", async () => {
+describe("sitting down", () => {
+  it("sits the visitor down at once, with no card, as a random free character", async () => {
     const { scene, setSelf } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro={false} />);
-    const card = screen.getByRole("dialog", { name: es.entrance.title });
-    expect(within(card).getByText(es.entrance.tagline)).toBeDefined();
-    expect(services.presence.self).toBeUndefined();
-    const button = within(card).getByRole("button", { name: es.entrance.enter });
-    expect(document.activeElement).toBe(button);
-    await act(async () => fireEvent.click(button));
+    const services = setup(() => <SitDown scene={scene} />);
+    await act(async () => {});
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(services.presence.self).toBeDefined();
     expect(services.presence.self?.species).not.toBe("owl");
     expect(setSelf).toHaveBeenCalledWith(services.presence.self?.id);
   });
 
-  it("cannot be closed with Escape", () => {
-    const { scene } = fakeScene();
-    setup(() => <Entrance scene={scene} skipIntro={false} />);
-    const card = screen.getByRole("dialog", { name: es.entrance.title });
-    const cancel = new Event("cancel", { cancelable: true });
-    card.dispatchEvent(cancel);
-    expect(cancel.defaultPrevented).toBe(true);
-  });
-
-  it("lets someone pick a character before sitting, and keeps it", async () => {
-    const { scene } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro={false} />);
-    fireEvent.click(screen.getByRole("button", { name: es.entrance.chooseCharacter }));
-    expect(screen.getByRole("dialog", { name: es.entrance.pickerTitle })).toBeDefined();
-    fireEvent.click(radio(es.species.fox));
-    fireEvent.click(screen.getByRole("button", { name: es.entrance.pickerDone }));
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: es.entrance.enter })));
-    expect(services.presence.self?.species).toBe("fox");
-  });
-
-  it("switches language before entering", () => {
-    const { scene } = fakeScene();
-    setup(() => <Entrance scene={scene} skipIntro={false} />);
-    fireEvent.click(screen.getByRole("button", { name: "English" }));
-    expect(screen.getByText(en.entrance.tagline)).toBeDefined();
-    document.cookie = "lang=; Max-Age=0; Path=/";
-  });
-
-  it("shows the card only once: a returning visitor sits down at once, with their character", async () => {
-    localStorage.setItem(STORAGE_KEYS.visited, "1");
+  it("sits down as the saved character", async () => {
     localStorage.setItem(STORAGE_KEYS.animal, "capybara");
-    const { scene, setSelf } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro={false} />);
+    const { scene } = fakeScene();
+    const services = setup(() => <SitDown scene={scene} />);
     await act(async () => {});
-    expect(screen.queryByRole("dialog")).toBeNull();
     expect(services.presence.self?.species).toBe("capybara");
-    expect(setSelf).toHaveBeenCalledWith(services.presence.self?.id);
   });
 
-  it("falls back to a free character when the returning visitor's is taken here", async () => {
-    localStorage.setItem(STORAGE_KEYS.visited, "1");
+  it("falls back to a free character when the saved one is taken here, keeping the choice", async () => {
     localStorage.setItem(STORAGE_KEYS.animal, "owl");
     const { scene } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro={false} />);
+    const services = setup(() => <SitDown scene={scene} />);
     await act(async () => {});
     expect(services.presence.self?.species).not.toBe("owl");
     // Their preference is untouched, for a fire where the owl is free.
     expect(localStorage.getItem(STORAGE_KEYS.animal)).toBe("owl");
   });
 
-  it("sits a returning visitor with no choice down as a random free character", async () => {
-    localStorage.setItem(STORAGE_KEYS.visited, "1");
+  it("sits down only once, however many times the settings change", async () => {
     const { scene } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro={false} />);
+    const services = setup(() => (
+      <>
+        <SitDown scene={scene} />
+        <SettingsButton />
+      </>
+    ));
     await act(async () => {});
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(services.presence.self).toBeDefined();
+    const id = services.presence.self?.id;
+    openSettings();
+    await act(async () => fireEvent.click(radio(es.settings.textSize.large)));
+    expect(services.presence.people().filter((person) => person.id === id)).toHaveLength(1);
+    expect(services.presence.people()).toHaveLength(2);
+  });
+});
+
+describe("the crackle volume", () => {
+  it("is a slider that starts at 75 and saves", () => {
+    setup(() => <SettingsButton />);
+    openSettings();
+    const slider = screen.getByRole("slider", {
+      name: es.settings.crackle.legend,
+    }) as HTMLInputElement;
+    expect(slider.value).toBe("75");
+    expect(slider.disabled).toBe(false);
+    fireEvent.change(slider, { target: { value: "40" } });
+    expect(localStorage.getItem(STORAGE_KEYS.crackle)).toBe("40");
   });
 
-  it("remembers the first visit once the card has faded, so the next one has no card", async () => {
-    vi.useFakeTimers();
-    const { scene } = fakeScene();
-    setup(() => <Entrance scene={scene} skipIntro={false} />);
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: es.entrance.enter })));
-    // Still fading: the card is there and the visit isn't marked yet.
-    expect(screen.getByRole("dialog")).toBeDefined();
-    expect(localStorage.getItem(STORAGE_KEYS.visited)).toBeNull();
-    await act(async () => void (await vi.advanceTimersByTimeAsync(600)));
-    expect(localStorage.getItem(STORAGE_KEYS.visited)).toBe("1");
-    expect(screen.queryByRole("dialog")).toBeNull();
+  it("is disabled while the sound is off", () => {
+    localStorage.setItem(STORAGE_KEYS.sound, "0");
+    setup(() => <SettingsButton />);
+    openSettings();
+    const slider = screen.getByRole("slider", { name: es.settings.crackle.legend });
+    // The fieldset is what is disabled; the slider inside is disabled with it.
+    expect(slider.matches(":disabled")).toBe(true);
   });
 
-  it("fades the card away after sitting down", async () => {
-    vi.useFakeTimers();
-    const { scene } = fakeScene();
-    setup(() => <Entrance scene={scene} skipIntro={false} />);
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: es.entrance.enter })));
-    await act(async () => void (await vi.advanceTimersByTimeAsync(600)));
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("shows no card with skipIntro, and sits them down", async () => {
-    const { scene, setSelf } = fakeScene();
-    const services = setup(() => <Entrance scene={scene} skipIntro />);
-    await act(async () => {});
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(services.presence.self).toBeDefined();
-    expect(setSelf).toHaveBeenCalled();
+  it("has a separate slider for the music, starts at 25", () => {
+    setup(() => <SettingsButton />);
+    openSettings();
+    const music = screen.getByRole("slider", {
+      name: es.settings.music.legend,
+    }) as HTMLInputElement;
+    expect(music.value).toBe("25");
+    fireEvent.change(music, { target: { value: "20" } });
+    expect(localStorage.getItem(STORAGE_KEYS.music)).toBe("20");
+    expect(localStorage.getItem(STORAGE_KEYS.crackle)).toBeNull();
   });
 });

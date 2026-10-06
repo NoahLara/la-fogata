@@ -13,7 +13,7 @@ import { PaperCard } from "./PaperCard";
 
 const FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const PRIMARY = `min-h-11 rounded-full bg-ember px-5 text-base font-medium text-ink shadow-ember hover:bg-ember-soft disabled:opacity-45 disabled:shadow-none disabled:hover:bg-ember ${FOCUS_RING}`;
+const PRIMARY = `min-h-11 rounded-full btn-ember px-5 text-base font-medium disabled:opacity-60 ${FOCUS_RING}`;
 const SECONDARY = `min-h-11 rounded-paper px-3 text-base text-ink-soft underline-offset-4 hover:text-ink hover:underline disabled:opacity-45 ${FOCUS_RING}`;
 
 type View = "details" | "answering" | "returning";

@@ -14,6 +14,12 @@
   --color-ember-soft: #ffb070;
   /* Ground faintly lit by the fire: the disc behind a character that is lighter than the dark. */
   --color-hearth: #3d2413;
+  /* The lit top of a raised wooden button, and the thick dark lip it sits on. */
+  --color-bark-lit: #43301f;
+  --color-lip: #0f0905;
+  /* The lower, deeper orange of an ember button, and its lip. */
+  --color-ember-deep: #e07a38;
+  --color-ember-lip: #9c4a1b;
   --color-gold: #ffd9a0;
   --color-paper: #f3e6cb;
   --color-paper-glow: #f0d6a6;
@@ -50,6 +56,369 @@ body {
   background: var(--color-night);
   color: var(--color-gold);
   font-family: var(--font-ui);
+}
+
+/*
+ * Chunky buttons: a flat, rounded face in one colour with a solid, darker lip underneath (no gradients, gloss or
+ * glow). Pressed, the face drops onto its lip and the lip is gone (`--lip` is how far it travels). `btn-wood` is
+ * the dark wood of the scene's buttons, `btn-ember` the orange of the main action, `btn-tile` the
+ * characters in the settings (the chosen one is outlined in gold). With reduced motion the press is only instant.
+ */
+.btn-wood,
+.btn-ember,
+.btn-tile {
+  --lip: 4px;
+  transform: translateY(0);
+  transition:
+    transform 70ms ease-out,
+    box-shadow 70ms ease-out,
+    background-color 120ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn-wood,
+.btn-tile {
+  color: var(--color-gold);
+  background-color: var(--color-bark-lit);
+  border: 1px solid color-mix(in srgb, var(--color-ember) 35%, transparent);
+  box-shadow: 0 var(--lip) 0 var(--color-lip);
+}
+
+.btn-ember {
+  color: var(--color-ink);
+  background-color: var(--color-ember);
+  border: 1px solid var(--color-ember-soft);
+  box-shadow: 0 var(--lip) 0 var(--color-ember-lip);
+}
+
+@media (hover: hover) {
+  .btn-wood:not(:disabled, [aria-disabled="true"]):hover,
+  .btn-tile:hover {
+    background-color: color-mix(in srgb, var(--color-bark-lit) 82%, var(--color-ember));
+  }
+
+  .btn-ember:not(:disabled, [aria-disabled="true"]):hover {
+    background-color: var(--color-ember-soft);
+  }
+}
+
+/* Pressed: it drops onto its lip. A toggle that is on (aria-pressed) and a chosen radio stay down. */
+.btn-wood:not(:disabled, [aria-disabled="true"]):active,
+.btn-wood[aria-pressed="true"],
+.btn-tile:active {
+  transform: translateY(var(--lip));
+  box-shadow: 0 0 0 var(--color-lip);
+}
+
+.btn-ember:not(:disabled, [aria-disabled="true"]):active {
+  transform: translateY(var(--lip));
+  box-shadow: 0 0 0 var(--color-ember-lip);
+}
+
+/* A chosen tile stays where it is (so the row stays level): outlined in gold, lit, with a small mark. */
+.btn-tile {
+  position: relative;
+}
+
+input:checked + .btn-tile {
+  background-color: var(--color-hearth);
+  border-color: var(--color-gold);
+  box-shadow:
+    0 var(--lip) 0 var(--color-lip),
+    0 0 0 2px var(--color-gold);
+}
+
+input:checked + .btn-tile::after {
+  content: "✓";
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: flex;
+  width: 1.125rem;
+  height: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--color-ember);
+  color: var(--color-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * A short choice (language, text size): one wooden trough with the options side by side. The chosen one is a raised
+ * orange piece in the trough; none of them moves, so the row stays level.
+ */
+.segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  background-color: var(--color-bark);
+  box-shadow:
+    inset 0 2px 4px rgb(0 0 0 / 0.55),
+    0 1px 0 color-mix(in srgb, white 60%, transparent);
+}
+
+.segment {
+  display: flex;
+  min-height: 2.5rem;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0 0.75rem;
+  text-align: center;
+  color: var(--color-gold);
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+@media (hover: hover) {
+  label:hover > .segment {
+    background-color: color-mix(in srgb, var(--color-bark-lit) 85%, var(--color-ember));
+  }
+}
+
+input:checked + .segment {
+  background-color: var(--color-ember);
+  color: var(--color-ink);
+  box-shadow: 0 2px 0 var(--color-ember-lip);
+}
+
+/* An on/off switch: a wooden slot with a knob that slides. */
+.switch {
+  position: relative;
+  width: 3.5rem;
+  height: 2rem;
+  flex: none;
+  cursor: pointer;
+  border-radius: 9999px;
+  background-color: var(--color-bark);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.55);
+  transition: background-color 140ms ease-out;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-paper);
+  box-shadow: 0 2px 0 var(--color-lip);
+  transition: transform 140ms ease-out;
+}
+
+.switch[aria-checked="true"] {
+  background-color: var(--color-ember);
+  box-shadow: inset 0 2px 4px rgb(120 50 10 / 0.5);
+}
+
+.switch[aria-checked="true"]::after {
+  transform: translateX(1.5rem);
+  box-shadow: 0 2px 0 var(--color-ember-lip);
+}
+
+/* A button that can't be pressed lies flat and dim. */
+.btn-wood:is(:disabled, [aria-disabled="true"]),
+.btn-ember:is(:disabled, [aria-disabled="true"]) {
+  transform: translateY(var(--lip));
+  box-shadow: none;
+  cursor: default;
+}
+
+.btn-wood:is(:disabled, [aria-disabled="true"]) {
+  background-color: var(--color-bark);
+}
+
+.btn-ember:disabled {
+  background-color: color-mix(in srgb, var(--color-ember) 60%, var(--color-bark));
+}
+
+/* Small icon buttons (the fish, the flag) have no body to raise: they only dip when pressed. */
+.btn-press {
+  transition: transform 70ms ease-out;
+}
+
+.btn-press:not(:disabled):active {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-wood,
+  .btn-ember,
+  .btn-tile,
+  .btn-press,
+  .segment,
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}
+
+/* A volume slider: a flat groove that fills with orange up to the knob, and a chunky knob that drops when held. */
+.volume-range {
+  appearance: none;
+  background: transparent;
+  --lip: 3px;
+}
+
+.volume-range::-webkit-slider-runnable-track,
+.volume-range::-moz-range-track {
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-ember) var(--fill, 50%),
+    var(--color-bark-lit) var(--fill, 50%)
+  );
+}
+
+.volume-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.4375rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-ember-soft);
+  background-color: var(--color-ember);
+  box-shadow: 0 var(--lip) 0 var(--color-ember-lip);
+  transition:
+    transform 70ms ease-out,
+    box-shadow 70ms ease-out;
+}
+
+.volume-range::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-ember-soft);
+  background-color: var(--color-ember);
+  box-shadow: 0 var(--lip) 0 var(--color-ember-lip);
+}
+
+.volume-range:active::-webkit-slider-thumb,
+.volume-range:active::-moz-range-thumb {
+  transform: translateY(var(--lip));
+  box-shadow: 0 0 0 var(--color-ember-lip);
+}
+
+.volume-range:disabled::-webkit-slider-thumb,
+.volume-range:disabled::-moz-range-thumb {
+  background-color: var(--color-bark-lit);
+  border-color: var(--color-bark-lit);
+  box-shadow: none;
+}
+
+/*
+ * The settings panel is cream paper in a wooden frame, under a wooden plank with the title, so the brown buttons
+ * stand out on it. What sits on the cream is dark brown (`ink`), and the focus ring is dark too, since gold would
+ * vanish on cream.
+ */
+.legend-text {
+  color: var(--legend-color, color-mix(in srgb, var(--color-gold) 90%, transparent));
+}
+
+.settings-cream {
+  --legend-color: var(--color-ink-soft);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  border: 0.375rem solid var(--color-bark-lit);
+  box-shadow:
+    0 0 0 1px var(--color-lip),
+    0 18px 40px rgb(0 0 0 / 0.55);
+}
+
+.settings-cream :is(button, input):focus-visible,
+.settings-cream input:focus-visible + span {
+  outline-color: var(--color-ink);
+}
+
+.wood-plank {
+  background-color: var(--color-bark-lit);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 22px,
+    rgb(0 0 0 / 0.1) 22px 23px,
+    transparent 23px 51px,
+    rgb(255 217 160 / 0.05) 51px 52px
+  );
+  border-bottom: 3px solid var(--color-lip);
+  color: var(--color-gold);
+}
+
+/* On the plank the close button is a darker wood than the plank itself, and its focus ring is gold. */
+.wood-plank .btn-wood {
+  background-color: var(--color-bark);
+}
+
+.settings-cream .wood-plank button:focus-visible {
+  outline-color: var(--color-gold);
+}
+
+/* The loading screen: the flames sway and the embers rise while the scene is built; it fades when it is ready. */
+.loading-fire {
+  transition: opacity 0.6s ease;
+}
+
+.loading-fire[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: loading-flicker 1.1s ease-in-out infinite alternate;
+}
+
+.loading-ember {
+  animation: loading-rise 2.6s ease-out infinite;
+}
+
+@keyframes loading-flicker {
+  from {
+    transform: scale(1, 0.92) skewX(-3deg);
+  }
+  to {
+    transform: scale(0.94, 1.06) skewX(3deg);
+  }
+}
+
+@keyframes loading-rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-fire {
+    transition: none;
+  }
+
+  .loading-flame,
+  .loading-ember {
+    animation: none;
+  }
+
+  .loading-ember {
+    opacity: 0.6;
+  }
 }
 
 /* The burden form: a sheet of paper by the fire. */

@@ -18,6 +18,7 @@ import { OtherStarCard, type AccompanyOutcome } from "./OtherStarCard";
 import { skyCounts, groupName } from "./skySummary";
 import { SkyChevrons } from "./SkyChevrons";
 import { StarCard } from "./StarCard";
+import { useSound } from "@/sound/SoundProvider";
 import { useEdgeHover } from "./useEdgeHover";
 import { useSkyDrag } from "./useSkyDrag";
 
@@ -53,6 +54,7 @@ interface Star {
 export function PetitionSky({ scene }: { scene: FogataScene }) {
   const { t, locale } = useI18n();
   const { petitions, prayers, presence } = useServices();
+  const sound = useSound();
   const { busy, hold, say, announce, reportDialog } = useInteraction();
   const [mine, setMine] = useState<readonly Petition[]>([]);
   // Other people's petitions that have a star in the sky (never one the visitor reported).
@@ -267,6 +269,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const accompany = async (petition: Petition): Promise<AccompanyOutcome> => {
     const result = await prayers.pray(petition.id);
     if (result.status === "prayed") {
+      sound.play("ichthys");
       const self = presence.self?.id;
       if (self) scene.sendLight(self, petition.id);
       else scene.pulseStar(petition.id);
