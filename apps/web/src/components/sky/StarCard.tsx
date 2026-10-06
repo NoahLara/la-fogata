@@ -114,6 +114,9 @@ export function StarCard({
           <label htmlFor={`${textId}-line`} className="shrink-0 text-sm text-ink-soft">
             {t.sky.answerFieldLabel}
           </label>
+          <p id={`${textId}-help`} className="shrink-0 text-sm text-ink-soft">
+            {t.sky.answerHelper}
+          </p>
           <textarea
             id={`${textId}-line`}
             autoFocus
@@ -123,7 +126,7 @@ export function StarCard({
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
-            aria-describedby={`${textId}-count`}
+            aria-describedby={`${textId}-help ${textId}-count`}
             className="ruled font-hand m-0 block min-h-0 w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent p-0 text-[1.5rem] text-ink caret-ink outline-none placeholder:text-ink-faint"
           />
           <p

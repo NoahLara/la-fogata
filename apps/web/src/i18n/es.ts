@@ -47,7 +47,9 @@ export const es = {
   },
   petition: {
     title: "Pídelo",
-    helper: "Se volverá una estrella.",
+    // If it is for someone, only their first name and surname: others read it and can pray along.
+    helper:
+      "Se volverá una estrella. Si pides por alguien, escribe solo su nombre y su apellido, sin direcciones ni más datos, para que otros que lo lean puedan orar contigo.",
     // Faint, handwritten, on the first ruled line.
     placeholder: "Escribe lo que pides…",
     fieldLabel: "Lo que pides",
@@ -89,7 +91,9 @@ export const es = {
     answeredOn: "Respondida el {date}",
     markAnswered: "Marcar como respondida",
     answerFieldLabel: "¿Cómo pasó?",
-    answerPlaceholder: "Cuenta cómo pasó…",
+    answerPlaceholder: "Cuéntanos cómo pasó…",
+    // Under the field where the author tells how it was answered.
+    answerHelper: "Cuéntanos cómo pasó, para que otros crean y su fe en la Fogata crezca.",
     // {count} of {max} used.
     counter: "{count} de {max}",
     confirm: "Confirmar",
