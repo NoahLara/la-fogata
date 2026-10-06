@@ -81,7 +81,6 @@ export const es = {
     starOtherAnswered: "Respondida: {text}",
     // The name of the group of every star in the sky, for a screen reader.
     groupAll: "Estrellas del cielo",
-    cardLabel: "Tu petición",
     answered: "Respondida",
     markAnswered: "Marcar como respondida",
     answerFieldLabel: "¿Cómo pasó?",
@@ -186,7 +185,6 @@ export const es = {
     link: "Encontrar una línea de ayuda",
     back: "Volver a la fogata",
   },
-  /** Only shown with ?demo in development. */
   // The other campfires, and who comes and goes at this one.
   company: {
     // Said once when the visitor sits alone, and read as the scene's description. {count} is how many other fires burn.
@@ -205,6 +203,7 @@ export const es = {
       other: "Ahora son {count} junto al fuego.",
     },
   },
+  /** Only shown with ?demo in development. */
   demo: {
     groupLabel: "Controles de demostración",
     arrives: "Alguien llega",

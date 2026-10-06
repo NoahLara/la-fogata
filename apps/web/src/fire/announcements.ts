@@ -1,5 +1,6 @@
+import { ANNOUNCE_GAP_MS } from "@/design/announceLimiter";
 /** Seconds between two announcements to a screen reader about people coming and going. */
-export const ANNOUNCE_WINDOW_MS = 10_000;
+export const ANNOUNCE_WINDOW_MS = ANNOUNCE_GAP_MS;
 
 interface Options {
   now: () => number;

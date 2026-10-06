@@ -18,7 +18,6 @@ export function ModalDialog({
   style,
   handing,
   onCancel,
-  persistent = false,
 }: {
   labelledBy: string;
   describedBy?: string;
@@ -30,8 +29,6 @@ export function ModalDialog({
   handing?: boolean;
   /** Escape was pressed: call `preventDefault` to keep the dialog open. */
   onCancel?: (event: React.SyntheticEvent<HTMLDialogElement>) => void;
-  /** Escape can't close it: it is only left by what the page does. */
-  persistent?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -51,18 +48,8 @@ export function ModalDialog({
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       // Escape closes the dialog by itself; this keeps React's state in step.
-      onClose={(event) => {
-        // A second Escape can close a dialog without a `cancel` event; a persistent one just opens again.
-        if (persistent) {
-          if (!event.currentTarget.open) event.currentTarget.showModal();
-          return;
-        }
-        onClose();
-      }}
-      onCancel={(event) => {
-        if (persistent) event.preventDefault();
-        onCancel?.(event);
-      }}
+      onClose={onClose}
+      onCancel={onCancel}
       className={className}
       style={style}
       data-handing={handing ? "" : undefined}
