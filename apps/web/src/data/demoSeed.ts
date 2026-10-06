@@ -1,9 +1,17 @@
 import type { Locale } from "@/i18n/locale";
 import type { MemoryPetitions } from "./memoryPetitions";
 
+/** One sample petition of another person. */
+export interface DemoPetition {
+  text: string;
+  prayers: number;
+  /** Answered: how it happened (may be empty for an answer without a line). */
+  answered?: string;
+}
+
 /** The sample petitions' module: it only exists in development, so the page passes a loader for it there and nothing in production. */
 export type DemoLoader = () => Promise<{
-  DEMO_PETITIONS: Record<Locale, readonly { text: string; prayers: number; answered?: string }[]>;
+  DEMO_PETITIONS: Record<Locale, readonly DemoPetition[]>;
 }>;
 
 /**

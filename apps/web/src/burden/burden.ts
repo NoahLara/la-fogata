@@ -9,11 +9,14 @@ export function burdenLength(text: string): number {
   return Array.from(text).length;
 }
 
-/** Cuts text down to the limit, never splitting a character in half. */
+/** Cuts text down to `max` characters, never splitting a character in half. */
+export function limitText(text: string, max: number): string {
+  return burdenLength(text) <= max ? text : Array.from(text).slice(0, max).join("");
+}
+
+/** Cuts a burden down to the limit. */
 export function limitBurden(text: string): string {
-  return burdenLength(text) <= MAX_BURDEN_LENGTH
-    ? text
-    : Array.from(text).slice(0, MAX_BURDEN_LENGTH).join("");
+  return limitText(text, MAX_BURDEN_LENGTH);
 }
 
 /** The fewest characters a burden can have, so a stray tap doesn't throw an empty sheet into the fire. */

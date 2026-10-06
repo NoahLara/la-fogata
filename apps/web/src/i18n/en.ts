@@ -77,7 +77,6 @@ export const en = {
     starOtherAnswered: "Answered: {text}",
     // The name of the group of every star in the sky, for a screen reader.
     groupAll: "Stars in the sky",
-    cardLabel: "Your star",
     answered: "Answered",
     markAnswered: "Mark as answered",
     answerFieldLabel: "How did it happen?",
@@ -175,7 +174,6 @@ export const en = {
     link: "Find a helpline",
     back: "Back to the fire",
   },
-  /** Only shown with ?demo in development. */
   // The other campfires, and who comes and goes at this one.
   company: {
     // Said once when the visitor sits alone, and read as the scene's description. {count} is how many other fires burn.
@@ -194,6 +192,7 @@ export const en = {
       other: "There are {count} by the fire now.",
     },
   },
+  /** Only shown with ?demo in development. */
   demo: {
     groupLabel: "Demo controls",
     arrives: "Someone arrives",

@@ -23,3 +23,8 @@ export function paperOutline(seed: number, perSide = 10, wobble = 0.006): UnitPo
 
 /** The seed of the sheet people write on, so the page and the scene draw the same one. */
 export const PAPER_SEED = 11;
+
+/** The paper's irregular outline as an SVG `points` string in a 100 x 100 box, for the sheet every card is written on. */
+export const PAPER_OUTLINE_POINTS = paperOutline(PAPER_SEED)
+  .map(({ x, y }) => `${(x * 100).toFixed(2)},${(y * 100).toFixed(2)}`)
+  .join(" ");

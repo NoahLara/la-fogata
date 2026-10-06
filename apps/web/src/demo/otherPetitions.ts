@@ -2,14 +2,8 @@
  * Sample petitions of other people, for looking at the sky in development (`?demo`). This module is only ever
  * loaded by a dynamic import that a production build removes, so none of this text reaches a visitor.
  */
+import type { DemoPetition } from "@/data/demoSeed";
 import type { Locale } from "@/i18n/locale";
-
-export interface DemoPetition {
-  text: string;
-  prayers: number;
-  /** Answered: how it happened (may be empty for an answer without a line). */
-  answered?: string;
-}
 
 const es: readonly DemoPetition[] = [
   { text: "Que mi mamá se recupere pronto", prayers: 7 },

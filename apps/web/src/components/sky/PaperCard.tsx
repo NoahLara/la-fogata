@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { paperOutline, PAPER_SEED } from "@/design/paperEdge";
+import { PAPER_OUTLINE_POINTS } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
-
-const OUTLINE = paperOutline(PAPER_SEED)
-  .map(({ x, y }) => `${(x * 100).toFixed(2)},${(y * 100).toFixed(2)}`)
-  .join(" ");
 
 /** Room between the star and its card, and the card's width, in pixels. */
 const GAP = 28;
@@ -114,7 +110,7 @@ export function PaperCard({
           aria-hidden="true"
           className="paper-shape absolute inset-0 h-full w-full"
         >
-          <polygon points={OUTLINE} style={{ fill: "var(--color-paper)" }} />
+          <polygon points={PAPER_OUTLINE_POINTS} style={{ fill: "var(--color-paper)" }} />
         </svg>
         <div className="relative flex flex-col gap-3 px-8 pt-7 pb-6">{children}</div>
       </div>

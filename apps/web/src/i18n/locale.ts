@@ -7,8 +7,7 @@ export const DEFAULT_LOCALE: Locale = "es";
 export const LOCALE_COOKIE = "lang";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
-/** The same in every language on purpose: the switch must be readable by someone who can't read the current one. */
-export const LANGUAGE_GROUP_LABEL = "Idioma / Language";
+/** Each language is named in itself, in every language: the switch must be readable by someone who can't read the current one. */
 export const LANGUAGE_OPTIONS: readonly { locale: Locale; short: string; name: string }[] = [
   { locale: "es", short: "ES", name: "Español" },
   { locale: "en", short: "EN", name: "English" },

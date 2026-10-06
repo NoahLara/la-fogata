@@ -2,21 +2,19 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { burdenLength } from "@/burden/burden";
-import { paperOutline, PAPER_SEED } from "@/design/paperEdge";
+import { FOLD } from "@/design/fold";
+import { PAPER_OUTLINE_POINTS } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
 import { useI18n } from "@/i18n/I18nProvider";
+import { prefersReducedMotion } from "@/scene/motion";
 import { ModalDialog } from "../ModalDialog";
 import { FoldingNote, type NoteTarget } from "./FoldingNote";
 import { measurePaper, type PaperMeasure } from "./measure";
 
 /** How long the title and buttons take to fade, so only paper and writing are left to fold. */
-const CHROME_FADE_MS = 200;
+const CHROME_FADE_MS = FOLD.chromeFade * 1000;
 /** With reduced motion the sheet fades out; this is how long before the scene's note takes over. */
 const LEAVE_MS = 250;
-
-const OUTLINE = paperOutline(PAPER_SEED)
-  .map(({ x, y }) => `${(x * 100).toFixed(2)},${(y * 100).toFixed(2)}`)
-  .join(" ");
 
 const FADE = "transition-opacity duration-200 motion-reduce:transition-none";
 
@@ -159,7 +157,7 @@ export function PaperDialog({
     if (!accepted) return;
     started.current = true;
     setStage("fading");
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (prefersReducedMotion()) {
       // No fold: the sheet fades away and the scene's note fades into the fire.
       setHanding(true);
       setStage("leaving");
@@ -214,7 +212,7 @@ export function PaperDialog({
               <stop offset="1" style={{ stopColor: "var(--color-paper-glow)" }} />
             </linearGradient>
           </defs>
-          <polygon points={OUTLINE} fill="url(#paper-fill)" />
+          <polygon points={PAPER_OUTLINE_POINTS} fill="url(#paper-fill)" />
         </svg>
         <form
           onSubmit={(event) => {

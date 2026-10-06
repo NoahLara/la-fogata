@@ -36,10 +36,6 @@ interface Settings extends Preferences {
 
 const SettingsContext = createContext<Settings | undefined>(undefined);
 
-/**
- * The visitor's settings. They live in the browser only (localStorage), so the server renders the defaults and
- * the saved choices are read once the page is up; `ready` tells when.
- */
 /** The saved choices, read from the browser once and then kept here; React follows it with `useSyncExternalStore`. */
 let current: Preferences | undefined;
 const listeners = new Set<() => void>();
