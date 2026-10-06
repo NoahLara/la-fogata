@@ -424,7 +424,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     // Anyone still walking in sits down where they were headed. Anyone walking off is gone now, and what was to
     // happen once they were (such as a new character arriving in their seat) happens after the rebuild.
     const interrupted = [...leaving.values()];
-    leaving.clear();
     roster.removeLeaving();
     roster.markAllSeated();
     view.setWidth(panoramaWidth(width));
@@ -774,9 +773,12 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     roster.markLeaving(id);
     if (animate && selfId !== undefined && id !== selfId) emitSound("leave");
     const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+    let finished = false;
     const gone = () => {
       // Once only: a rebuild may already have finished this leaving.
-      if (!leaving.delete(id)) return;
+      if (finished) return;
+      finished = true;
+      leaving.delete(id);
       roster.remove(id);
       if (forgetCooldown) cooldowns.forget(id);
       onGone?.();
