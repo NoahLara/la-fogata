@@ -191,6 +191,16 @@ describe("MemoryPetitions: writing", () => {
     expect((await service.create("por mi familia")).status).toBe("created");
   });
 
+  it("never saves an answer with signs of risk", async () => {
+    const { service } = petitions();
+    const created = await service.create("por mi familia");
+    if (created.status !== "created") throw new Error("expected a created petition");
+    expect((await service.answer(created.petition.id, "quiero quitarme la vida")).status).toBe(
+      "risk",
+    );
+    expect((await service.mine())[0]?.answered).toBeFalsy();
+  });
+
   it("lists the visitor's own petitions only", async () => {
     const { service } = petitions();
     service.seedOther("de otra persona");

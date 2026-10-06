@@ -93,7 +93,9 @@ export type AnswerPetitionResult =
   | { status: "already-answered" }
   /** An answered petition always says how it happened. */
   | { status: "note-required" }
-  | { status: "too-long" };
+  | { status: "too-long" }
+  /** Signs of risk in the line: it is never saved or shown, and the visitor is offered help instead. */
+  | { status: "risk" };
 
 export type RemovePetitionResult =
   { status: "removed" } | { status: "not-yours" } | { status: "not-found" };

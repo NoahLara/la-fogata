@@ -17,6 +17,7 @@ export class MemoryKeyStore implements KeyStore {
 }
 
 const STORAGE_KEY = "fogata.ownerKey";
+const KEY_SHAPE = /^[0-9a-f]{32}$/;
 
 /** Keeps the key in the browser's localStorage. Storage can be blocked, so it falls back to memory for the visit. */
 export class BrowserKeyStore implements KeyStore {
@@ -24,7 +25,8 @@ export class BrowserKeyStore implements KeyStore {
 
   get() {
     try {
-      return window.localStorage.getItem(STORAGE_KEY) ?? this.fallback;
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      return stored !== null && KEY_SHAPE.test(stored) ? stored : this.fallback;
     } catch {
       return this.fallback;
     }
