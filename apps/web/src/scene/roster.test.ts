@@ -20,6 +20,13 @@ describe("Roster", () => {
     expect(roster.members()).toHaveLength(1);
   });
 
+  it("finds one member by id", () => {
+    const roster = new Roster(7);
+    roster.add({ id: "a", species: "fox", seat: 2 }, "arriving");
+    expect(roster.get("a")).toEqual({ id: "a", species: "fox", seat: 2, status: "arriving" });
+    expect(roster.get("nobody")).toBeUndefined();
+  });
+
   it("counts only those who have sat down", () => {
     const roster = new Roster(7);
     roster.add({ id: "a", species: "fox", seat: 0 }, "seated");

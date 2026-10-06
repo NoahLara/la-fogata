@@ -13,11 +13,14 @@ export function useVisualViewport(): { inset: number; height: number | undefined
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!viewport) return;
-    const update = () =>
-      setState({
-        inset: keyboardInset(window.innerHeight, viewport.height, viewport.offsetTop),
-        height: Math.round(viewport.height),
-      });
+    const update = () => {
+      const inset = keyboardInset(window.innerHeight, viewport.height, viewport.offsetTop);
+      const height = Math.round(viewport.height);
+      // Scrolling reports the same numbers again and again: keep the state, so nothing re-renders.
+      setState((previous) =>
+        previous.inset === inset && previous.height === height ? previous : { inset, height },
+      );
+    };
     update();
     viewport.addEventListener("resize", update);
     viewport.addEventListener("scroll", update);

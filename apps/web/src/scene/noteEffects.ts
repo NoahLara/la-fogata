@@ -271,6 +271,8 @@ export function createNoteEffects(layout: SceneLayout, bedLayer: Container): Not
   const finish = (note: Note) => {
     if (note.stage === "done") return;
     note.stage = "done";
+    const at = notes.indexOf(note);
+    if (at >= 0) notes.splice(at, 1);
     note.holder.destroy({ children: true });
     note.hooks.onDone();
   };
@@ -355,7 +357,6 @@ export function createNoteEffects(layout: SceneLayout, bedLayer: Container): Not
             note.hooks.onEmbers(5);
           }
           if (progress >= 1) {
-            notes.splice(i, 1);
             finish(note);
           }
         } else if (note.stage === "fading") {
@@ -363,7 +364,6 @@ export function createNoteEffects(layout: SceneLayout, bedLayer: Container): Not
           note.paper.alpha = alpha;
           note.halo.alpha = glow;
           if (inStage >= NOTE.fade) {
-            notes.splice(i, 1);
             finish(note);
           }
         }
