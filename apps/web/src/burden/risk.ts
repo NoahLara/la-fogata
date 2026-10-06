@@ -11,9 +11,11 @@ const RISK_PATTERNS: readonly RegExp[] = [
   /ojala (me )?muriera/,
   /(voy a|quiero|pienso|planeo) matarme|me voy a matar/,
   /hacerme dano|me (quiero |voy a |podria |pienso )?hacer dano|lastimarme|autolesion|hacerme algo malo|cortarme las venas|cortarme los brazos/,
-  /mejor sin mi|seria mejor (que )?(yo )?no (estuviera|existiera)|nadie me va a extranar/,
+  /mejor sin mi\b|seria mejor (que )?(yo )?no (estuviera|existiera)|nadie me va a extranar/,
+  /quiero desaparecer|no tengo ganas de vivir|ya no aguanto mas (esta )?vida|me corto (cuando|las |los |a proposito)|cortandome|me estoy cortando|me quiero ir de este mundo/,
   /kill myself|end my life|take my (own )?life|want to die|wanna die|hurt myself|self[- ]?harm/,
-  /(do not|don't|dont) want to (live|be alive|exist)|better off without me/,
+  /(do not|don't|dont) want to (live|be alive|exist|be here)|better off without me/,
+  /kill me\b|end it all|(want|wish) (to|i (was|were)) (disappear|dead)|wish i (was|were) dead|cutting myself|cut myself|don't want to be here anymore|no reason to live/,
 ];
 
 function plain(text: string): string {

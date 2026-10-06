@@ -101,6 +101,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     const line = note.trim();
     if (!line) return { status: "note-required" };
     if (burdenLength(line) > PETITION_ANSWER_MAX_LENGTH) return { status: "too-long" };
+    if (hasRiskSignals(line)) return { status: "risk" };
     record.answered = { at: this.options.now(), note: line };
     const petition = this.view(record);
     this.events.emit({ type: "answered", petition });

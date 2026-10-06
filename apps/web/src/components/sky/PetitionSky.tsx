@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
 import { skyLimit } from "@/data/sky";
 import type { Petition } from "@/data/types";
@@ -317,13 +316,13 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   };
 
   const answer = async (petition: Petition, line: string): Promise<string | undefined> => {
+    const result = await petitions.answer(petition.id, line);
     // Signs of risk: the line is dropped, the star keeps waiting, and the help screen opens.
-    if (hasRiskSignals(line)) {
+    if (result.status === "risk") {
       setOpenId(undefined);
       setHelp(true);
       return undefined;
     }
-    const result = await petitions.answer(petition.id, line);
     if (result.status === "not-yours") return t.sky.notYours;
     if (result.status === "not-found") return t.sky.notFound;
     if (result.status === "note-required") return t.sky.noteRequired;
