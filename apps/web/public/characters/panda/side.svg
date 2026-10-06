@@ -5,6 +5,7 @@
   <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#fcf4e4"/><stop offset=".55" stop-color="#eee0c8"/><stop offset="1" stop-color="#cdbb9e"/></radialGradient>
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+<filter id="blur-sm" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="blur-xl" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="3.6"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
@@ -12,6 +13,11 @@
 <ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
 <ellipse cx="0" cy="-56" rx="20" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
 <ellipse cx="-8" cy="-52" rx="15" ry="4.5" fill="#a8967a" opacity=".3" filter="url(#blur-lg)"/>
+
+<ellipse cx="10" cy="-18" rx="20" ry="12" fill="#d8c6a4" opacity=".4" filter="url(#blur-lg)"/>
+<ellipse cx="-12" cy="-80" rx="12" ry="6" fill="#fffaf0" opacity=".5" filter="url(#blur-lg)"/>
+<ellipse cx="-27" cy="-62" rx="6" ry="4.5" fill="#fffaf0" opacity=".75" filter="url(#blur-sm)"/>
+<ellipse cx="2" cy="-64" rx="12" ry="8" fill="#d9c8a8" opacity=".35" filter="url(#blur-lg)"/>
 <circle cx="-4" cy="-90" r="9.2" fill="#1c191b" filter="url(#edge)"/>
 <path d="M-3,-58 C-9,-50 -13,-40 -15,-31" fill="none" stroke="#1c191b" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#edge)"/>
 <ellipse cx="-15" cy="-21" rx="10" ry="20" fill="#1c191b" filter="url(#edge)"/>
@@ -21,5 +27,11 @@
 <path d="M0,-8.1 C3.6,-4.5 5.4,0 5.4,2.7 A5.4,5.4 0 0 1 -5.4,2.7 C-5.4,0 -3.6,-4.5 0,-8.1Z" transform="translate(-17 -73) rotate(30)" fill="#1c191b" filter="url(#edge)"/>
 <ellipse cx="-38" cy="-64" rx="2.9" ry="2.2" fill="#1c191b" filter="url(#edge)"/>
 <ellipse cx="37" cy="-21" rx="5.6" ry="4.6" fill="#d9c8a8" opacity=".6" filter="url(#edge)"/>
+
+<ellipse cx="-4" cy="-93" rx="4.5" ry="2.8" fill="#3d3638" opacity=".7" filter="url(#blur-sm)"/>
+<path d="M-4,-56 C-10,-49 -14,-40 -16,-32" fill="none" stroke="#3d3638" stroke-width="5" stroke-linecap="round" opacity=".5" filter="url(#blur-sm)"/>
+<ellipse cx="-19" cy="-8.4" rx="7" ry="2" fill="#3d3638" opacity=".6" filter="url(#blur-sm)"/>
+<ellipse cx="9" cy="-7.6" rx="8" ry="2" fill="#3d3638" opacity=".6" filter="url(#blur-sm)"/>
+<ellipse cx="22" cy="-20" rx="10" ry="3" fill="#3d3638" opacity=".5" filter="url(#blur-sm)"/>
 </g>
 </g></svg>

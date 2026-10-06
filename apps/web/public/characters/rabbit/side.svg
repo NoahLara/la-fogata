@@ -6,11 +6,16 @@
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
   <filter id="tail-soft" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.6"/></filter>
+<filter id="blur-sm" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="blur-xl" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="3.6"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
 <rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
 <ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
+
+<ellipse cx="4" cy="-62" rx="14" ry="8" fill="#e5d0ac" opacity=".4" filter="url(#blur-lg)"/>
+<ellipse cx="-24" cy="-60" rx="6" ry="4" fill="#f4e4c6" opacity=".8" filter="url(#blur-sm)"/>
+<ellipse cx="-12" cy="-72" rx="9" ry="4" fill="#a58760" opacity=".3" filter="url(#blur-lg)"/>
 <ellipse cx="0" cy="-47" rx="14" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
 <ellipse cx="-13" cy="-36" rx="8" ry="14" fill="#f4e4c6" opacity=".95" filter="url(#blur-lg)"/>
 <ellipse cx="11" cy="-17" rx="17" ry="14.5" fill="#a58760" opacity=".5" filter="url(#blur-lg)"/>
@@ -18,5 +23,11 @@
 <ellipse cx="-1" cy="-3.5" rx="18" ry="4.6" fill="#cbb18c" filter="url(#edge)"/>
 <ellipse cx="-15" cy="-4.5" rx="6.5" ry="3.4" fill="#cbb18c" filter="url(#edge)"/>
 <g filter="url(#tail-soft)"><circle cx="29" cy="-22" r="8.4" fill="#e8c48c" /></g><g filter="url(#tail-soft)"><circle cx="29" cy="-22" r="6.6" fill="#f6d9a8" /></g>
+
+<ellipse cx="-3" cy="-87" rx="1.8" ry="16" transform="rotate(24 -3 -87)" fill="#e9c3a4" opacity=".7" filter="url(#blur-sm)"/>
+<path d="M-12,-78 C-8,-92 -2,-104 4,-110" fill="none" stroke="#a58760" stroke-width="1.1" stroke-linecap="round" opacity=".35" filter="url(#edge)"/>
+<path d="M8.2,-7.2 q0.7,1.5 1.2,3.8 M4.7,-6.4 q0.4,1.5 1.0,3.9 M-10.5,-25.7 q-0.1,1.6 0.1,4.0 M-3.9,-41.7 q1.5,1.3 2.2,3.3 M3.3,-48.3 q0.6,1.4 1.8,3.6 M-1.2,-9.7 q0.5,1.6 0.4,4.0 M-0.2,-17.9 q-0.4,1.6 0.1,4.0 M3.5,-43.5 q0.1,1.6 0.7,3.9 M2.7,-29.4 q0.4,1.5 1.2,3.8 M15.6,-25.8 q1.3,1.4 1.8,3.6 M15.1,-36.6 q0.6,1.4 1.8,3.6 M9.9,-34.2 q0.2,1.6 0.3,4.0 M-1.8,-11.0 q0.7,1.3 2.2,3.3 M17.4,-34.0 q0.0,1.6 -0.2,4.0 M19.5,-35.8 q0.7,1.4 1.9,3.5 M19.2,-36.9 q-0.7,1.6 -0.7,3.9 M-6.8,-27.9 q0.7,1.4 2.1,3.4 M2.8,-26.1 q1.0,1.5 1.0,3.9 M-7.8,-27.7 q0.6,1.6 0.4,4.0 M6.2,-8.2 q0.4,1.6 0.5,4.0 M8.8,-29.8 q0.7,1.5 1.5,3.7 M0.9,-42.8 q0.5,1.6 0.1,4.0 M8.0,-35.9 q1.1,1.4 2.0,3.5 M6.8,-9.4 q0.6,1.5 1.5,3.7 M8.2,-18.1 q0.2,1.6 -0.3,4.0 M12.3,-32.3 q1.0,1.5 1.6,3.7 M16.6,-37.0 q0.7,1.4 1.9,3.5 M-2.3,-39.7 q-0.0,1.6 0.0,4.0 M6.8,-9.2 q0.4,1.6 0.2,4.0 M-0.3,-43.7 q0.8,1.6 0.7,3.9" fill="none" stroke="#a58760" stroke-width="0.8" stroke-linecap="round" opacity="0.3" filter="url(#edge)"/>
+<path d="M-8.7,-43.6 q-0.4,1.4 -0.9,3.4 M-12.6,-36.8 q1.0,1.3 1.0,3.4 M-13.9,-36.7 q-0.3,1.4 -0.7,3.4 M-10.8,-41.0 q0.1,1.4 -0.4,3.5 M-14.6,-36.1 q-0.0,1.4 0.5,3.5 M-14.3,-48.4 q-0.5,1.4 -0.8,3.4 M-8.2,-43.8 q-0.4,1.3 -1.3,3.3 M-9.1,-30.9 q-0.3,1.3 -1.1,3.3 M-11.2,-48.2 q0.0,1.4 -0.9,3.4 M-14.4,-47.6 q-0.3,1.4 0.1,3.5 M-8.3,-30.0 q-0.4,1.4 -0.2,3.5 M-14.5,-33.4 q0.2,1.4 0.2,3.5" fill="none" stroke="#fff6e2" stroke-width="0.8" stroke-linecap="round" opacity="0.45" filter="url(#edge)"/>
+<ellipse cx="29" cy="-22" rx="5" ry="4" fill="#fffaf0" opacity=".5" filter="url(#blur-sm)"/>
 </g>
 </g></svg>
