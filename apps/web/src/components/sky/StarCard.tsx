@@ -9,7 +9,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { limitAnswer } from "@/petition/petition";
 import { cardState, countLabel } from "./cardState";
 import { Ichthys } from "./glyphs";
-import { PaperCard } from "./PaperCard";
+import { LetterDate } from "./LetterDate";
+import { LetterBody, LetterFoot, LetterHead, PaperCard } from "./PaperCard";
 
 const FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -24,16 +25,12 @@ type View = "details" | "answering" | "returning";
  */
 export function StarCard({
   petition,
-  star,
-  scene,
   busy,
   onClose,
   onAnswer,
   onReturn,
 }: {
   petition: Petition;
-  star: { x: number; y: number };
-  scene: { width: number; height: number };
   busy: boolean;
   /** `refocus` is false when focus is already going somewhere else (tabbing out, a tap elsewhere). */
   onClose: (refocus: boolean) => void;
@@ -89,49 +86,32 @@ export function StarCard({
   const count = burdenLength(line);
 
   return (
-    <PaperCard
-      petitionId={petition.id}
-      star={star}
-      scene={scene}
-      labelledBy={textId}
-      onClose={onClose}
-    >
-      <p id={textId} className="font-hand text-[1.65rem] leading-8 break-words text-ink">
-        {petition.text}
-      </p>
-      {answered && (
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-ink-soft">{t.sky.answered}</p>
-          {answered.note && (
-            <>
-              <p className="text-sm text-ink-soft">{t.sky.answerFieldLabel}</p>
-              <p className="font-hand text-[1.5rem] leading-8 break-words text-ink">
-                {answered.note}
-              </p>
-            </>
-          )}
-        </div>
-      )}
+    <PaperCard petitionId={petition.id} labelledBy={textId} onClose={onClose}>
+      <LetterHead>
+        <LetterDate day={petition.createdOn} kind="written" />
+      </LetterHead>
 
-      {state.showCount && (
-        <p className="flex items-center gap-2 text-ink-soft">
-          <Ichthys pressed={false} />
-          <span aria-hidden="true" className="text-base tabular-nums">
-            {state.count}
-          </span>
-          <span className="sr-only">{accompany}</span>
-        </p>
-      )}
-
-      {view === "answering" && (
+      {view === "answering" ? (
         <form
-          className="flex flex-col gap-2"
+          className="flex min-h-0 flex-1 flex-col gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             void run(() => onAnswer(line.trim()));
           }}
         >
-          <label htmlFor={`${textId}-line`} className="text-sm text-ink-soft">
+          {/* What was asked stays in view above, with room of its own to scroll when it is long. */}
+          <div
+            tabIndex={0}
+            className="letter-scroll max-h-[34%] shrink-0 overflow-y-auto overscroll-contain pr-2 pb-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <p
+              id={textId}
+              className="font-hand text-[1.4rem] leading-8 break-words whitespace-pre-wrap text-ink-soft"
+            >
+              {petition.text}
+            </p>
+          </div>
+          <label htmlFor={`${textId}-line`} className="shrink-0 text-sm text-ink-soft">
             {t.sky.answerFieldLabel}
           </label>
           <textarea
@@ -144,90 +124,135 @@ export function StarCard({
             autoCorrect="off"
             spellCheck={false}
             aria-describedby={`${textId}-count`}
-            className="ruled font-hand m-0 block h-24 w-full resize-none overflow-y-auto border-0 bg-transparent p-0 text-[1.5rem] text-ink caret-ink outline-none placeholder:text-ink-faint"
+            className="ruled font-hand m-0 block min-h-0 w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent p-0 text-[1.5rem] text-ink caret-ink outline-none placeholder:text-ink-faint"
           />
           <p
             id={`${textId}-count`}
             aria-hidden="true"
-            className="h-5 self-end text-sm text-ink-soft tabular-nums"
+            className="h-5 shrink-0 self-end text-sm text-ink-soft tabular-nums"
           >
             {format(t.sky.counter, { count, max: PETITION_ANSWER_MAX_LENGTH })}
           </p>
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              className={SECONDARY}
-              onClick={() => {
-                setLine("");
-                backToDetails();
-              }}
-            >
-              {t.sky.cancel}
-            </button>
-            <button
-              type="submit"
-              disabled={working || busy || line.trim() === ""}
-              className={PRIMARY}
-            >
-              {t.sky.confirm}
-            </button>
-          </div>
+          <LetterFoot>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className={SECONDARY}
+                onClick={() => {
+                  setLine("");
+                  backToDetails();
+                }}
+              >
+                {t.sky.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={working || busy || line.trim() === ""}
+                className={PRIMARY}
+              >
+                {t.sky.confirm}
+              </button>
+            </div>
+          </LetterFoot>
         </form>
-      )}
-
-      {view === "returning" && (
-        <div className="flex flex-col gap-3">
-          <p ref={questionRef} tabIndex={-1} className="text-base text-ink outline-none">
-            {t.sky.returnQuestion}
-          </p>
-          <div className="flex items-center justify-end gap-3">
-            <button type="button" className={SECONDARY} onClick={backToDetails}>
-              {t.sky.cancel}
-            </button>
-            <button
-              type="button"
-              disabled={working || busy}
-              className={PRIMARY}
-              onClick={() => void run(onReturn)}
+      ) : (
+        <>
+          <LetterBody>
+            <p
+              id={textId}
+              className="font-hand text-[1.65rem] leading-9 break-words whitespace-pre-wrap text-ink"
             >
-              {t.sky.returnConfirm}
-            </button>
-          </div>
-        </div>
+              {petition.text}
+            </p>
+            {answered && (
+              <div className="mt-6 border-t border-ink/15 pt-4">
+                <div className="flex items-center justify-between gap-3 pb-2">
+                  <p className="text-sm font-medium text-ink-soft">{t.sky.answered}</p>
+                  <LetterDate day={answered.on} kind="answered" />
+                </div>
+                {answered.note && (
+                  <>
+                    <p className="text-sm text-ink-soft">{t.sky.answerFieldLabel}</p>
+                    <p className="font-hand text-[1.5rem] leading-8 break-words whitespace-pre-wrap text-ink">
+                      {answered.note}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+            {view === "returning" && (
+              <p
+                ref={questionRef}
+                tabIndex={-1}
+                className="mt-6 border-t border-ink/15 pt-4 text-base text-ink outline-none"
+              >
+                {t.sky.returnQuestion}
+              </p>
+            )}
+          </LetterBody>
+          <LetterFoot>
+            {view === "returning" ? (
+              <div className="flex items-center justify-end gap-3">
+                <button type="button" className={SECONDARY} onClick={backToDetails}>
+                  {t.sky.cancel}
+                </button>
+                <button
+                  type="button"
+                  disabled={working || busy}
+                  className={PRIMARY}
+                  onClick={() => void run(onReturn)}
+                >
+                  {t.sky.returnConfirm}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-h-11 items-center gap-2 text-ink-soft">
+                  {state.showCount && (
+                    <>
+                      <Ichthys pressed={false} />
+                      <span aria-hidden="true" className="text-base tabular-nums">
+                        {state.count}
+                      </span>
+                      <span className="sr-only">{accompany}</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <button
+                    ref={openerRef}
+                    type="button"
+                    disabled={busy}
+                    className={SECONDARY}
+                    onClick={() => {
+                      setNotice(undefined);
+                      setView("returning");
+                    }}
+                  >
+                    {t.sky.returnToFire}
+                  </button>
+                  {!answered && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className={PRIMARY}
+                      onClick={() => {
+                        setNotice(undefined);
+                        setView("answering");
+                      }}
+                    >
+                      {t.sky.markAnswered}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            <p role="status" className="pt-1 text-center text-sm text-ink">
+              {notice}
+            </p>
+          </LetterFoot>
+        </>
       )}
-
-      {view === "details" && (
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
-            ref={openerRef}
-            type="button"
-            disabled={busy}
-            className={SECONDARY}
-            onClick={() => {
-              setNotice(undefined);
-              setView("returning");
-            }}
-          >
-            {t.sky.returnToFire}
-          </button>
-          {!answered && (
-            <button
-              type="button"
-              disabled={busy}
-              className={PRIMARY}
-              onClick={() => {
-                setNotice(undefined);
-                setView("answering");
-              }}
-            >
-              {t.sky.markAnswered}
-            </button>
-          )}
-        </div>
-      )}
-      <p role="status" className="text-center text-sm text-ink">
-        {notice}
-      </p>
     </PaperCard>
   );
 }

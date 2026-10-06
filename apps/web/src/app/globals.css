@@ -421,14 +421,43 @@ input:checked + .segment {
   }
 }
 
-/* The burden form: a sheet of paper by the fire. */
-
-.paper-dialog {
+/*
+ * The letter panel: where anything long is written or read (a burden, a petition, a star's card). On a laptop it
+ * takes the whole height of the screen on the right, with room around it; on a phone it fills the screen with
+ * margins at the sides. The sheet inside is a column: what heads the letter, the writing (which scrolls by
+ * itself when it is long) and a footer that is always in view.
+ */
+.letter-panel {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  bottom: max(1rem, var(--keyboard, 0px));
+  left: auto;
+  width: min(36rem, calc(100vw - 2rem));
+  height: auto;
   max-width: none;
+  max-height: none;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--color-ink);
+  overflow: visible;
+  z-index: 20;
+}
+
+@media (max-width: 639px) {
+  .letter-panel {
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: 0.75rem;
+    bottom: max(0.75rem, var(--keyboard, 0px));
+    left: 0.75rem;
+    width: auto;
+  }
+}
+
+/* The sheet of the burden form is a modal dialog; the scene stays visible, dimmed. */
+.paper-dialog {
   overflow: visible;
 }
 
@@ -443,7 +472,6 @@ input:checked + .segment {
 }
 
 .paper-sheet {
-  transform: rotate(-1deg);
   animation: sheet-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
@@ -466,6 +494,12 @@ input:checked + .segment {
     drop-shadow(0 18px 30px rgb(0 0 0 / 0.5));
 }
 
+/* The writing of a letter scrolls inside its panel: a thin warm scrollbar that does not take over the paper. */
+.letter-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(52 33 15 / 0.35) transparent;
+}
+
 /* Faint ruled lines that scroll with the writing. 2rem is the line height. */
 .ruled {
   line-height: 2rem;
@@ -481,11 +515,11 @@ input:checked + .segment {
 @keyframes sheet-in {
   from {
     opacity: 0;
-    transform: translateY(1.5rem) rotate(-1deg);
+    transform: translateX(1.5rem);
   }
   to {
     opacity: 1;
-    transform: translateY(0) rotate(-1deg);
+    transform: translateX(0);
   }
 }
 

@@ -42,7 +42,7 @@ describe("FOLD", () => {
     expect(FOLD.textFade).toBeLessThan(FOLD.first);
   });
 
-  it("tilts the paper by one degree to the left", () => {
-    expect((PAPER_TILT * 180) / Math.PI).toBeCloseTo(-1);
+  it("stands the paper straight, as the letter panel does", () => {
+    expect(PAPER_TILT).toBe(0);
   });
 });

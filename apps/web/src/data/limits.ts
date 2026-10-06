@@ -1,6 +1,7 @@
 /** The rules of petitions and prayers, shared by every implementation of the services. */
-export const PETITION_MAX_LENGTH = 140;
-export const PETITION_ANSWER_MAX_LENGTH = 140;
+/** Long enough for a letter: a petition and how it was answered are read in full, in a panel of their own. */
+export const PETITION_MAX_LENGTH = 2000;
+export const PETITION_ANSWER_MAX_LENGTH = 2000;
 export const PETITIONS_PER_DAY = 1;
 /** "Paz" and "Fe" are petitions. */
 export const PETITION_MIN_LENGTH = 2;

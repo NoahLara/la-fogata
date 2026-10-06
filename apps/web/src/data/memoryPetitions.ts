@@ -1,12 +1,14 @@
 import { hasRiskSignals } from "@/burden/risk";
 import { burdenLength } from "@/burden/burden";
 import type { Random } from "@/scene/random";
+import { dateKey } from "./dates";
 import { Emitter } from "./emitter";
 import type { KeyStore } from "./keyStore";
 import {
   PETITION_ANSWER_MAX_LENGTH,
   PETITION_MAX_LENGTH,
   PETITION_MIN_LENGTH,
+  DAY,
   PETITIONS_PER_DAY,
   petitionAvailableAt,
   PRAYERS_PER_SESSION,
@@ -156,14 +158,26 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   /** Demo and tests only: a petition someone else wrote. */
   seedOther(
     text: string,
-    options: { prayers?: number; createdAt?: number; answered?: string } = {},
+    options: {
+      prayers?: number;
+      createdAt?: number;
+      /** How many days ago it was written (the demo uses it so the letters carry different dates). */
+      daysAgo?: number;
+      answered?: string;
+    } = {},
   ): Petition {
     const record = this.add(text, "someone-else");
     record.prayers = options.prayers ?? 0;
     if (options.createdAt !== undefined) record.createdAt = options.createdAt;
+    else if (options.daysAgo !== undefined)
+      record.createdAt = this.options.now() - options.daysAgo * DAY;
     if (options.answered !== undefined) {
       record.answered = {
-        at: this.options.now(),
+        // Answered some time after it was written, and never in the future.
+        at: Math.min(
+          this.options.now(),
+          record.createdAt + Math.ceil((options.daysAgo ?? 0) / 2) * DAY,
+        ),
         ...(options.answered ? { note: options.answered } : {}),
       };
     }
@@ -223,8 +237,17 @@ export class MemoryPetitions implements PetitionService, PrayerService {
       id: record.id,
       text: record.text,
       createdAt: record.createdAt,
+      createdOn: dateKey(record.createdAt),
       prayers: record.prayers,
-      ...(record.answered ? { answered: { ...record.answered } } : {}),
+      ...(record.answered
+        ? {
+            answered: {
+              at: record.answered.at,
+              on: dateKey(record.answered.at),
+              ...(record.answered.note ? { note: record.answered.note } : {}),
+            },
+          }
+        : {}),
       mine: this.isMine(record),
       prayed: this.prayedFor.has(record.id),
     };

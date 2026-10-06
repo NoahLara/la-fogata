@@ -84,6 +84,9 @@ export const es = {
     // The name of the group of every star in the sky, for a screen reader.
     groupAll: "Estrellas del cielo",
     answered: "Respondida",
+    // Read out before the date that heads a letter; the date itself is what shows.
+    writtenOn: "Escrita el {date}",
+    answeredOn: "Respondida el {date}",
     markAnswered: "Marcar como respondida",
     answerFieldLabel: "¿Cómo pasó?",
     answerPlaceholder: "Cuenta cómo pasó…",

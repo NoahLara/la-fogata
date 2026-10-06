@@ -69,9 +69,11 @@ export interface Petition {
   text: string;
   /** Milliseconds since the epoch. */
   createdAt: number;
+  /** The day it was written, `YYYY-MM-DD`: what a letter is dated with. */
+  createdOn: string;
   prayers: number;
-  /** Set once the author has marked it answered. */
-  answered?: { at: number; note?: string };
+  /** Set once the author has marked it answered; `on` is the day, `YYYY-MM-DD`. */
+  answered?: { at: number; on: string; note?: string };
   /** The visitor wrote this one. */
   mine: boolean;
   /** The visitor is already with it (the one counter, whether it is waiting or answered). */

@@ -32,6 +32,8 @@ export async function seedDemoPetitions(
     petitions.seedOther(sample.text, {
       // Repeats keep the mix but not the exact counts.
       prayers: sample.prayers + Math.floor(i / samples.length),
+      // Letters of different days, spread over the weeks a petition lives.
+      daysAgo: 1 + ((i * 7) % 24),
       ...(sample.answered !== undefined ? { answered: sample.answered } : {}),
     });
   }

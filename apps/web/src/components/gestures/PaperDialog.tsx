@@ -102,7 +102,7 @@ export function PaperDialog({
   const titleId = useId();
   const helperId = useId();
   const counterId = useId();
-  const { inset, height } = useVisualViewport();
+  const { inset } = useVisualViewport();
 
   useEffect(() => {
     const pending = timers.current;
@@ -184,19 +184,14 @@ export function PaperDialog({
         // Escape must not cut the ritual short.
         if (stage !== "writing") event.preventDefault();
       }}
-      className="paper-dialog m-auto w-[min(92vw,30rem)] max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:bottom-[var(--keyboard,0px)] max-sm:m-auto max-sm:h-fit"
-      style={
-        {
-          "--keyboard": `${inset}px`,
-          "--viewport": height ? `${height}px` : "100dvh",
-        } as React.CSSProperties
-      }
+      className="paper-dialog letter-panel"
+      style={{ "--keyboard": `${inset}px` } as React.CSSProperties}
     >
       <div
         ref={paperRef}
         data-focused={focused ? "" : undefined}
         data-edge={edge}
-        className={`paper-sheet relative ${stage === "leaving" ? "opacity-0 transition-opacity duration-200 motion-reduce:transition-none" : ""}`}
+        className={`paper-sheet relative h-full ${stage === "leaving" ? "opacity-0 transition-opacity duration-200 motion-reduce:transition-none" : ""}`}
       >
         <svg
           viewBox="0 0 100 100"
@@ -219,7 +214,7 @@ export function PaperDialog({
             event.preventDefault();
             submit();
           }}
-          className={`relative flex flex-col gap-3 px-8 pt-9 pb-6 max-sm:px-8 sm:px-11 ${stage === "folding" || stage === "done" ? "invisible" : ""}`}
+          className={`relative flex h-full flex-col gap-3 px-6 pt-7 pb-5 sm:px-9 sm:pt-9 ${stage === "folding" || stage === "done" ? "invisible" : ""}`}
         >
           <h2
             id={titleId}
@@ -245,7 +240,7 @@ export function PaperDialog({
             autoCorrect="off"
             spellCheck={false}
             // The writing area shrinks when the keyboard takes up much of a phone's screen.
-            className="ruled font-hand m-0 block h-[clamp(4rem,calc(var(--viewport)-18rem),12rem)] w-full resize-none overflow-y-auto border-0 bg-transparent p-0 text-[1.65rem] text-ink caret-ink outline-none placeholder:text-ink-faint"
+            className="ruled letter-scroll font-hand m-0 block min-h-0 w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent p-0 text-[1.65rem] text-ink caret-ink outline-none placeholder:text-ink-faint"
           />
           <p
             id={counterId}

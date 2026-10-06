@@ -80,6 +80,9 @@ export const en = {
     // The name of the group of every star in the sky, for a screen reader.
     groupAll: "Stars in the sky",
     answered: "Answered",
+    // Read out before the date that heads a letter; the date itself is what shows.
+    writtenOn: "Written on {date}",
+    answeredOn: "Answered on {date}",
     markAnswered: "Mark as answered",
     answerFieldLabel: "How did it happen?",
     answerPlaceholder: "Write how it happened…",
