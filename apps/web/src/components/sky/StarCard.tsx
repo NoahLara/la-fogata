@@ -46,6 +46,9 @@ export function StarCard({
   const [notice, setNotice] = useState<string>();
   const [working, setWorking] = useState(false);
   const questionRef = useRef<HTMLParagraphElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  // Set when a sub-view is left, so focus lands on the button that opened it instead of being lost with it.
+  const restoreFocus = useRef(false);
   const textId = useId();
   const answered = petition.answered;
   const state = cardState(petition);
@@ -54,7 +57,16 @@ export function StarCard({
   // Focus goes to the question when the star is about to go back to the fire.
   useEffect(() => {
     if (view === "returning") questionRef.current?.focus();
+    if (view === "details" && restoreFocus.current) {
+      restoreFocus.current = false;
+      openerRef.current?.focus();
+    }
   }, [view]);
+
+  const backToDetails = () => {
+    restoreFocus.current = true;
+    setView("details");
+  };
 
   const run = async (action: () => Promise<string | undefined>) => {
     if (working || busy) return;
@@ -63,12 +75,12 @@ export function StarCard({
       const word = await action();
       if (word) {
         setNotice(word);
-        setView("details");
+        backToDetails();
       }
     } catch (error) {
       console.error("Could not change the petition", error);
       setNotice(t.sky.failed);
-      setView("details");
+      backToDetails();
     } finally {
       setWorking(false);
     }
@@ -147,7 +159,7 @@ export function StarCard({
               className={SECONDARY}
               onClick={() => {
                 setLine("");
-                setView("details");
+                backToDetails();
               }}
             >
               {t.sky.cancel}
@@ -169,7 +181,7 @@ export function StarCard({
             {t.sky.returnQuestion}
           </p>
           <div className="flex items-center justify-end gap-3">
-            <button type="button" className={SECONDARY} onClick={() => setView("details")}>
+            <button type="button" className={SECONDARY} onClick={backToDetails}>
               {t.sky.cancel}
             </button>
             <button
@@ -187,6 +199,7 @@ export function StarCard({
       {view === "details" && (
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button
+            ref={openerRef}
             type="button"
             disabled={busy}
             className={SECONDARY}

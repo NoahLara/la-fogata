@@ -8,6 +8,8 @@ export const es = {
     ariaLabel: "Una fogata de noche con personas sentadas alrededor.",
     /** Over the visitor's own animal when they sit down. */
     you: "tú",
+    /** When the scene cannot be built, such as when the browser has no WebGL. */
+    startFailed: "No pudimos encender la fogata. Recarga la página para intentarlo de nuevo.",
   },
   common: {
     close: "Cerrar",

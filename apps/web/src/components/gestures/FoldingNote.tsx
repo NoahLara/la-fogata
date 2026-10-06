@@ -124,6 +124,14 @@ export function FoldingNote({
     };
     const part = (name: string) => [...root.querySelectorAll<HTMLElement>(`[data-fold="${name}"]`)];
 
+    // If the sequence cannot finish, the dialog is told so it can stop and close instead of holding the gestures.
+    let landed = false;
+    const fail = () => {
+      if (cancelled || landed) return;
+      landed = true;
+      callbacks.current.onLanded(false);
+    };
+
     const run = async () => {
       // First fold: the bottom half comes up over the top, and the writing fades at once.
       part("text").forEach((element) =>
@@ -136,7 +144,7 @@ export function FoldingNote({
         play(element, [{ opacity: 0.4 }, { opacity: 0 }], FOLD.first / 2, "ease-out"),
       );
       const [flap1] = part("flap-1");
-      if (!flap1) return;
+      if (!flap1) return fail();
       await play(
         flap1,
         [
@@ -154,7 +162,7 @@ export function FoldingNote({
       });
       if (cancelled) return;
       const [flap2] = part("flap-2");
-      if (!flap2) return;
+      if (!flap2) return fail();
       part("shade-front-2").forEach((element) =>
         play(element, [{ opacity: 0 }, { opacity: 0.4 }], FOLD.second / 2, "ease-in"),
       );
@@ -192,11 +200,13 @@ export function FoldingNote({
         FOLD.fly,
         "cubic-bezier(0.5, 0, 0.25, 1)",
       );
-      if (!cancelled) callbacks.current.onLanded(true);
+      if (!cancelled && !landed) {
+        landed = true;
+        callbacks.current.onLanded(true);
+      }
     };
-    run().catch(() => {
-      // An animation cancelled by unmounting rejects its promise: nothing to do.
-    });
+    // An animation cancelled by unmounting rejects its promise, which is not a failure.
+    run().catch(fail);
     return () => {
       cancelled = true;
       for (const animation of animations) animation.cancel();

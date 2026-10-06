@@ -177,7 +177,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
               setAfterglow(undefined);
               if (atRisk.current) {
                 setHelpFor("burden");
-                setDialog("help");
+                // Never on top of something the visitor has opened in the meantime.
+                setDialog((current) => current ?? "help");
               }
               atRisk.current = false;
             }, AFTERGLOW_SECONDS * 1000);

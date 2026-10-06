@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 
 const BUTTON =
-  "pointer-events-auto absolute flex size-11 items-center justify-center rounded-full bg-bark/60 text-white transition-opacity hover:bg-bark/80 focus-visible:opacity-100 focus-visible:shadow-focus focus-visible:outline-none";
+  "absolute flex size-11 items-center justify-center rounded-full bg-bark/60 text-white transition-opacity hover:bg-bark/80 focus-visible:opacity-100 focus-visible:shadow-focus focus-visible:outline-none";
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
   return (
@@ -46,7 +46,7 @@ export function SkyChevrons({
         aria-label={t.sky.turnLeft}
         onClick={() => turn(1)}
         style={{ top }}
-        className={`${BUTTON} left-2 ${near ? "opacity-90" : "opacity-0"}`}
+        className={`${BUTTON} left-2 ${near ? "pointer-events-auto opacity-90" : "pointer-events-none opacity-0 focus-visible:pointer-events-auto"}`}
       >
         <Chevron direction="left" />
       </button>
@@ -55,7 +55,7 @@ export function SkyChevrons({
         aria-label={t.sky.turnRight}
         onClick={() => turn(-1)}
         style={{ top }}
-        className={`${BUTTON} right-2 ${near ? "opacity-90" : "opacity-0"}`}
+        className={`${BUTTON} right-2 ${near ? "pointer-events-auto opacity-90" : "pointer-events-none opacity-0 focus-visible:pointer-events-auto"}`}
       >
         <Chevron direction="right" />
       </button>

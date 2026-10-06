@@ -10,6 +10,8 @@ export const en = {
     ariaLabel: "A campfire at night, with people sitting around it.",
     /** Over the visitor's own animal when they sit down. */
     you: "you",
+    /** When the scene cannot be built, such as when the browser has no WebGL. */
+    startFailed: "We couldn't light the fire. Reload the page to try again.",
   },
   common: {
     close: "Close",
