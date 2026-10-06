@@ -15,7 +15,7 @@ This file holds the core rules. Area guidance loads on demand from `.claude/rule
 - The fire is small when the room is empty (never out) and grows with each connected person. Wood makes it big, burns down on its own, has a ceiling; one log per person per `WOOD_COOLDOWN_SECONDS` (60). Constants in `apps/web/src/scene/fuel.ts`.
 - Three gestures only: throw wood, hand over a burden, leave a petition.
   - The burden is written, burns, and is 100% browser-side: NEVER sent, stored, logged or rendered in the scene or in any event. Everyone sees the same ritual with a blank folded note.
-  - A petition rises from the fire and becomes a star in one shared sky: max 140 characters, 1 per person per day, moderated before it is shown, expires after 30 days (answered ones twinkle 30 more). Ownership is a secret key kept in the browser; no accounts.
+  - A petition rises from the fire and becomes a star in one shared sky: up to 2000 characters (a letter; a burden up to 3000, an answer up to 2000), dated with the day it was written and the day it was answered (only the day), 1 per person per day, moderated before it is shown, expires after 30 days (answered ones twinkle 30 more). Ownership is a secret key kept in the browser; no accounts.
   - Other people's stars show no author information, ever. The ichthys is the only response (one counter, no likes, no ranking).
 - Touch the fire for a short verse (TLA es / WEB en, curated list in `apps/web/src/fire/words.ts`).
 - No chat, no direct messages, no profiles, no likes, no streaks.
