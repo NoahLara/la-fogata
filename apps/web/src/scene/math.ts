@@ -1,9 +1,20 @@
+import type { Point } from "./layout";
 import type { Random } from "./random";
 
 export const TAU = Math.PI * 2;
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+/** How far a point is from the nearest point of the segment from `a` to `b`. */
+export function distanceToSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const along =
+    lengthSquared === 0 ? 0 : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared, 0, 1);
+  return Math.hypot(p.x - (a.x + dx * along), p.y - (a.y + dy * along));
 }
 
 /** A random number in [min, max). */

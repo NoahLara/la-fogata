@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   between,
   clamp,
+  distanceToSegment,
   easeToward,
   lerp,
   mixColor,
@@ -99,5 +100,18 @@ describe("mixColor", () => {
     expect(mixColor(0x000000, 0xffffff, 0)).toBe(0x000000);
     expect(mixColor(0x000000, 0xffffff, 1)).toBe(0xffffff);
     expect(mixColor(0xff0000, 0x0000ff, 0.5)).toBe(0x800080);
+  });
+});
+
+describe("distanceToSegment", () => {
+  it("measures to the nearest point of the segment, not the infinite line", () => {
+    const a = { x: 0, y: 0 };
+    const b = { x: 10, y: 0 };
+    expect(distanceToSegment({ x: 5, y: 3 }, a, b)).toBeCloseTo(3);
+    expect(distanceToSegment({ x: 14, y: 3 }, a, b)).toBeCloseTo(5);
+  });
+
+  it("measures to the point when the segment has no length", () => {
+    expect(distanceToSegment({ x: 3, y: 4 }, { x: 0, y: 0 }, { x: 0, y: 0 })).toBeCloseTo(5);
   });
 });

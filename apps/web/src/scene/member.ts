@@ -5,7 +5,7 @@ import { directionToFire, type Point, type SceneLayout } from "./layout";
 import { evaluateCurve, VIEW_LIGHTING, type ViewLighting } from "./lighting";
 import { LOG } from "./logShape";
 import { between, clamp, lerp, smoothstep } from "./math";
-import { createRandom } from "./random";
+import { createRandom, hashString } from "./random";
 import {
   arrivalFrame,
   FADE_SECONDS,
@@ -358,13 +358,6 @@ interface Pose {
  * Someone around the fire. With an arrival it walks in first (see `Arrival`); without one it is just seated.
  * The log under a log seat belongs to the seat, not to the member.
  */
-/** A number from a name, so every character gets its own rhythm. */
-function idSeed(id: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619);
-  return hash >>> 0;
-}
-
 export function createMember(
   context: BuildContext,
   placed: Placed,
@@ -385,7 +378,7 @@ export function createMember(
   const idle = createIdle({
     species,
     view: placed.spec.view,
-    seed: idSeed(id) + placed.index,
+    seed: hashString(id) + placed.index,
     director: context.director,
   });
   let elapsed = 0;

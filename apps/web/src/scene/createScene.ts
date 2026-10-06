@@ -89,7 +89,7 @@ export interface FogataScene {
   offerPetition(id: string, request: PetitionRequest): BurdenResult;
   /** Puts these petitions' stars in the sky, all at once: the visitor's own, when the page loads. Ones already there stay. */
   setPetitionStars(stars: readonly { id: string; answered: boolean }[]): void;
-  /** A petition was marked answered: its star turns blue and a shooting star crosses the sky (none with reduced motion). */
+  /** A petition was marked answered: its star starts to twinkle and a shooting star crosses the sky (none with reduced motion). */
   answerPetition(id: string): void;
   /**
    * A petition goes back to the fire: its star dims into a small golden light, which glides in an arc down to the

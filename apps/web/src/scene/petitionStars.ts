@@ -58,15 +58,8 @@ export function starArea(layout: SceneLayout, trees: readonly Tree[] = []): Star
   };
 }
 
-/** A stable number from text (FNV-1a), so the same petition always seeds the same random stream. */
-export function hashId(id: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    hash ^= id.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
+/** A stable number from a petition id, so the same petition always seeds the same random stream. */
+export { hashString as hashId } from "./random";
 
 /** The three kinds of star in the sky, from the quietest to the loudest. */
 export type StarKind = "background" | "waiting" | "answered";
