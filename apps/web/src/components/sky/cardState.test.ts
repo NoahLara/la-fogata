@@ -8,6 +8,7 @@ const petition = (overrides: Partial<Petition> = {}): Petition => ({
   id: "p",
   text: "Paz",
   createdAt: 0,
+  createdOn: "2026-01-01",
   prayers: 0,
   mine: false,
   prayed: false,
@@ -28,15 +29,19 @@ describe("cardState", () => {
   });
 
   it("an answered star shows how it happened, when the author said", () => {
-    const state = cardState(petition({ answered: { at: 1, note: "  pasó así  " } }));
+    const state = cardState(
+      petition({ answered: { at: 1, on: "2026-01-02", note: "  pasó así  " } }),
+    );
     expect(state).toMatchObject({ answered: true, note: "pasó así", pressable: true });
-    expect(cardState(petition({ answered: { at: 1 } })).note).toBeUndefined();
-    expect(cardState(petition({ answered: { at: 1, note: "   " } })).note).toBeUndefined();
+    expect(cardState(petition({ answered: { at: 1, on: "2026-01-02" } })).note).toBeUndefined();
+    expect(
+      cardState(petition({ answered: { at: 1, on: "2026-01-02", note: "   " } })).note,
+    ).toBeUndefined();
   });
 
   it("is the same one fish and one count for waiting and answered stars", () => {
     const waiting = cardState(petition({ prayers: 3 }));
-    const answered = cardState(petition({ prayers: 3, answered: { at: 1 } }));
+    const answered = cardState(petition({ prayers: 3, answered: { at: 1, on: "2026-01-02" } }));
     expect([waiting.count, waiting.showCount]).toEqual([answered.count, answered.showCount]);
   });
 
@@ -46,7 +51,9 @@ describe("cardState", () => {
 
   it("draws the fish pressed once the visitor is with it", () => {
     expect(cardState(petition({ prayed: true, prayers: 2 })).pressed).toBe(true);
-    expect(cardState(petition({ prayed: true, answered: { at: 1 } })).pressed).toBe(true);
+    expect(
+      cardState(petition({ prayed: true, answered: { at: 1, on: "2026-01-02" } })).pressed,
+    ).toBe(true);
   });
 
   it("an own star only counts: nothing to press", () => {
@@ -84,8 +91,12 @@ describe("starName", () => {
   it("names the visitor's own stars, and others' answered ones, as asked", () => {
     expect(starName(es.sky, petition({ mine: true }), same)).toBe("Tu estrella: Paz");
     expect(starName(en.sky, petition({ mine: true }), same)).toBe("Your star: Paz");
-    expect(starName(es.sky, petition({ answered: { at: 1 } }), same)).toBe("Respondida: Paz");
-    expect(starName(en.sky, petition({ answered: { at: 1 } }), same)).toBe("Answered: Paz");
+    expect(starName(es.sky, petition({ answered: { at: 1, on: "2026-01-02" } }), same)).toBe(
+      "Respondida: Paz",
+    );
+    expect(starName(en.sky, petition({ answered: { at: 1, on: "2026-01-02" } }), same)).toBe(
+      "Answered: Paz",
+    );
   });
 
   it("names another's waiting star by its text alone", () => {

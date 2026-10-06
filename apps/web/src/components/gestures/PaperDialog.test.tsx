@@ -67,6 +67,12 @@ describe("PaperDialog", () => {
 
   const field = () => screen.getByLabelText(COPY.fieldLabel) as HTMLTextAreaElement;
 
+  it("has an X in the corner that closes the sheet", () => {
+    const { onClose } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the submit button off until there is something to hand over", () => {
     setup();
     const submit = screen.getByRole("button", { name: COPY.submit }) as HTMLButtonElement;

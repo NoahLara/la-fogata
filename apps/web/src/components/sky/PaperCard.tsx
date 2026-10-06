@@ -3,41 +3,22 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { PAPER_OUTLINE_POINTS } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
-
-/** Room between the star and its card, and the card's width, in pixels. */
-const GAP = 28;
-export const CARD_WIDTH = 320;
-const MARGIN = 8;
-
-/** Where the card's top left goes on wide screens: beside the star, on whichever side has room. */
-export function cardPosition(
-  star: { x: number; y: number },
-  scene: { width: number; height: number },
-): { left: number; top: number } {
-  const right = star.x + GAP;
-  const left = right + CARD_WIDTH + MARGIN <= scene.width ? right : star.x - GAP - CARD_WIDTH;
-  return {
-    left: Math.max(MARGIN, left),
-    top: Math.max(MARGIN, Math.min(star.y - 24, scene.height - 280)),
-  };
-}
+import { LetterClose } from "../LetterClose";
 
 /**
- * The paper with a gold edge every star's card is written on, beside its star (a bottom sheet on phones). It is not
- * modal: Escape, a tap outside or tabbing out closes it, and focus goes into it when it opens.
+ * The letter panel every star's card is read on: the whole height of the screen on the right, with room around
+ * it (a sheet with margins at the sides on a phone), on paper with a gold edge. It is not modal: Escape, a tap
+ * outside or tabbing out closes it, and focus goes into it when it opens. Inside, use `LetterHead`, `LetterBody`
+ * (which scrolls on its own when the writing is long) and `LetterFoot` (always in view).
  */
 export function PaperCard({
   petitionId,
-  star,
-  scene,
   label,
   labelledBy,
   onClose,
   children,
 }: {
   petitionId: string;
-  star: { x: number; y: number };
-  scene: { width: number; height: number };
   /** The dialog's name, when no text on it is its name. */
   label?: string;
   labelledBy?: string;
@@ -47,7 +28,6 @@ export function PaperCard({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { inset } = useVisualViewport();
-  const position = cardPosition(star, scene);
 
   useEffect(() => {
     rootRef.current?.focus();
@@ -94,16 +74,10 @@ export function PaperCard({
         const next = event.relatedTarget;
         if (next instanceof Node && !event.currentTarget.contains(next)) onClose(false);
       }}
-      style={
-        {
-          "--card-left": `${position.left}px`,
-          "--card-top": `${position.top}px`,
-          "--keyboard": `${inset}px`,
-        } as React.CSSProperties
-      }
-      className="pointer-events-auto absolute z-20 outline-none sm:top-(--card-top) sm:left-(--card-left) sm:w-80 max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:bottom-(--keyboard) max-sm:m-auto max-sm:h-fit max-sm:w-[min(92vw,30rem)]"
+      style={{ "--keyboard": `${inset}px` } as React.CSSProperties}
+      className="letter-panel pointer-events-auto outline-none"
     >
-      <div data-edge="gold" className="paper-sheet relative">
+      <div data-edge="gold" className="paper-sheet relative h-full">
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
@@ -112,8 +86,35 @@ export function PaperCard({
         >
           <polygon points={PAPER_OUTLINE_POINTS} style={{ fill: "var(--color-paper)" }} />
         </svg>
-        <div className="relative flex flex-col gap-3 px-8 pt-7 pb-6">{children}</div>
+        <LetterClose onClick={() => onClose(true)} />
+        <div className="relative flex h-full flex-col px-6 pt-7 pb-5 sm:px-9 sm:pt-9">
+          {children}
+        </div>
       </div>
     </div>
   );
+}
+
+/** What heads the letter: its date, on the right. */
+export function LetterHead({ children }: { children: ReactNode }) {
+  // Room on the right for the X in the corner.
+  return <div className="flex shrink-0 flex-col items-end gap-1 pr-10 pb-4">{children}</div>;
+}
+
+/** The writing. It takes the height that is left and scrolls inside itself, so the head and the foot stay put. */
+export function LetterBody({ children }: { children: ReactNode }) {
+  return (
+    <div
+      // A scrolling region has to be reachable by the keyboard to be read with it.
+      tabIndex={0}
+      className="letter-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+    >
+      {children}
+    </div>
+  );
+}
+
+/** What is always in view at the bottom of the letter: the fish, the flag, the buttons. */
+export function LetterFoot({ children }: { children: ReactNode }) {
+  return <div className="shrink-0 border-t border-ink/15 pt-3">{children}</div>;
 }

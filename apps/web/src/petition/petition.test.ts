@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PETITION_MAX_LENGTH } from "@/data/limits";
 import { canElevate, limitPetition, petitionRemainingToAnnounce } from "./petition";
 
 describe("canElevate", () => {
@@ -13,25 +14,25 @@ describe("canElevate", () => {
     expect(canElevate("")).toBe(false);
   });
 
-  it("accepts exactly 140 characters and no more", () => {
-    expect(canElevate("a".repeat(140))).toBe(true);
-    expect(canElevate("a".repeat(141))).toBe(false);
+  it("accepts exactly the most a petition can have and no more", () => {
+    expect(canElevate("a".repeat(PETITION_MAX_LENGTH))).toBe(true);
+    expect(canElevate("a".repeat(PETITION_MAX_LENGTH + 1))).toBe(false);
   });
 });
 
 describe("limitPetition", () => {
-  it("cuts at 140 characters without splitting an emoji", () => {
-    const cut = limitPetition("🙏".repeat(200));
-    expect(Array.from(cut)).toHaveLength(140);
+  it("cuts at the limit without splitting an emoji", () => {
+    const cut = limitPetition("🙏".repeat(PETITION_MAX_LENGTH + 60));
+    expect(Array.from(cut)).toHaveLength(PETITION_MAX_LENGTH);
     expect(limitPetition("hola")).toBe("hola");
   });
 });
 
 describe("petitionRemainingToAnnounce", () => {
-  it("speaks only at 50, 10 and 0 left", () => {
-    expect(petitionRemainingToAnnounce(90)).toBe(50);
-    expect(petitionRemainingToAnnounce(130)).toBe(10);
-    expect(petitionRemainingToAnnounce(140)).toBe(0);
-    expect(petitionRemainingToAnnounce(100)).toBeUndefined();
+  it("speaks only at 100, 20 and 0 left", () => {
+    expect(petitionRemainingToAnnounce(PETITION_MAX_LENGTH - 100)).toBe(100);
+    expect(petitionRemainingToAnnounce(PETITION_MAX_LENGTH - 20)).toBe(20);
+    expect(petitionRemainingToAnnounce(PETITION_MAX_LENGTH)).toBe(0);
+    expect(petitionRemainingToAnnounce(PETITION_MAX_LENGTH - 500)).toBeUndefined();
   });
 });

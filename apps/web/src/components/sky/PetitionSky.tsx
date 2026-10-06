@@ -28,9 +28,12 @@ const NAME_LENGTH = 60;
 /** How long the star takes to start twinkling and the shooting star to cross, so the gestures wait for both. */
 const ANSWER_ANIMATION_MS = 1400;
 
+/** A star's name for a screen reader: the start of what was written, on one line (a letter has line breaks). */
 const shorten = (text: string) => {
-  const letters = Array.from(text);
-  return letters.length <= NAME_LENGTH ? text : `${letters.slice(0, NAME_LENGTH).join("")}…`;
+  const letters = Array.from(text.replace(/\s+/g, " ").trim());
+  return letters.length <= NAME_LENGTH
+    ? letters.join("")
+    : `${letters.slice(0, NAME_LENGTH).join("")}…`;
 };
 
 interface Star {
@@ -64,7 +67,6 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   const [dragBottom, setDragBottom] = useState(0);
   const [activeId, setActiveId] = useState<string>();
   const [openId, setOpenId] = useState<string>();
-  const [openSpot, setOpenSpot] = useState({ x: 0, y: 0 });
   /** What the open card shows if its star is gone (the visitor just reported it): the card says thanks and then closes. */
   const [openSnapshot, setOpenSnapshot] = useState<Petition>();
   /** Where focus goes when the card of a reported star closes. */
@@ -240,8 +242,6 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
   }, []);
 
   const openCard = (star: Star) => {
-    // The card stays beside the star where it is now.
-    setOpenSpot(scene.petitionSpots().get(star.id) ?? { x: star.x, y: star.y });
     openedAt.current = scene.sky.state().offset;
     setOpenSnapshot(star.petition);
     setOpenId(star.id);
@@ -445,8 +445,6 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
             // A fresh card for each star.
             key={openId}
             petition={cardPetition}
-            star={openSpot}
-            scene={size}
             busy={busy}
             onClose={closeCard}
             onAnswer={(line) => answer(cardPetition, line)}
@@ -456,8 +454,6 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
           <OtherStarCard
             key={openId}
             petition={cardPetition}
-            star={openSpot}
-            scene={size}
             onClose={closeCard}
             onAccompany={() => accompany(cardPetition)}
             onReport={() => report(cardPetition)}

@@ -218,7 +218,7 @@ export function FoldingNote({
     <div
       ref={rootRef}
       aria-hidden="true"
-      style={{ position: "absolute", inset: 0, perspective: `${Math.max(w, h) * 2.4}px` }}
+      style={{ position: "absolute", inset: 0, perspective: `${Math.max(w, h) * 4.5}px` }}
     >
       <div
         ref={noteRef}

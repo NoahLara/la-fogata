@@ -19,7 +19,7 @@ export function canElevate(text: string): boolean {
 /** What a screen reader is told about the limit, only at a few points so it isn't read on every keystroke. */
 export function petitionRemainingToAnnounce(count: number): number | undefined {
   const remaining = PETITION_MAX_LENGTH - count;
-  return remaining === 50 || remaining === 10 || remaining === 0 ? remaining : undefined;
+  return remaining === 100 || remaining === 20 || remaining === 0 ? remaining : undefined;
 }
 
 /** Cuts the line that says how a petition was answered down to the limit, never splitting a character in half. */

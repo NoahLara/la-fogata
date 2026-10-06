@@ -5,7 +5,13 @@ import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
 import { MemoryKeyStore } from "./keyStore";
-import { DAY, PETITION_MAX_LENGTH, petitionAvailableAt, PRAYERS_PER_SESSION } from "./limits";
+import {
+  DAY,
+  PETITION_ANSWER_MAX_LENGTH,
+  PETITION_MAX_LENGTH,
+  petitionAvailableAt,
+  PRAYERS_PER_SESSION,
+} from "./limits";
 import type { PresenceEvent } from "./types";
 
 function presence(seatCount = 7) {
@@ -201,6 +207,20 @@ describe("MemoryPetitions: writing", () => {
     expect((await service.mine())[0]?.answered).toBeFalsy();
   });
 
+  it("dates a petition with the day it was written and, later, the day it was answered", async () => {
+    const { service } = petitions();
+    const created = await service.create("una carta larga");
+    if (created.status !== "created") throw new Error("expected a created petition");
+    expect(created.petition.createdOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const answered = await service.answer(created.petition.id, "así fue");
+    if (answered.status !== "answered") throw new Error("expected an answered petition");
+    expect(answered.petition.answered?.on).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Only the day is given to read: nothing else about when, and nothing about who.
+    expect(Object.keys(answered.petition).sort()).toEqual(
+      ["answered", "createdAt", "createdOn", "id", "mine", "prayed", "prayers", "text"].sort(),
+    );
+  });
+
   it("lists the visitor's own petitions only", async () => {
     const { service } = petitions();
     service.seedOther("de otra persona");
@@ -240,7 +260,10 @@ describe("MemoryPetitions: answering", () => {
     service.subscribe((event) => events.push(event.type));
     expect((await service.answer(created.petition.id, "")).status).toBe("note-required");
     expect((await service.answer(created.petition.id, "   ")).status).toBe("note-required");
-    expect((await service.answer(created.petition.id, "a".repeat(141))).status).toBe("too-long");
+    expect(
+      (await service.answer(created.petition.id, "a".repeat(PETITION_ANSWER_MAX_LENGTH + 1)))
+        .status,
+    ).toBe("too-long");
     expect(events).toEqual([]);
     expect((await service.mine())[0]?.answered).toBeUndefined();
   });

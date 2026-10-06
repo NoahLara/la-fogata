@@ -46,7 +46,9 @@ export const en = {
   },
   petition: {
     title: "Ask",
-    helper: "It will become a star.",
+    // If it is for someone, only their first name and surname: others read it and can pray along.
+    helper:
+      "It will become a star. If you're asking for someone, write only their first and last name, with no address or other details, so others who read it can pray with you.",
     // Faint, handwritten, on the first ruled line.
     placeholder: "Write what you're asking for…",
     fieldLabel: "What you're asking for",
@@ -80,9 +82,15 @@ export const en = {
     // The name of the group of every star in the sky, for a screen reader.
     groupAll: "Stars in the sky",
     answered: "Answered",
+    // Read out before the date that heads a letter; the date itself is what shows.
+    writtenOn: "Written on {date}",
+    answeredOn: "Answered on {date}",
     markAnswered: "Mark as answered",
     answerFieldLabel: "How did it happen?",
-    answerPlaceholder: "Write how it happened…",
+    answerPlaceholder: "Tell us how it happened…",
+    // Under the field where the author tells how it was answered.
+    answerHelper:
+      "Tell us how it happened, so others can believe and their faith in La Fogata grows.",
     // {count} of {max} used.
     counter: "{count} of {max}",
     confirm: "Confirm",

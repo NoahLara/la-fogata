@@ -4,8 +4,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { Petition } from "@/data/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { cardState, countLabel } from "./cardState";
-import { FlagIcon, Ichthys, SpikedStar } from "./glyphs";
-import { PaperCard } from "./PaperCard";
+import { FlagIcon, Ichthys } from "./glyphs";
+import { LetterDate } from "./LetterDate";
+import { LetterBody, LetterFoot, LetterHead, PaperCard } from "./PaperCard";
 
 const FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -28,15 +29,11 @@ type View = "details" | "reporting" | "thanks";
  */
 export function OtherStarCard({
   petition,
-  star,
-  scene,
   onClose,
   onAccompany,
   onReport,
 }: {
   petition: Petition;
-  star: { x: number; y: number };
-  scene: { width: number; height: number };
   /** `refocus` is false when focus is already going somewhere else (tabbing out, a tap elsewhere). */
   onClose: (refocus: boolean) => void;
   onAccompany: () => Promise<AccompanyOutcome>;
@@ -128,103 +125,113 @@ export function OtherStarCard({
   };
 
   return (
-    <PaperCard
-      petitionId={petition.id}
-      star={star}
-      scene={scene}
-      label={t.sky.otherCardLabel}
-      onClose={onClose}
-    >
-      <p id={textId} className="font-hand text-[1.65rem] leading-8 break-words text-ink">
-        {state.answered && (
-          <>
-            <SpikedStar /> <span className="sr-only">{t.sky.answered}: </span>
-          </>
-        )}
-        {petition.text}
-      </p>
-      {state.answered && state.note && (
-        <p className="font-hand text-[1.5rem] leading-8 break-words text-ink">
-          <span className="sr-only">{t.sky.answerFieldLabel} </span>
-          {state.note}
-        </p>
-      )}
+    <PaperCard petitionId={petition.id} label={t.sky.otherCardLabel} onClose={onClose}>
+      <LetterHead>
+        <LetterDate day={petition.createdOn} kind="written" />
+      </LetterHead>
 
-      {view === "details" && (
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-pressed={state.pressed}
-              aria-label={t.sky.accompany}
-              disabled={working}
-              onClick={() => void accompany()}
-              className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full btn-press ${FOCUS_RING}`}
-            >
-              <span
-                key={shake}
-                className={shake ? "motion-safe:animate-[fish-shake_0.45s_ease-in-out]" : undefined}
-              >
-                <Ichthys pressed={state.pressed} />
-              </span>
-            </button>
-            {state.showCount && (
-              <>
-                <span aria-hidden="true" className="text-base text-ink-soft tabular-nums">
-                  {state.count}
-                </span>
-                <span className="sr-only">{count}</span>
-              </>
+      <LetterBody>
+        <p
+          id={textId}
+          className="font-hand text-[1.65rem] leading-9 break-words whitespace-pre-wrap text-ink"
+        >
+          {state.answered && <span className="sr-only">{t.sky.answered}: </span>}
+          {petition.text}
+        </p>
+        {petition.answered && (
+          <div className="mt-6 border-t border-ink/15 pt-4">
+            <div className="flex justify-end pb-2">
+              <LetterDate day={petition.answered.on} kind="answered" />
+            </div>
+            {state.note && (
+              <p className="font-hand text-[1.5rem] leading-8 break-words whitespace-pre-wrap text-ink">
+                <span className="sr-only">{t.sky.answerFieldLabel} </span>
+                {state.note}
+              </p>
             )}
           </div>
-          <button
-            ref={flagRef}
-            type="button"
-            aria-label={t.sky.report}
-            aria-expanded={false}
-            onClick={() => setView("reporting")}
-            className={ICON_BUTTON}
-          >
-            <FlagIcon />
-          </button>
-        </div>
-      )}
+        )}
+      </LetterBody>
 
-      {view === "reporting" && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base text-ink">{t.sky.reportQuestion}</p>
-          <div className="flex items-center gap-1">
+      <LetterFoot>
+        {view === "details" && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-pressed={state.pressed}
+                aria-label={t.sky.accompany}
+                disabled={working}
+                onClick={() => void accompany()}
+                className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full btn-press ${FOCUS_RING}`}
+              >
+                <span
+                  key={shake}
+                  className={
+                    shake ? "motion-safe:animate-[fish-shake_0.45s_ease-in-out]" : undefined
+                  }
+                >
+                  <Ichthys pressed={state.pressed} />
+                </span>
+              </button>
+              {state.showCount && (
+                <>
+                  <span aria-hidden="true" className="text-base text-ink-soft tabular-nums">
+                    {state.count}
+                  </span>
+                  <span className="sr-only">{count}</span>
+                </>
+              )}
+            </div>
             <button
-              ref={confirmRef}
-              type="button"
-              disabled={working}
-              onClick={() => void report()}
-              className={PRIMARY}
-            >
-              {t.sky.reportConfirm}
-            </button>
-            <button
+              ref={flagRef}
               type="button"
               aria-label={t.sky.report}
-              aria-expanded={true}
-              onClick={backToDetails}
+              aria-expanded={false}
+              onClick={() => setView("reporting")}
               className={ICON_BUTTON}
             >
               <FlagIcon />
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {view === "thanks" && (
-        <p ref={thanksRef} tabIndex={-1} className="text-base text-ink outline-none">
-          {t.sky.reportDone}
+        {view === "reporting" && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-base text-ink">{t.sky.reportQuestion}</p>
+            <div className="flex items-center gap-1">
+              <button
+                ref={confirmRef}
+                type="button"
+                disabled={working}
+                onClick={() => void report()}
+                className={PRIMARY}
+              >
+                {t.sky.reportConfirm}
+              </button>
+              <button
+                type="button"
+                aria-label={t.sky.report}
+                aria-expanded={true}
+                onClick={backToDetails}
+                className={ICON_BUTTON}
+              >
+                <FlagIcon />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === "thanks" && (
+          <p ref={thanksRef} tabIndex={-1} className="text-base text-ink outline-none">
+            {t.sky.reportDone}
+          </p>
+        )}
+
+        <p role="status" className="sr-only">
+          {spoken}
         </p>
-      )}
-
-      <p role="status" className="sr-only">
-        {spoken}
-      </p>
+      </LetterFoot>
     </PaperCard>
   );
 }

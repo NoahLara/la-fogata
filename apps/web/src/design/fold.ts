@@ -1,5 +1,5 @@
-/** How the sheet of paper is tilted on the page, in radians (the same -1° as `.paper-sheet` in globals.css). */
-export const PAPER_TILT = (-1 * Math.PI) / 180;
+/** How the sheet of paper is tilted on the page, in radians: the letter panel stands straight, so not at all. */
+export const PAPER_TILT = 0;
 
 /** The beats of handing a burden over on the page, in seconds. */
 export const FOLD = {
