@@ -26,7 +26,7 @@ import { useSkyDrag } from "./useSkyDrag";
 const TARGET = 44;
 /** The longest stretch of a petition a screen reader hears as the star's name. */
 const NAME_LENGTH = 60;
-/** How long the star takes to turn gold and the shooting star to cross, so the gestures wait for both. */
+/** How long the star takes to start twinkling and the shooting star to cross, so the gestures wait for both. */
 const ANSWER_ANIMATION_MS = 1400;
 
 const shorten = (text: string) => {
@@ -332,7 +332,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     say(t.sky.announceAnswered);
     setOpenId(undefined);
     focusStar(petition.id);
-    // The star turns gold and a shooting star crosses; the gestures wait for it (nothing moves with reduced motion).
+    // The star starts to twinkle and a shooting star crosses; the gestures wait for it (nothing moves with reduced motion).
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const release = hold();
       timers.current.add(window.setTimeout(release, ANSWER_ANIMATION_MS));

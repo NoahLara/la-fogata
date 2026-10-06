@@ -14,6 +14,16 @@ export function createRandom(seed: number): Random {
   };
 }
 
+/** A stable number from text (FNV-1a): the same text always seeds the same random stream. */
+export function hashString(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
 /** A random element of a non-empty list. */
 export function pick<T>(rand: Random, items: readonly T[]): T {
   return items[randomInt(rand, 0, items.length - 1)] as T;

@@ -67,7 +67,7 @@ export interface Sky {
    * fades in (reduced motion); `instant` one that was there all along.
    */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
-  /** Turns a star blue. `turn` does it in front of the viewer; `instant` is for one that was answered before. */
+  /** Makes a star answered, so it twinkles. `turn` does it in front of the viewer; `instant` is for one that was answered before. */
   answerPetitionStar(id: string, mode: "turn" | "instant"): void;
   /** Takes a star out of the sky: it dims away (`dim`) or goes at once. Its place stays taken so no other star moves. */
   removePetitionStar(id: string, mode: "dim" | "instant"): void;
@@ -100,7 +100,7 @@ export interface SkyOptions {
 /** The petition stars a sky starts with, in the order they became stars. */
 export interface SkyPetitions {
   ids: readonly string[];
-  /** Golden from the start. */
+  /** Answered from the start, so they twinkle. */
   answered: ReadonlySet<string>;
   /** Returned to the fire: they only keep their place so the other stars stay where they were. */
   retired: ReadonlySet<string>;
@@ -271,7 +271,7 @@ interface PetitionStar {
   born: number | undefined;
   phase: number;
   answered: boolean;
-  /** When it turned blue in front of the viewer, in scene time; set on the first frame. `undefined` once it has. */
+  /** When it became answered in front of the viewer, in scene time; set on the first frame. `undefined` once it has. */
   turning: "pending" | number | undefined;
   /** Dimming away: when that began (`"pending"` until the first frame). */
   leaving: "pending" | number | undefined;

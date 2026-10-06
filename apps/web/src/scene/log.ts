@@ -1,21 +1,12 @@
 import { Graphics } from "pixi.js";
 import type { Point } from "./layout";
 import type { Cap, LogShape } from "./logShape";
-import { between } from "./math";
+import { between, mixColor } from "./math";
 import type { Random } from "./random";
 
 const BARK_SHADOW = 0x2a1b12;
 const BARK_TOP = 0x6a4a32;
 const WARM = 0xff9650;
-
-function mixColor(from: number, to: number, t: number): number {
-  const channel = (shift: number) => {
-    const a = (from >> shift) & 0xff;
-    const b = (to >> shift) & 0xff;
-    return Math.round(a + (b - a) * t);
-  };
-  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
-}
 
 /** An ellipse as a polygon path, so it can be filled or stroked after being built: `scale` shrinks it toward the centre. */
 function ellipsePath(g: Graphics, cap: Cap, scale: number): void {

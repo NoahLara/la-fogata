@@ -30,7 +30,7 @@ export interface Background {
   constellationCenter(withId?: string): number;
   /** Puts a petition's star in the sky: it blooms as a light arrives, fades in (reduced motion) or was always there. */
   addPetitionStar(id: string, mode: "bloom" | "fade" | "instant"): void;
-  /** Turns a star golden; `turn` in front of the viewer, `instant` for one answered before. */
+  /** Makes a star answered (it twinkles); `turn` in front of the viewer, `instant` for one answered before. */
   answerPetitionStar(id: string, mode: "turn" | "instant"): void;
   /** Takes a star out of the sky: it dims away, or goes at once. */
   removePetitionStar(id: string, mode: "dim" | "instant"): void;

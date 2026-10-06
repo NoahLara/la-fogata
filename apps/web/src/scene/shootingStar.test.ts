@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { distanceToSegment } from "./math";
 import { createRandom } from "./random";
 import {
-  distanceToSegment,
   nextShootingStarDelay,
   planShootingStar,
   planShootingStarFrom,
@@ -14,15 +14,6 @@ const KEEPOUTS: Keepout[] = [
   { x: 1000, y: 70, radius: 70 },
   { x: 880, y: 140, radius: 45 },
 ];
-
-describe("distanceToSegment", () => {
-  it("measures to the nearest point of the segment, not the infinite line", () => {
-    const a = { x: 0, y: 0 };
-    const b = { x: 10, y: 0 };
-    expect(distanceToSegment({ x: 5, y: 3 }, a, b)).toBeCloseTo(3);
-    expect(distanceToSegment({ x: 14, y: 3 }, a, b)).toBeCloseTo(5);
-  });
-});
 
 describe("nextShootingStarDelay", () => {
   it("is always between 40 and 60 seconds", () => {

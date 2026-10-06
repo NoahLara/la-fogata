@@ -1,5 +1,5 @@
 import type { Point, SceneLayout } from "./layout";
-import { between, clamp, randomInt } from "./math";
+import { between, clamp, distanceToSegment, randomInt } from "./math";
 import { hashId, treeLineAt, type Tree } from "./petitionStars";
 import { createRandom, type Random } from "./random";
 import type { Keepout } from "./shootingStar";
@@ -138,14 +138,6 @@ export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
   const d3 = side(c, d, a);
   const d4 = side(c, d, b);
   return d1 * d2 < 0 && d3 * d4 < 0;
-}
-
-function distanceToSegment(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = dx * dx + dy * dy;
-  const t = length === 0 ? 0 : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / length, 0, 1);
-  return distance(p, { x: a.x + t * dx, y: a.y + t * dy });
 }
 
 /** The angle, in degrees, between the directions from `at` to `one` and to `other`. */
