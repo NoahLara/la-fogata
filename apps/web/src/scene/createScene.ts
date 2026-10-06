@@ -362,8 +362,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     return { offset: view.offset, panorama: view.width, viewport };
   };
   const notifyView = () => {
+    if (viewListeners.size === 0) return;
     const state = viewState();
-    for (const listener of [...viewListeners]) listener(state);
+    // Listeners only come and go on a React effect, never while this loop runs a listener's own work.
+    for (const listener of viewListeners) listener(state);
   };
   const soundListeners = new Set<(event: SoundEvent) => void>();
   const emitSound = (event: SoundEvent) => {
@@ -375,6 +377,18 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   };
   /** Rituals in progress, each with what ends it at once. */
   const rituals = new Set<() => void>();
+  /** People walking off: what finishes their leaving, so a rebuild that cuts the walk short can still run it. */
+  const leaving = new Map<string, () => void>();
+  /** Timers that must not outlive the scene. */
+  const timers = new Set<number>();
+  const later = (callback: () => void, ms: number) => {
+    const timer = window.setTimeout(() => {
+      timers.delete(timer);
+      callback();
+    }, ms);
+    timers.add(timer);
+  };
+  let destroyed = false;
   // The visitor's own animal: when they sat down and when they last did something, in scene time.
   let selfId: string | undefined;
   // What the visitor's label says now; a rebuild (on resize) must not bring back the first language.
@@ -389,6 +403,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   let builtHeight = 0;
 
   const rebuild = () => {
+    if (destroyed) return;
     const width = Math.max(1, host.clientWidth);
     const height = Math.max(1, host.clientHeight);
     app.renderer.resize(width, height, resolution);
@@ -406,7 +421,9 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       current.seats.destroy();
       current.textures.destroy();
     }
-    // Anyone still walking in sits down where they were headed.
+    // Anyone still walking in sits down where they were headed. Anyone walking off is gone now, and what was to
+    // happen once they were (such as a new character arriving in their seat) happens after the rebuild.
+    const interrupted = [...leaving.values()];
     roster.removeLeaving();
     roster.markAllSeated();
     view.setWidth(panoramaWidth(width));
@@ -431,6 +448,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const warmUp = 150;
     for (let i = 0; i < warmUp; i++) current.fire.update(1 / 30, time + i / 30, reduced);
     app.stage.addChild(current.root);
+    for (const finishLeaving of interrupted) finishLeaving();
     notifyLayout();
     notifyView();
   };
@@ -439,7 +457,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   /** Shows the label and glow on the visitor's animal, if they are sitting by the fire. */
   const updateYou = () => {
     if (!current) return;
-    const me = selfId ? roster.members().find((member) => member.id === selfId) : undefined;
+    const me = selfId ? roster.get(selfId) : undefined;
     if (me?.status !== "seated") selfSeatedAt = undefined;
     else selfSeatedAt ??= time;
     const at = selfId && selfSeatedAt !== undefined ? current.seats.anchor(selfId) : undefined;
@@ -474,7 +492,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const lower = governor.frame(ticker.elapsedMS, resolution);
     if (lower === undefined || !current) return;
     resolution = lower;
-    window.setTimeout(rebuild, 0);
+    later(rebuild, 0);
   });
 
   // Building the scene bakes every texture, so while the host is being resized only the canvas follows it
@@ -643,7 +661,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       // The ritual itself is over now (the gestures are free again); the light goes on its way by itself.
       done();
       // Should a rebuild (a resize) cut the light's flight short, whoever waits for it is not left waiting.
-      window.setTimeout(settle, SETTLE_FALLBACK_MS);
+      later(settle, SETTLE_FALLBACK_MS);
       return flight.finish;
     };
 
@@ -652,7 +670,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
    * and walk back while it burns. A petition then has `after` carry on from the ashes.
    */
   const errand = (id: string, onDone: () => void, after?: AfterBurn): BurdenResult => {
-    const member = roster.members().find((entry) => entry.id === id);
+    const member = roster.get(id);
     if (!member || member.status !== "seated" || !current) return { status: "not-seated" };
     const hand = current.seats.hand(id);
     if (!hand) return { status: "not-seated" };
@@ -746,7 +764,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     animate: boolean,
     { forgetCooldown, onGone }: { forgetCooldown: boolean; onGone?: () => void },
   ) => {
-    const member = roster.members().find((entry) => entry.id === id);
+    const member = roster.get(id);
     if (!member || member.status !== "seated") {
       console.warn(`Could not send ${id} away: not sitting by the fire`);
       return;
@@ -755,11 +773,17 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     roster.markLeaving(id);
     if (animate && selfId !== undefined && id !== selfId) emitSound("leave");
     const mode = animate ? (reduced ? "fade" : "walk") : "instant";
+    let finished = false;
     const gone = () => {
+      // Once only: a rebuild may already have finished this leaving.
+      if (finished) return;
+      finished = true;
+      leaving.delete(id);
       roster.remove(id);
       if (forgetCooldown) cooldowns.forget(id);
       onGone?.();
     };
+    leaving.set(id, gone);
     const started = current?.seats.removeMember(id, mode, Math.random, gone);
     if (!started) gone();
   };
@@ -771,7 +795,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       removeMemberFrom(id, animate, { forgetCooldown: true });
     },
     replaceMember(member, { animate }) {
-      const existing = roster.members().find((entry) => entry.id === member.id);
+      const existing = roster.get(member.id);
       if (!existing || existing.status !== "seated") {
         console.warn(`Could not change ${member.id}: not sitting by the fire`);
         return;
@@ -789,7 +813,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       glowSince = undefined;
     },
     throwWood(id, { ignoreCooldown = false } = {}) {
-      const member = roster.members().find((entry) => entry.id === id);
+      const member = roster.get(id);
       if (!member || member.status !== "seated") return { status: "not-seated" };
       const secondsLeft = ignoreCooldown ? 0 : cooldowns.remaining(id, time);
       if (secondsLeft > 0) return { status: "cooling", secondsLeft };
@@ -813,7 +837,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     },
     notePlacement(id) {
       const hand = current?.seats.hand(id);
-      const member = roster.members().find((entry) => entry.id === id);
+      const member = roster.get(id);
       if (!hand || member?.status !== "seated") return undefined;
       const page = host.getBoundingClientRect();
       return {
@@ -850,7 +874,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       const built = current;
       const spot = built?.background.petitionSpots().get(petitionId);
       const hand = built?.seats.hand(fromId);
-      const member = roster.members().find((entry) => entry.id === fromId);
+      const member = roster.get(fromId);
       const arrive = () => {
         built?.background.pulseStar(petitionId);
         onArrive?.();
@@ -1000,6 +1024,9 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       current?.background.setDistantFires(fires, distantSlots, reduced);
     },
     destroy() {
+      destroyed = true;
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
       rebuildWhenSettled.cancel();
       observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);

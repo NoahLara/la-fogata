@@ -55,6 +55,11 @@ export class Roster {
     for (const [id, entry] of this.entries) if (entry.status === "leaving") this.entries.delete(id);
   }
 
+  /** One member by id, without building the whole list (this runs every frame). */
+  get(id: string): Readonly<MemberInfo> | undefined {
+    return this.entries.get(id);
+  }
+
   members(): MemberInfo[] {
     return [...this.entries.values()].map(({ id, species, seat, status }) => ({
       id,
@@ -70,6 +75,8 @@ export class Roster {
 
   /** Only those who have reached their seat count toward the fire. */
   get seatedCount(): number {
-    return [...this.entries.values()].filter((entry) => entry.status === "seated").length;
+    let count = 0;
+    for (const entry of this.entries.values()) if (entry.status === "seated") count++;
+    return count;
   }
 }
