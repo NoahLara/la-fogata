@@ -158,6 +158,7 @@ export function FogataScene() {
 
   return (
     <>
+      <h1 className="sr-only">{t.meta.title}</h1>
       <div ref={hostRef} className="absolute inset-0" />
       <LoadingFire ready={mounted !== undefined || failed} />
       {failed && (
