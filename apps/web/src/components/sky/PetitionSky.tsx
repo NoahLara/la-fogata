@@ -465,7 +465,14 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
         ))}
       {help && (
         <div className="pointer-events-auto">
-          <HelpScreen kind="petition" onClose={() => setHelp(false)} />
+          <HelpScreen
+            kind="petition"
+            onClose={() => {
+              setHelp(false);
+              // The card's field that had focus is gone: it goes back to the star.
+              if (tabStop) focusStar(tabStop);
+            }}
+          />
         </div>
       )}
     </div>

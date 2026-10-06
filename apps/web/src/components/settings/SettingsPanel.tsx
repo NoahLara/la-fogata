@@ -70,7 +70,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <div className="grid gap-5 p-5 max-sm:p-4 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-[1.15fr_1fr] sm:gap-x-8">
           <div className="flex flex-col gap-5">
             <CharacterChoice value={settings.animal} onChange={chooseCharacter} autoFocus compact />
-            <p role="status" className="min-h-0 text-sm leading-relaxed text-ink-soft empty:hidden">
+            <p role="status" className="text-sm leading-relaxed text-ink-soft empty:sr-only">
               {taken ? t.settings.characterTaken : ""}
             </p>
             <LanguageChoice />

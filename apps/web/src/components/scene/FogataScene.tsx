@@ -49,6 +49,7 @@ export function FogataScene() {
   const [mounted, setMounted] = useState<Mounted>();
   const [demo, setDemo] = useState(false);
   const [clean, setClean] = useState(false);
+  const [failed, setFailed] = useState(false);
   const { t, locale } = useI18n();
   // The language the sample petitions of ?demo are written in: the one the page started in.
   const localeRef = useRef(locale);
@@ -138,7 +139,10 @@ export function FogataScene() {
         // The visitor sits down once the scene is up (`SitDown`).
         setMounted({ scene: created, services });
       })
-      .catch((error: unknown) => console.error("Could not start the campfire scene", error));
+      .catch((error: unknown) => {
+        console.error("Could not start the campfire scene", error);
+        if (!disposed) setFailed(true);
+      });
 
     return () => {
       disposed = true;
@@ -154,8 +158,17 @@ export function FogataScene() {
 
   return (
     <>
+      <h1 className="sr-only">{t.meta.title}</h1>
       <div ref={hostRef} className="absolute inset-0" />
-      <LoadingFire ready={mounted !== undefined} />
+      <LoadingFire ready={mounted !== undefined || failed} />
+      {failed && (
+        <p
+          role="alert"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-night px-8 text-center text-lg text-gold"
+        >
+          {t.scene.startFailed}
+        </p>
+      )}
       {mounted && (
         <DataProvider services={mounted.services}>
           <InteractionProvider>

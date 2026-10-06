@@ -51,6 +51,10 @@ export function OtherStarCard({
   const [spoken, setSpoken] = useState<string>();
   const textId = useId();
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const flagRef = useRef<HTMLButtonElement>(null);
+  const thanksRef = useRef<HTMLParagraphElement>(null);
+  // Set when the report view is left, so focus lands on the flag instead of being lost with the button it was on.
+  const restoreFocus = useRef(false);
   const timers = useRef(new Set<number>());
   const count = countLabel(locale, t.sky, state);
 
@@ -74,7 +78,17 @@ export function OtherStarCard({
 
   useEffect(() => {
     if (view === "reporting") confirmRef.current?.focus();
+    if (view === "thanks") thanksRef.current?.focus();
+    if (view === "details" && restoreFocus.current) {
+      restoreFocus.current = false;
+      flagRef.current?.focus();
+    }
   }, [view]);
+
+  const backToDetails = () => {
+    restoreFocus.current = true;
+    setView("details");
+  };
 
   // Read out (and never shown): cleared first so the same line twice in a row is read twice.
   const say = (text: string) => {
@@ -105,7 +119,7 @@ export function OtherStarCard({
     try {
       if (await onReport()) setView("thanks");
       else {
-        setView("details");
+        backToDetails();
         say(t.sky.failed);
       }
     } finally {
@@ -164,6 +178,7 @@ export function OtherStarCard({
             )}
           </div>
           <button
+            ref={flagRef}
             type="button"
             aria-label={t.sky.report}
             aria-expanded={false}
@@ -192,7 +207,7 @@ export function OtherStarCard({
               type="button"
               aria-label={t.sky.report}
               aria-expanded={true}
-              onClick={() => setView("details")}
+              onClick={backToDetails}
               className={ICON_BUTTON}
             >
               <FlagIcon />
@@ -201,7 +216,11 @@ export function OtherStarCard({
         </div>
       )}
 
-      {view === "thanks" && <p className="text-base text-ink">{t.sky.reportDone}</p>}
+      {view === "thanks" && (
+        <p ref={thanksRef} tabIndex={-1} className="text-base text-ink outline-none">
+          {t.sky.reportDone}
+        </p>
+      )}
 
       <p role="status" className="sr-only">
         {spoken}
