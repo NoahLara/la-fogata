@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { PAPER_OUTLINE_POINTS } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
+import { LetterClose } from "../LetterClose";
 
 /**
  * The letter panel every star's card is read on: the whole height of the screen on the right, with room around
@@ -85,6 +86,7 @@ export function PaperCard({
         >
           <polygon points={PAPER_OUTLINE_POINTS} style={{ fill: "var(--color-paper)" }} />
         </svg>
+        <LetterClose onClick={() => onClose(true)} />
         <div className="relative flex h-full flex-col px-6 pt-7 pb-5 sm:px-9 sm:pt-9">
           {children}
         </div>
@@ -95,7 +97,8 @@ export function PaperCard({
 
 /** What heads the letter: its date, on the right. */
 export function LetterHead({ children }: { children: ReactNode }) {
-  return <div className="flex shrink-0 flex-col items-end gap-1 pb-4">{children}</div>;
+  // Room on the right for the X in the corner.
+  return <div className="flex shrink-0 flex-col items-end gap-1 pr-10 pb-4">{children}</div>;
 }
 
 /** The writing. It takes the height that is left and scrolls inside itself, so the head and the foot stay put. */

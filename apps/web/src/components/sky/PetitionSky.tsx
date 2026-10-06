@@ -28,9 +28,12 @@ const NAME_LENGTH = 60;
 /** How long the star takes to start twinkling and the shooting star to cross, so the gestures wait for both. */
 const ANSWER_ANIMATION_MS = 1400;
 
+/** A star's name for a screen reader: the start of what was written, on one line (a letter has line breaks). */
 const shorten = (text: string) => {
-  const letters = Array.from(text);
-  return letters.length <= NAME_LENGTH ? text : `${letters.slice(0, NAME_LENGTH).join("")}…`;
+  const letters = Array.from(text.replace(/\s+/g, " ").trim());
+  return letters.length <= NAME_LENGTH
+    ? letters.join("")
+    : `${letters.slice(0, NAME_LENGTH).join("")}…`;
 };
 
 interface Star {

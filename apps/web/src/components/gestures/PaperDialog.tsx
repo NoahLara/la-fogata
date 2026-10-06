@@ -7,6 +7,7 @@ import { PAPER_OUTLINE_POINTS } from "@/design/paperEdge";
 import { useVisualViewport } from "@/design/useVisualViewport";
 import { useI18n } from "@/i18n/I18nProvider";
 import { prefersReducedMotion } from "@/scene/motion";
+import { LetterClose } from "../LetterClose";
 import { ModalDialog } from "../ModalDialog";
 import { FoldingNote, type NoteTarget } from "./FoldingNote";
 import { measurePaper, type PaperMeasure } from "./measure";
@@ -209,6 +210,7 @@ export function PaperDialog({
           </defs>
           <polygon points={PAPER_OUTLINE_POINTS} fill="url(#paper-fill)" />
         </svg>
+        <LetterClose onClick={onClose} hidden={fading || handing} />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -218,7 +220,7 @@ export function PaperDialog({
         >
           <h2
             id={titleId}
-            className={`font-title text-3xl leading-tight text-ink ${FADE} ${fading ? "opacity-0" : ""}`}
+            className={`pr-10 font-title text-3xl leading-tight text-ink ${FADE} ${fading ? "opacity-0" : ""}`}
           >
             {copy.title}
           </h2>
