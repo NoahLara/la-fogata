@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 
 const BUTTON =
-  "min-h-11 rounded-full bg-bark/90 px-4 text-sm text-gold ring-1 ring-ember/50 hover:bg-ember/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
+  "min-h-11 rounded-full px-4 text-sm btn-wood focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
 
 /** Development-only buttons (behind ?demo) to make other people arrive at and leave the fire. */
 export function DemoControls({ local, scene }: { local: LocalServices; scene: FogataScene }) {

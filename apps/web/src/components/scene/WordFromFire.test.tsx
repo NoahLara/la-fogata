@@ -14,11 +14,12 @@ import { WordFromFire } from "./WordFromFire";
 
 /** Just enough of the scene: rituals that finish when the test says so. */
 function fakeScene() {
-  const finish: { burden?: () => void; petition?: () => void } = {};
+  const finish: { burden?: () => void; settled?: () => void; petition?: () => void } = {};
   const scene = {
     notePlacement: () => ({ x: 100, y: 100, height: 40 }),
-    handOverBurden: (_id: string, request: { onDone: () => void }) => {
+    handOverBurden: (_id: string, request: { onDone: () => void; onSettled?: () => void }) => {
       finish.burden = request.onDone;
+      finish.settled = request.onSettled;
       return { status: "burning" as const };
     },
     offerPetition: (_id: string, request: { onDone: () => void }) => {
@@ -96,16 +97,35 @@ describe("the fire answers a burden and a petition", () => {
 
   const shown = () => screen.queryByTestId("fire-word")?.textContent;
 
-  it("speaks a rest word about 1.5 s after a burden has burned", async () => {
+  it("speaks a rest word about 1.5 s after the shooting star of a burden has gone, not before", async () => {
     await writeAndSubmit("burden", es.burden.submit);
     expect(finish.burden).toBeDefined();
     expect(shown()).toBeUndefined();
+    // The note has burned and the gestures are free: the light is still on its way, and so is the shooting star.
     act(() => finish.burden?.());
     expect(screen.getByText(es.burden.afterglow)).toBeTruthy();
+    await advance(TRIGGER_DELAY_MS * 4);
+    expect(shown()).toBeUndefined();
+    // The shooting star has crossed and gone: now the word follows, after its pause.
+    act(() => finish.settled?.());
     await advance(TRIGGER_DELAY_MS - 100);
     expect(shown()).toBeUndefined();
     await advance(300);
     expect(wordsOf("rest")).toContain(shown());
+  });
+
+  it("stays quiet for a burden that showed signs of risk, even when its shooting star has gone", async () => {
+    const button = document.querySelector<HTMLElement>('[data-gesture="burden"]');
+    if (!button) throw new Error("no gesture button");
+    fireEvent.click(button);
+    await advance(0);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "quiero morir" } });
+    fireEvent.click(screen.getByRole("button", { name: es.burden.submit }));
+    await advance(2000);
+    act(() => finish.burden?.());
+    act(() => finish.settled?.());
+    await advance(TRIGGER_DELAY_MS * 3);
+    expect(shown()).toBeUndefined();
   });
 
   it("speaks an asking word about 1.5 s after a petition has become a star", async () => {

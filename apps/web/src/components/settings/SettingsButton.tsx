@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { NO_AUDIO_UNLOCK } from "@/sound/SoundProvider";
 import { useI18n } from "@/i18n/I18nProvider";
 import { SettingsPanel } from "./SettingsPanel";
 
@@ -33,10 +34,11 @@ export function SettingsButton() {
       <button
         ref={button}
         type="button"
+        {...{ [NO_AUDIO_UNLOCK]: "" }}
         aria-label={t.settings.open}
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-10 flex size-11 items-center justify-center rounded-full bg-bark/90 text-gold ring-1 ring-ember/50 hover:bg-ember/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-10 flex size-11 items-center justify-center rounded-full btn-wood focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       >
         <GearIcon />
       </button>

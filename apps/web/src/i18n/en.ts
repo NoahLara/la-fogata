@@ -111,13 +111,9 @@ export const en = {
     reportConfirm: "Report",
     reportDone: "Thank you. You won't see it again.",
   },
-  entrance: {
-    title: "La Fogata",
-    tagline: "A place to sit by the fire tonight. No names, no profiles.",
-    enter: "Sit by the fire",
-    chooseCharacter: "Choose my character",
-    pickerTitle: "Choose your character",
-    pickerDone: "Done",
+  // The screen shown while the scene is being built.
+  loading: {
+    lighting: "Lighting the fire…",
   },
   settings: {
     // The name of the gear button, and the title of its panel.
@@ -128,6 +124,9 @@ export const en = {
     textSize: { legend: "Text size", small: "Small", normal: "Normal", large: "Large" },
     // A gentle note when the character they picked is already at this campfire; it is saved for next time.
     characterTaken: "That character is already at this fire. It'll keep you company next time.",
+    sound: { legend: "Sound", on: "On", off: "Off" },
+    crackle: { legend: "Fire crackle volume" },
+    music: { legend: "Music volume" },
   },
   // The names of the 7 characters, as shown in the picker.
   species: {

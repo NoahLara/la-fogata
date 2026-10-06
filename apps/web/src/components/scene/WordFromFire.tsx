@@ -18,6 +18,7 @@ import { format } from "@/i18n/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 import { prefersReducedMotion } from "@/scene/motion";
+import { useSound } from "@/sound/SoundProvider";
 import { useInteraction } from "./Interaction";
 
 /** How long a word stays, not counting the time it is being read (hovered, focused or with its reference open). */
@@ -72,6 +73,7 @@ export function WordFromFire({
 }) {
   const { t, locale } = useI18n();
   const { presence } = useServices();
+  const sound = useSound();
   const { busy, announce, onFire, dialogState } = useInteraction();
   const [bounds, setBounds] = useState(() => scene.fireBounds());
   const [bottom, setBottom] = useState(() => scene.wordBottom());
@@ -147,6 +149,7 @@ export function WordFromFire({
   /** Flares the fire and lets the word rise from it. */
   const present = ({ word: next, text: nextText }: { word: Word; text: string }) => {
     scene.touchFire();
+    sound.play("fireWord");
     setReduced(prefersReducedMotion());
     setPhase("start");
     setWord(next);

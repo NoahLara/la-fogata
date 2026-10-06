@@ -40,6 +40,8 @@ import {
   type NoteHandle,
   type NoteHooks,
 } from "./noteEffects";
+import type { SoundEvent } from "@/sound/soundEvents";
+import { createQualityGovernor } from "./quality";
 import { createWoodEffects, type WoodEffects } from "./woodEffects";
 import { createYouMarker, type YouMarker } from "./you";
 import { gestureGlowAt, youLabelAlpha } from "./youMarker";
@@ -73,7 +75,8 @@ export interface FogataScene {
    * up, walk to the stones, lean over them to put it on the ember bed, and walk back to sit down while it burns
    * like paper and its ash rises. Works for anyone around the fire, so everyone in the room can watch anyone's
    * burden burn; nothing about what was written ever reaches the scene. `onDone` is called when they are sitting
-   * again and the note has burned. With reduced motion nobody walks: the note is on the fire and fades into it.
+   * again and the note has burned; `onSettled` when the shooting star it became has gone too. With reduced motion
+   * nobody walks: the note is on the fire and fades into it.
    */
   handOverBurden(id: string, request: BurdenRequest): BurdenResult;
   /**
@@ -114,6 +117,11 @@ export interface FogataScene {
   petitionSpots(): ReadonlyMap<string, { x: number; y: number }>;
   /** The sky is a panorama about four screens wide that turns: how to see it and turn it. */
   readonly sky: SkyControls;
+  /**
+   * Called at the moment something in the scene should be heard: a log landing, a note catching, a star settling.
+   * Only the kind of event, never anything a person wrote. Returns a way to stop.
+   */
+  onSound(listener: (event: SoundEvent) => void): () => void;
   /** Called whenever the stars may have moved (the scene was laid out again, one was added or went). Returns a way to stop. */
   onLayout(listener: () => void): () => void;
   /**
@@ -184,6 +192,12 @@ export interface SkyControls {
 
 export interface BurdenRequest {
   onDone: () => void;
+  /**
+   * Called once everything that can be seen of a burden is over: after `onDone` (when the gestures are free
+   * again), when its light has risen and the shooting star it became has crossed and gone. At once with reduced
+   * motion, and never later than a few seconds after the light sets off, whatever happens to the scene.
+   */
+  onSettled?: () => void;
 }
 
 export interface PetitionRequest extends BurdenRequest {
@@ -220,6 +234,9 @@ const NIGHT = "#0b0d1a";
 
 /** How long the size of the host must stay put before the scene is rebuilt for it. */
 const RESIZE_SETTLE_MS = 150;
+
+/** The most a burden's shooting star is waited for after its light sets off: its flight and its crossing, with room to spare. */
+const SETTLE_FALLBACK_MS = 20_000;
 
 interface Built {
   root: Container;
@@ -280,16 +297,23 @@ function build(
 export async function createScene(host: HTMLElement, options: SceneOptions): Promise<FogataScene> {
   const insets = options.insets ?? { top: 0, bottom: 0 };
   const app = new Application();
-  await app.init({
-    width: Math.max(1, host.clientWidth),
-    height: Math.max(1, host.clientHeight),
-    background: NIGHT,
-    antialias: true,
-    autoDensity: true,
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
-  });
-
-  const sprites = await SpriteArt.load(SPECIES);
+  const density = Math.min(window.devicePixelRatio || 1, 2);
+  // The renderer starts up while the illustrations load: they don't depend on each other.
+  const [, sprites] = await Promise.all([
+    app.init({
+      width: Math.max(1, host.clientWidth),
+      height: Math.max(1, host.clientHeight),
+      background: NIGHT,
+      // Smoothing the edges of shapes is invisible on a dense screen, where it costs the most.
+      antialias: density < 2,
+      autoDensity: true,
+      resolution: density,
+    }),
+    SpriteArt.load(SPECIES),
+  ]);
+  // The sharpness the scene is drawn at. It only ever goes down, and only on a device too slow for it.
+  let resolution = density;
+  const governor = createQualityGovernor();
 
   // Fixed for the life of the scene, so a resize doesn't reshuffle everyone.
   const only = SPECIES.find((species) => species === options.animal);
@@ -341,6 +365,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     const state = viewState();
     for (const listener of [...viewListeners]) listener(state);
   };
+  const soundListeners = new Set<(event: SoundEvent) => void>();
+  const emitSound = (event: SoundEvent) => {
+    for (const listener of [...soundListeners]) listener(event);
+  };
   const layoutListeners = new Set<() => void>();
   const notifyLayout = () => {
     for (const listener of [...layoutListeners]) listener();
@@ -363,7 +391,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const rebuild = () => {
     const width = Math.max(1, host.clientWidth);
     const height = Math.max(1, host.clientHeight);
-    app.renderer.resize(width, height);
+    app.renderer.resize(width, height, resolution);
     builtWidth = width;
     builtHeight = height;
     if (current) {
@@ -439,6 +467,14 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     }
     current.background.update(time, reduced, current.fire.state.light);
     current.seats.update(time, dt, reduced);
+  });
+
+  // On a device that can't keep the scene moving, it is drawn a step less sharp (the art is baked again for it).
+  app.ticker.add((ticker) => {
+    const lower = governor.frame(ticker.elapsedMS, resolution);
+    if (lower === undefined || !current) return;
+    resolution = lower;
+    window.setTimeout(rebuild, 0);
   });
 
   // Building the scene bakes every texture, so while the host is being resized only the canvas follows it
@@ -547,9 +583,11 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       shown = true;
       if (!petitionIds.includes(petitionId)) petitionIds.push(petitionId);
       built.background.addPetitionStar(petitionId, mode);
+      emitSound("starSettle");
       notifyLayout();
     };
     const start = () => {
+      emitSound("petitionRise");
       const hooks = { onArrive: () => show(reduced ? "fade" : "bloom"), onDone: end };
       if (reduced) {
         flight = built.lights.fade(hooks);
@@ -575,24 +613,39 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
    * middle of the sky that is passing at that moment, and there it is born as a shooting star that crosses and is
    * gone. The sky doesn't move for it. With reduced motion there is nothing more.
    */
-  const becomeShootingStar: AfterBurn = (done) => {
-    const built = current;
-    if (!built || reduced) {
+  const becomeShootingStar =
+    (onSettled?: () => void): AfterBurn =>
+    (done) => {
+      // Called once, by whichever comes first: the shooting star having gone, or the fallback if the scene was rebuilt.
+      let settled = false;
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        onSettled?.();
+      };
+      const built = current;
+      if (!built || reduced) {
+        done();
+        settle();
+        return () => {};
+      }
+      const { cx, cy, u, width } = built.layout;
+      const flames = { x: cx, y: cy - 30 * u };
+      const { skyHeight } = skyGeometry(built.layout);
+      const middle = { x: width * (0.5 + (Math.random() - 0.5) * 0.3), y: skyHeight * 0.3 };
+      const flight = built.lights.launch(flames, middle, {
+        onArrive: () => {
+          built.background.shootingStar(middle, settle);
+          emitSound("shootingStar");
+        },
+        onDone: () => {},
+      });
+      // The ritual itself is over now (the gestures are free again); the light goes on its way by itself.
       done();
-      return () => {};
-    }
-    const { cx, cy, u, width } = built.layout;
-    const flames = { x: cx, y: cy - 30 * u };
-    const { skyHeight } = skyGeometry(built.layout);
-    const middle = { x: width * (0.5 + (Math.random() - 0.5) * 0.3), y: skyHeight * 0.3 };
-    const flight = built.lights.launch(flames, middle, {
-      onArrive: () => built.background.shootingStar(middle),
-      onDone: () => {},
-    });
-    // The ritual itself is over now (the gestures are free again); the light goes on its way by itself.
-    done();
-    return flight.finish;
-  };
+      // Should a rebuild (a resize) cut the light's flight short, whoever waits for it is not left waiting.
+      window.setTimeout(settle, SETTLE_FALLBACK_MS);
+      return flight.finish;
+    };
 
   /**
    * The ritual shared by a burden and a petition: they stand up, run the errand, put the note on the ember bed
@@ -618,6 +671,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     };
     const hooks: NoteHooks = {
       onLand: () => {
+        emitSound("burden");
         flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
         current?.fire.burst(reduced ? 0 : 6);
       },
@@ -683,6 +737,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     // Without a seat's worth of art to draw, nobody sits there.
     const drawn = current?.seats.addMember(member, mode, Math.random) ?? false;
     if (!drawn) roster.remove(member.id);
+    // Steps for other people's arrivals only: not before the visitor sits down, and never for themselves.
+    else if (animate && selfId !== undefined && member.id !== selfId) emitSound("arrive");
   };
 
   const removeMemberFrom = (
@@ -697,6 +753,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     }
     // Leaving people stop feeding the fire at once, and their seat stays taken until they are gone.
     roster.markLeaving(id);
+    if (animate && selfId !== undefined && id !== selfId) emitSound("leave");
     const mode = animate ? (reduced ? "fade" : "walk") : "instant";
     const gone = () => {
       roster.remove(id);
@@ -738,6 +795,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       if (secondsLeft > 0) return { status: "cooling", secondsLeft };
       // The log is added to the fire once it lands, whatever happens to the scene before that.
       const land = () => {
+        emitSound("wood");
         fuel = addLog(fuel);
         flare = Math.min(flare + FIRE.flarePerLog, 0.6);
         current?.fire.burst(reduced ? 0 : 14);
@@ -764,7 +822,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         height: NOTE_HEIGHT_UNITS * hand.scale,
       };
     },
-    handOverBurden: (id, { onDone }) => errand(id, onDone, becomeShootingStar),
+    handOverBurden: (id, { onDone, onSettled }) =>
+      errand(id, onDone, becomeShootingStar(onSettled)),
     offerPetition(id, { petitionId, onDone }) {
       return errand(id, onDone, (done) => becomeStar(petitionId, done));
     },
@@ -815,6 +874,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       answeredIds.add(id);
       current?.background.answerPetitionStar(id, reduced ? "instant" : "turn");
       current?.background.shootingStar();
+      emitSound("shootingStar");
     },
     returnPetition(id, onDone) {
       const built = current;
@@ -899,6 +959,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         return anchors;
       },
       dragBottom: () => (current ? skyDragBottom(current.layout) : 0),
+    },
+    onSound(listener) {
+      soundListeners.add(listener);
+      return () => soundListeners.delete(listener);
     },
     onLayout(listener) {
       layoutListeners.add(listener);

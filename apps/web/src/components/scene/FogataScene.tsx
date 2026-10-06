@@ -9,11 +9,13 @@ import { seedDemoPetitions, type DemoLoader } from "@/data/demoSeed";
 import { skyLimit } from "@/data/sky";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
-import { Entrance } from "../settings/Entrance";
 import { SettingsButton } from "../settings/SettingsButton";
+import { SitDown } from "./SitDown";
+import { SoundProvider } from "@/sound/SoundProvider";
 import { PetitionSky } from "../sky/PetitionSky";
 import { InteractionProvider } from "./Interaction";
 import { Company } from "./Company";
+import { LoadingFire } from "./LoadingFire";
 import { DemoControls } from "./DemoControls";
 import { WordFromFire } from "./WordFromFire";
 
@@ -46,7 +48,6 @@ export function FogataScene() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState<Mounted>();
   const [demo, setDemo] = useState(false);
-  const [skipIntro, setSkipIntro] = useState(false);
   const [clean, setClean] = useState(false);
   const { t, locale } = useI18n();
   // The language the sample petitions of ?demo are written in: the one the page started in.
@@ -133,9 +134,8 @@ export function FogataScene() {
         created.setDistantFires(services.distantFires.fires());
         stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
         setDemo(flags.demo);
-        setSkipIntro(flags.skipIntro);
         setClean(flags.clean);
-        // Nobody sits down until the entrance says so (or ?skipIntro, in development).
+        // The visitor sits down once the scene is up (`SitDown`).
         setMounted({ scene: created, services });
       })
       .catch((error: unknown) => console.error("Could not start the campfire scene", error));
@@ -155,16 +155,19 @@ export function FogataScene() {
   return (
     <>
       <div ref={hostRef} className="absolute inset-0" />
+      <LoadingFire ready={mounted !== undefined} />
       {mounted && (
         <DataProvider services={mounted.services}>
           <InteractionProvider>
-            <WordFromFire scene={mounted.scene} unlimited={demo} />
-            <Company scene={mounted.scene} />
-            <PetitionSky scene={mounted.scene} />
-            {!clean && <GestureBar scene={mounted.scene} />}
-            <SettingsButton />
-            <Entrance scene={mounted.scene} skipIntro={skipIntro} />
-            {demo && !clean && <DemoControls local={mounted.services} scene={mounted.scene} />}
+            <SoundProvider scene={mounted.scene}>
+              <WordFromFire scene={mounted.scene} unlimited={demo} />
+              <Company scene={mounted.scene} />
+              <PetitionSky scene={mounted.scene} />
+              {!clean && <GestureBar scene={mounted.scene} />}
+              <SettingsButton />
+              <SitDown scene={mounted.scene} />
+              {demo && !clean && <DemoControls local={mounted.services} scene={mounted.scene} />}
+            </SoundProvider>
           </InteractionProvider>
         </DataProvider>
       )}

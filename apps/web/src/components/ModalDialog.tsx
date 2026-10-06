@@ -73,6 +73,6 @@ export function ModalDialog({
 }
 
 export const DIALOG_BUTTON =
-  "min-h-11 rounded-full px-5 text-sm ring-1 ring-ember/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
-export const DIALOG_PRIMARY = `${DIALOG_BUTTON} bg-ember/90 text-ink hover:bg-ember-soft disabled:opacity-40 disabled:hover:bg-ember/90`;
-export const DIALOG_SECONDARY = `${DIALOG_BUTTON} bg-bark hover:bg-ember/20`;
+  "min-h-11 rounded-full px-5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
+export const DIALOG_PRIMARY = `${DIALOG_BUTTON} btn-ember disabled:opacity-60`;
+export const DIALOG_SECONDARY = `${DIALOG_BUTTON} btn-wood`;

@@ -9,7 +9,7 @@ import { aloneLine, otherFiresDescription, shouldSayAlone } from "@/fire/aloneLi
 import type { FogataScene } from "@/scene/createScene";
 import { useInteraction } from "./Interaction";
 
-/** After sitting down, how long before the gentle line about being alone: the entrance has faded and the animal has arrived. */
+/** After sitting down, how long before the gentle line about being alone: the animal has arrived and settled. */
 const ALONE_DELAY_MS = 3500;
 
 /**

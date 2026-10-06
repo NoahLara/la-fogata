@@ -276,7 +276,7 @@ export function PaperDialog({
             <button
               type="submit"
               disabled={!rules.canSubmit(text) || fading || handing}
-              className={`min-h-11 rounded-full bg-ember px-6 text-base font-medium text-ink shadow-ember hover:bg-ember-soft disabled:opacity-45 disabled:shadow-none disabled:hover:bg-ember ${FOCUS_RING}`}
+              className={`min-h-11 rounded-full btn-ember px-6 text-base font-medium disabled:opacity-60 ${FOCUS_RING}`}
             >
               {copy.submit}
             </button>

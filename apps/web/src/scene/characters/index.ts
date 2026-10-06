@@ -39,16 +39,20 @@ const IMAGE_EXTENSIONS = ["webp", "png", "svg"] as const;
 
 /** First existing `/characters/<species>/<view>.<ext>`, in webp, png, svg order. */
 async function findImage(species: Species, view: View): Promise<string | undefined> {
-  for (const extension of IMAGE_EXTENSIONS) {
-    const url = `/characters/${species}/${view}.${extension}`;
-    try {
-      const response = await fetch(url, { method: "HEAD" });
-      if (response.ok) return url;
-    } catch {
-      // Network trouble: treat as missing.
-    }
-  }
-  return undefined;
+  // All the formats are asked at once (the answer is still the first in order that exists), not one after another.
+  const found = await Promise.all(
+    IMAGE_EXTENSIONS.map(async (extension) => {
+      const url = `/characters/${species}/${view}.${extension}`;
+      try {
+        const response = await fetch(url, { method: "HEAD" });
+        return response.ok ? url : undefined;
+      } catch {
+        // Network trouble: treat as missing.
+        return undefined;
+      }
+    }),
+  );
+  return found.find((url) => url !== undefined);
 }
 
 async function loadTexture(url: string): Promise<Texture> {
@@ -73,15 +77,21 @@ export class SpriteArt {
     await Promise.all(
       species.map(async (name) => {
         try {
-          // Probe the front alone: a species without art then costs 3 requests instead of 6.
-          const frontUrl = await findImage(name, "front");
-          const backUrl = frontUrl ? await findImage(name, "back") : undefined;
+          // The three views are looked for, and loaded, side by side.
+          const [frontUrl, backUrl, sideUrl] = await Promise.all([
+            findImage(name, "front"),
+            findImage(name, "back"),
+            findImage(name, "side"),
+          ]);
           if (!frontUrl || !backUrl) return;
-          const [front, back] = await Promise.all([loadTexture(frontUrl), loadTexture(backUrl)]);
+          const [front, back, side] = await Promise.all([
+            loadTexture(frontUrl),
+            loadTexture(backUrl),
+            sideUrl ? loadTexture(sideUrl) : undefined,
+          ]);
           textures.set(`${name}|front`, front);
           textures.set(`${name}|back`, back);
-          const sideUrl = await findImage(name, "side");
-          if (sideUrl) textures.set(`${name}|side`, await loadTexture(sideUrl));
+          if (side) textures.set(`${name}|side`, side);
         } catch (error) {
           console.warn(`Could not load the illustrations for ${name}`, error);
         }

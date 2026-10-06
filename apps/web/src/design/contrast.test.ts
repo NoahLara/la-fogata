@@ -36,6 +36,10 @@ describe("text pairs in the design tokens", () => {
     ["ink-faint", "paper-glow"],
     ["ink", "ember"],
     ["ink", "ember-soft"],
+    // The raised buttons: the text must hold across the whole gradient.
+    ["ink", "ember-deep"],
+    ["gold", "bark-lit"],
+    ["gold", "hearth"],
     ["gold", "night"],
     ["ember-soft", "night"],
     ["gold", "bark"],
