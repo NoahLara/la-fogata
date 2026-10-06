@@ -5,11 +5,15 @@
   <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#b48a62"/><stop offset=".55" stop-color="#92694a"/><stop offset="1" stop-color="#5f4430"/></radialGradient>
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+<filter id="blur-sm" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="blur-xl" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="3.6"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
 <rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
 <ellipse cx="0" cy="-5" rx="28" ry="12" fill="#3f2c1e" opacity=".28" filter="url(#blur-lg)"/>
+
+<ellipse cx="0" cy="-86" rx="14" ry="6" fill="#7a5a3c" opacity=".5" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-70" rx="16" ry="8" fill="#c49a70" opacity=".4" filter="url(#blur-lg)"/>
 <polygon points="-22,-84 -24,-106 -13,-95" fill="#573c28" />
 <polygon points="22,-84 24,-106 13,-95" fill="#573c28" />
 <ellipse cx="-11" cy="-36" rx="15" ry="32" transform="rotate(4 -11 -36)" fill="#573c28" filter="url(#edge)"/>
@@ -20,5 +24,13 @@
 <ellipse cx="0" cy="3" rx="8.5" ry="4.5" fill="#47301f" filter="url(#edge)"/>
 <ellipse cx="-6" cy="3.5" rx="3.6" ry="6" transform="rotate(12 -6 3.5)" fill="#4d3623" filter="url(#edge)"/>
 <ellipse cx="6" cy="3.5" rx="3.6" ry="6" transform="rotate(-12 6 3.5)" fill="#4d3623" filter="url(#edge)"/>
+
+<path d="M-24,-60 Q-27,-36 -20,-12 M24,-60 Q27,-36 20,-12" fill="none" stroke="#7a5a3c" stroke-width="1.6" stroke-linecap="round" opacity=".5" filter="url(#edge)"/>
+<path d="M-18,-50 q4,3 8,0 M-9,-50 q4,3 8,0 M2,-50 q4,3 8,0 M11,-50 q4,3 8,0 M-14,-40 q4,3 8,0 M-5,-40 q4,3 8,0 M6,-40 q4,3 8,0 M-18,-30 q4,3 8,0 M-9,-30 q4,3 8,0 M2,-30 q4,3 8,0 M11,-30 q4,3 8,0" fill="none" stroke="#8a6a4a" stroke-width=".9" stroke-linecap="round" opacity=".55"/>
+<ellipse cx="-11" cy="-56" rx="9" ry="9" fill="#7a5a3c" opacity=".35" filter="url(#blur-sm)"/>
+<ellipse cx="11" cy="-56" rx="9" ry="9" fill="#7a5a3c" opacity=".35" filter="url(#blur-sm)"/>
+<polygon points="-22,-86 -23.2,-101 -15,-93" fill="#6a4a30" opacity=".8" filter="url(#edge)"/>
+<polygon points="22,-86 23.2,-101 15,-93" fill="#6a4a30" opacity=".8" filter="url(#edge)"/>
+<path d="M-5,2 L-5,8 M0,3 L0,9 M5,2 L5,8" fill="none" stroke="#2b1c11" stroke-width=".8" stroke-linecap="round" opacity=".5" filter="url(#edge)"/>
 </g>
 </g></svg>

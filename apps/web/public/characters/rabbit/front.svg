@@ -5,11 +5,19 @@
   <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#dcc29c"/><stop offset=".55" stop-color="#c2a177"/><stop offset="1" stop-color="#8c6d4d"/></radialGradient>
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+<filter id="blur-sm" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="blur-xl" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="3.6"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
 <rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
 <ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
+
+<ellipse cx="-22" cy="-30" rx="7" ry="18" fill="#a58760" opacity=".35" filter="url(#blur-lg)"/>
+<ellipse cx="22" cy="-30" rx="7" ry="18" fill="#a58760" opacity=".35" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-78" rx="12" ry="5" fill="#a58760" opacity=".35" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-60" rx="9" ry="7" fill="#f4e4c6" opacity=".85" filter="url(#blur-sm)"/>
+<ellipse cx="-11" cy="-62" rx="6" ry="5" fill="#f4e4c6" opacity=".6" filter="url(#blur-sm)"/>
+<ellipse cx="11" cy="-62" rx="6" ry="5" fill="#f4e4c6" opacity=".6" filter="url(#blur-sm)"/>
 <ellipse cx="0" cy="-47" rx="15" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
 <ellipse cx="0" cy="-32" rx="12" ry="17" fill="#f4e4c6" opacity=".95" filter="url(#blur-lg)"/>
 <ellipse cx="-9" cy="-90" rx="2.8" ry="18.72" transform="rotate(4 -9 -90)" fill="#f4e4c6" opacity=".9" filter="url(#blur-lg)"/>
@@ -18,5 +26,13 @@
 <ellipse cx="6.5" cy="-11" rx="5.5" ry="8" fill="#cbb18c" opacity=".75" filter="url(#blur-lg)"/>
 <ellipse cx="-16" cy="-4" rx="13" ry="5.8" fill="#cbb18c" filter="url(#edge)"/>
 <ellipse cx="16" cy="-4" rx="13" ry="5.8" fill="#cbb18c" filter="url(#edge)"/>
+
+<ellipse cx="-9" cy="-92" rx="2" ry="15" transform="rotate(4 -9 -92)" fill="#e9c3a4" opacity=".75" filter="url(#blur-sm)"/>
+<ellipse cx="9.5" cy="-92" rx="2" ry="15" transform="rotate(-11 9.5 -92)" fill="#e9c3a4" opacity=".75" filter="url(#blur-sm)"/>
+<path d="M-14,-90 C-15,-105 -12,-112 -9,-115 M14,-90 C15,-105 12,-112 9,-115" fill="none" stroke="#a58760" stroke-width="1.2" stroke-linecap="round" opacity=".35" filter="url(#edge)"/>
+<path d="M4.0,-7.3 q0.3,1.6 0.4,4.0 M-0.4,-6.5 q-0.0,1.6 0.2,4.0 M-19.4,-27.5 q-0.5,1.6 -0.7,3.9 M-11.1,-45.0 q1.2,1.5 1.5,3.7 M-2.1,-52.2 q0.3,1.5 1.1,3.9 M-7.8,-10.1 q0.1,1.6 -0.4,4.0 M-6.5,-18.9 q-0.8,1.6 -0.7,3.9 M-1.8,-46.9 q-0.3,1.6 -0.1,4.0 M-2.9,-31.5 q0.0,1.6 0.4,4.0 M13.3,-27.6 q1.0,1.5 1.0,3.9 M12.7,-39.4 q0.2,1.5 1.0,3.9 M6.1,-36.7 q-0.2,1.6 -0.5,4.0 M-8.4,-11.5 q0.3,1.5 1.5,3.7 M15.6,-36.6 q-0.4,1.6 -1.0,3.9 M18.2,-38.5 q0.3,1.5 1.2,3.8 M17.7,-39.7 q-1.1,1.5 -1.4,3.7 M-14.8,-29.9 q0.4,1.5 1.4,3.7 M-2.7,-27.9 q0.6,1.6 0.2,4.0 M-16.0,-29.6 q0.2,1.6 -0.4,4.0 M1.5,-8.4 q-0.0,1.6 -0.3,4.0 M4.8,-31.9 q0.3,1.6 0.8,3.9 M-5.1,-46.1 q0.1,1.6 -0.7,3.9 M3.7,-38.6 q0.7,1.5 1.2,3.8 M2.2,-9.7 q0.2,1.6 0.7,3.9 M4.0,-19.2 q-0.2,1.5 -1.1,3.8 M9.2,-34.7 q0.7,1.6 0.8,3.9 M14.5,-39.9 q0.3,1.5 1.1,3.8 M-9.1,-42.8 q-0.4,1.6 -0.8,3.9 M2.3,-9.5 q-0.0,1.6 -0.6,4.0 M-6.7,-47.1 q0.4,1.6 -0.1,4.0 M-3.5,-52.7 q0.6,1.5 1.4,3.7 M-7.9,-20.5 q0.4,1.5 1.3,3.8 M3.4,-20.8 q0.2,1.5 1.3,3.8 M7.4,-23.5 q-0.1,1.6 0.3,4.0" fill="none" stroke="#fff6e2" stroke-width="0.8" stroke-linecap="round" opacity="0.4" filter="url(#edge)"/>
+<path d="M14.4,-18.7 q-0.4,1.4 -0.9,3.4 M-2.7,-13.0 q1.0,1.3 1.0,3.4 M-8.4,-12.9 q-0.3,1.4 -0.7,3.4 M5.0,-16.5 q0.1,1.4 -0.4,3.5 M-11.3,-12.4 q-0.0,1.4 0.5,3.5 M-9.8,-22.7 q-0.5,1.4 -0.8,3.4 M16.5,-18.9 q-0.4,1.3 -1.3,3.3 M12.7,-8.1 q-0.3,1.3 -1.1,3.3 M3.4,-22.5 q0.0,1.4 -0.9,3.4 M-10.3,-22.0 q-0.3,1.4 0.1,3.5 M16.0,-7.4 q-0.4,1.4 -0.2,3.5 M-10.9,-10.2 q0.2,1.4 0.2,3.5 M8.9,-17.9 q-0.4,1.3 -0.9,3.4 M16.8,-10.2 q-0.8,1.3 -1.2,3.3 M6.5,-9.0 q-0.2,1.4 0.3,3.5 M15.0,-8.0 q-0.0,1.4 -0.6,3.4 M-9.0,-20.2 q-0.1,1.4 -0.7,3.4 M7.1,-19.6 q-0.1,1.4 0.6,3.4 M15.2,-7.6 q-0.5,1.4 -0.8,3.4 M-13.2,-15.6 q-0.6,1.4 -0.3,3.5 M11.4,-14.4 q-0.6,1.4 -0.9,3.4 M-8.0,-14.8 q-0.7,1.4 -0.6,3.4" fill="none" stroke="#9c805c" stroke-width="0.8" stroke-linecap="round" opacity="0.3" filter="url(#edge)"/>
+<ellipse cx="-16" cy="-6" rx="8" ry="1.8" fill="#e5d0ac" opacity=".6" filter="url(#blur-sm)"/>
+<ellipse cx="16" cy="-6" rx="8" ry="1.8" fill="#e5d0ac" opacity=".6" filter="url(#blur-sm)"/>
 </g>
 </g></svg>

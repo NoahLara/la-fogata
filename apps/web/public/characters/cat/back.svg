@@ -5,20 +5,25 @@
   <radialGradient id="base" cx=".42" cy=".3" r=".85"><stop offset="0" stop-color="#adaab6"/><stop offset=".55" stop-color="#8c8997"/><stop offset="1" stop-color="#60606d"/></radialGradient>
   <filter id="blur-lg" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="edge" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation=".55"/></filter>
+<filter id="blur-sm" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="blur-xl" filterUnits="userSpaceOnUse" x="-70" y="-125" width="140" height="140"><feGaussianBlur stdDeviation="3.6"/></filter>
 </defs>
 <g transform="translate(256 472) scale(4)">
 <g mask="url(#silhouette)">
 <rect x="-60" y="-120" width="120" height="130" fill="url(#base)"/>
 <ellipse cx="0" cy="-6" rx="30" ry="14" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
 <ellipse cx="0" cy="-52" rx="15" ry="6" fill="#4a3f33" opacity=".28" filter="url(#blur-lg)"/>
+<ellipse cx="0" cy="-66" rx="14" ry="8" fill="#c0bdca" opacity=".45" filter="url(#blur-lg)"/>
+<ellipse cx="-22" cy="-16" rx="9" ry="13" fill="#585664" opacity=".25" filter="url(#blur-lg)"/>
+<ellipse cx="22" cy="-16" rx="9" ry="13" fill="#585664" opacity=".25" filter="url(#blur-lg)"/>
 <polygon points="-16.5,-86 -15.5,-100 -7,-90" fill="#767380" />
 <polygon points="16.5,-86 15.5,-100 7,-90" fill="#767380" />
-<ellipse cx="0" cy="-52" rx="13.4" ry="1.9" fill="#585664" opacity=".6" filter="url(#edge)"/>
-<ellipse cx="0" cy="-44" rx="15" ry="1.9" fill="#585664" opacity=".6" filter="url(#edge)"/>
-<ellipse cx="0" cy="-36" rx="13.4" ry="1.9" fill="#585664" opacity=".6" filter="url(#edge)"/>
-<ellipse cx="0" cy="-28" rx="11.8" ry="1.9" fill="#585664" opacity=".6" filter="url(#edge)"/>
-<ellipse cx="0" cy="-20" rx="10.2" ry="1.9" fill="#585664" opacity=".6" filter="url(#edge)"/>
+<path d="M-4,-90 L-3,-78 M0,-91 L0,-76 M4,-90 L3,-78" fill="none" stroke="#585664" stroke-width="1.5" stroke-linecap="round" opacity=".5" filter="url(#edge)"/>
+<path d="M0,-72 L0,-54" fill="none" stroke="#585664" stroke-width="2.6" stroke-linecap="round" opacity=".5" filter="url(#edge)"/>
+<ellipse cx="0" cy="-52" rx="13.4" ry="1.9" transform="rotate(0 0 -52)" fill="#585664" opacity="0.6" filter="url(#edge)"/><ellipse cx="0" cy="-44" rx="15" ry="1.9" transform="rotate(0 0 -44)" fill="#585664" opacity="0.6" filter="url(#edge)"/><ellipse cx="0" cy="-36" rx="13.4" ry="1.9" transform="rotate(0 0 -36)" fill="#585664" opacity="0.6" filter="url(#edge)"/><ellipse cx="0" cy="-28" rx="11.8" ry="1.9" transform="rotate(0 0 -28)" fill="#585664" opacity="0.6" filter="url(#edge)"/><ellipse cx="0" cy="-20" rx="10.2" ry="1.9" transform="rotate(0 0 -20)" fill="#585664" opacity="0.6" filter="url(#edge)"/>
+<path d="M-13,-60 q-4,8 -3,18 M13,-60 q4,8 3,18" fill="none" stroke="#b9b6c3" stroke-width="1.2" stroke-linecap="round" opacity=".35" filter="url(#edge)"/>
 <path d="M6,-6 C28,6 46,0 45,-14 C44,-22 40,-26 37,-24" fill="none" stroke="#8c8997" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
-<path d="M6,-6 C28,6 46,0 45,-14 C44,-22 40,-26 37,-24" fill="none" stroke="#585664" stroke-width="6.5" stroke-linecap="butt" stroke-linejoin="round" stroke-dasharray="2.6 5.4" stroke-opacity=".32"/>
+<path d="M6,-6 C28,6 46,0 45,-14 C44,-22 40,-26 37,-24" fill="none" stroke="#585664" stroke-width="6.5" stroke-linecap="butt" stroke-linejoin="round" stroke-dasharray="2.6 5.4" stroke-opacity=".38"/>
+<path d="M8,-8 C28,3 43,-2 43,-14" fill="none" stroke="#b9b6c3" stroke-width="2" stroke-linecap="round" opacity=".4" filter="url(#blur-sm)"/>
+<path d="M45,-14 C44,-22 40,-26 37,-24" fill="none" stroke="#4d4b58" stroke-width="6.5" stroke-linecap="round" opacity=".55"/>
 </g>
 </g></svg>
