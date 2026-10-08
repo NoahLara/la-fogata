@@ -21,7 +21,7 @@ const STAR_AFTERGLOW_MS = 4000;
 
 /** One round piece of the hearth: the wood in the middle is bigger and lit, the other two are dark wood. */
 const GESTURE_BASE =
-  "gesture group flex flex-col items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold aria-disabled:opacity-60";
+  "gesture group flex cursor-pointer flex-col items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold aria-disabled:cursor-default aria-disabled:opacity-60";
 const GESTURE_SIZE = {
   main: "btn-ember size-16 -translate-y-2 min-[400px]:size-[4.5rem]",
   side: "btn-wood size-14 min-[400px]:size-16",

@@ -29,10 +29,9 @@ export function WoodIcon() {
 export function BurdenIcon() {
   return (
     <svg {...COMMON}>
-      {/* A folded note with its corner already catching light. */}
-      <path d="M6 4.5h8l4 4V19.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V5a.5.5 0 0 1 .5-.5Z" />
-      <path d="M14 4.5v4h4" />
-      <path d="M9 13h6M9 16h4" className="gesture-lines" />
+      {/* A rock: the weight you set down by the fire. */}
+      <path d="M4.5 18.5c-1-1.6-.8-4.2.6-6.4l2.6-4.1a2.2 2.2 0 0 1 2.2-1l4.6.7c.8.1 1.5.6 1.9 1.3l1.9 3.5c.9 1.6 1 3.5.2 6-.2.6-.7 1-1.3 1H5.8c-.5 0-1-.4-1.3-1Z" />
+      <path className="gesture-lines" d="M9.5 8.2 11 12.5l3.8 1.2M11 12.5l-.8 4.3" />
     </svg>
   );
 }
