@@ -84,6 +84,8 @@ export function PaperDialog({
   const { t } = useI18n();
   const [text, setText] = useState("");
   const [focused, setFocused] = useState(false);
+  // The note on the sheet goes once they start writing again, and comes back with the next attempt.
+  const [noticeHidden, setNoticeHidden] = useState(false);
   const [stage, setStage] = useState<Stage>("writing");
   // The sheet as it was and a copy of its writing, only for the folding paper.
   const [fold, setFold] = useState<{ measure: PaperMeasure; text: string } | undefined>();
@@ -146,6 +148,7 @@ export function PaperDialog({
     if (stage !== "writing" || submitting.current || !rules.canSubmit(text)) return;
     const written = text.trim();
     submitting.current = true;
+    setNoticeHidden(false);
     let accepted = false;
     try {
       accepted = await onSubmit(written);
@@ -232,7 +235,10 @@ export function PaperDialog({
             autoFocus
             readOnly={fading || handing}
             value={text}
-            onChange={(event) => setText(rules.limit(event.target.value))}
+            onChange={(event) => {
+              setNoticeHidden(true);
+              setText(rules.limit(event.target.value));
+            }}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={copy.placeholder}
@@ -252,7 +258,7 @@ export function PaperDialog({
             {counterText}
           </p>
           <p role="status" className="text-center text-sm text-ink">
-            {notice}
+            {noticeHidden ? "" : notice}
           </p>
           {/* Said aloud only at a few points, not on every keystroke. */}
           <p role="status" className="sr-only">

@@ -14,6 +14,7 @@ import type { NoteTarget } from "./FoldingNote";
 
 /** The sheet where someone writes what weighs on them, which then burns. Nothing written is ever kept. */
 export function BurdenDialog(props: {
+  notice?: string | undefined;
   onSubmit: (text: string) => boolean;
   getTarget: () => NoteTarget | undefined;
   onLaunch: () => boolean;

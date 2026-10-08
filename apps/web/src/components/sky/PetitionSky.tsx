@@ -7,6 +7,7 @@ import type { Petition } from "@/data/types";
 import { createAnnounceLimiter } from "@/design/announceLimiter";
 import { nearestStar } from "@/design/hitTarget";
 import { nextStarIndex, orderStars, starAfterRemoval } from "@/design/rovingFocus";
+import { rejectionMessage } from "@/moderation/message";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene, SkyViewState } from "@/scene/createScene";
 import { screenX, wrapSigned } from "@/scene/panorama";
@@ -323,6 +324,7 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
       setHelp(true);
       return undefined;
     }
+    if (result.status === "rejected") return rejectionMessage(result.reason, t.moderation);
     if (result.status === "not-yours") return t.sky.notYours;
     if (result.status === "not-found") return t.sky.notFound;
     if (result.status === "note-required") return t.sky.noteRequired;

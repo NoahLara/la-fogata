@@ -100,6 +100,21 @@ describe("MemoryFire", () => {
   });
 });
 
+/** Plain, varied text of exactly this many characters. */
+function prose(length: number): string {
+  const sentences = [
+    "Pido por mi familia y por quienes hoy no tienen quien los escuche.",
+    "Quiero dormir en paz, sin miedo al mañana ni a lo que no puedo cambiar.",
+    "Que mi hermano encuentre trabajo y que mi madre se recupere pronto.",
+    "Gracias por esta noche tranquila, por el fuego y por la compañía.",
+    "Necesito fuerzas para perdonar y ganas de empezar de nuevo.",
+    "Que cada persona que llega cansada encuentre calor y descanso aquí.",
+  ];
+  let text = "";
+  for (let i = 0; text.length < length; i++) text += `${sentences[i % sentences.length]} `;
+  return text.slice(0, length);
+}
+
 function petitions(
   overrides: {
     now?: () => number;
@@ -136,7 +151,32 @@ describe("MemoryPetitions: writing", () => {
     const { service } = petitions();
     expect((await service.create("   ")).status).toBe("empty");
     expect((await service.create("a".repeat(PETITION_MAX_LENGTH + 1))).status).toBe("too-long");
-    expect((await service.create("a".repeat(PETITION_MAX_LENGTH))).status).toBe("created");
+    expect((await service.create(prose(PETITION_MAX_LENGTH))).status).toBe("created");
+  });
+
+  it("does not take insults, swearing or nothing readable, and says why", async () => {
+    const { service } = petitions();
+    expect(await service.create("eres un hijo de puta")).toEqual({
+      status: "rejected",
+      reason: "offensive",
+    });
+    expect(await service.create("h i j o  d e  p u t a")).toEqual({
+      status: "rejected",
+      reason: "offensive",
+    });
+    expect(await service.create("123456789")).toEqual({ status: "rejected", reason: "no-words" });
+    expect(await service.create("!!!!!!!!")).toEqual({ status: "rejected", reason: "no-words" });
+    expect(await service.create("asdfasdfasdf")).toEqual({
+      status: "rejected",
+      reason: "gibberish",
+    });
+    // None of them used up the day's petition.
+    expect((await service.create("Por mi mamá, que está enferma")).status).toBe("created");
+  });
+
+  it("shows the help screen, not a refusal, to someone at risk whose words are rough", async () => {
+    const { service } = petitions();
+    expect((await service.create("quiero morir, todo es una mierda")).status).toBe("risk");
   });
 
   it("allows one a day", async () => {

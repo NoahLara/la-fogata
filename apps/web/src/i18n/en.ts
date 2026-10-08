@@ -182,6 +182,13 @@ export const en = {
     link: "Find a helpline",
     back: "Back to the fire",
   },
+  // When what someone wrote is not taken: insults, swearing, or nothing readable. Said gently, never naming the word.
+  moderation: {
+    offensive:
+      "La Fogata isn't for this. Please write it without insults or swearing: there's room here for everything you carry.",
+    unreadable:
+      "La Fogata is for real words. Put it in your own: there's room here for what you feel.",
+  },
   // The terms people agree to once, and can read again in the settings.
   terms: {
     title: "Before you sit down",
