@@ -1,3 +1,4 @@
+import type { ContentIssue } from "@/moderation/content";
 import type { Species } from "@/scene/characters/species";
 
 /**
@@ -83,7 +84,9 @@ export type CreatePetitionResult =
   | { status: "too-long" }
   | { status: "daily-limit" }
   /** Signs of self-harm: never published. The UI shows the help screen. */
-  | { status: "risk" };
+  | { status: "risk" }
+  /** Insults, swearing or nothing readable: never published. The UI says La Fogata is not for this. */
+  | { status: "rejected"; reason: ContentIssue };
 
 export type AnswerPetitionResult =
   | { status: "answered"; petition: Petition }
@@ -94,7 +97,9 @@ export type AnswerPetitionResult =
   | { status: "note-required" }
   | { status: "too-long" }
   /** Signs of risk in the line: it is never saved or shown, and the visitor is offered help instead. */
-  | { status: "risk" };
+  | { status: "risk" }
+  /** Insults, swearing or nothing readable: it is never saved or shown. */
+  | { status: "rejected"; reason: ContentIssue };
 
 export type RemovePetitionResult =
   { status: "removed" } | { status: "not-yours" } | { status: "not-found" };

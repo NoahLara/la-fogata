@@ -1,3 +1,4 @@
+import { checkContent } from "@/moderation/content";
 import { hasRiskSignals } from "@/burden/risk";
 import { burdenLength } from "@/burden/burden";
 import type { Random } from "@/scene/random";
@@ -87,6 +88,8 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     if (burdenLength(clean) > PETITION_MAX_LENGTH) return { status: "too-long" };
     // Never published; the visitor is shown the help screen instead.
     if (hasRiskSignals(clean)) return { status: "risk" };
+    const verdict = checkContent(clean);
+    if (!verdict.ok) return { status: "rejected", reason: verdict.reason };
     if (this.limitReached()) return { status: "daily-limit" };
     const record = this.add(clean, this.ownerKey());
     this.madeAt.push(record.createdAt);
@@ -104,6 +107,8 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     if (!line) return { status: "note-required" };
     if (burdenLength(line) > PETITION_ANSWER_MAX_LENGTH) return { status: "too-long" };
     if (hasRiskSignals(line)) return { status: "risk" };
+    const verdict = checkContent(line);
+    if (!verdict.ok) return { status: "rejected", reason: verdict.reason };
     record.answered = { at: this.options.now(), note: line };
     const petition = this.view(record);
     this.events.emit({ type: "answered", petition });

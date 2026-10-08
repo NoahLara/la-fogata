@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AFTERGLOW_SECONDS } from "@/burden/burden";
 import { hasRiskSignals } from "@/burden/risk";
+import { checkContent } from "@/moderation/content";
+import { rejectionMessage } from "@/moderation/message";
 import { useServices } from "@/data/DataProvider";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
@@ -97,6 +99,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const groupRef = useRef<HTMLDivElement>(null);
   // A word on the petition sheet itself, since the page behind a modal can't be seen.
   const [sheetNotice, setSheetNotice] = useState<string>();
+  // The same on the burden sheet: what it says when what was written is not taken.
+  const [burdenNotice, setBurdenNotice] = useState<string>();
   // Which help screen to show: what was written was burned (a burden) or never left the screen (a petition).
   const [helpFor, setHelpFor] = useState<"burden" | "petition">("burden");
   const timers = useRef(new Set<number>());
@@ -152,6 +156,16 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       return false;
     }
     atRisk.current = hasRiskSignals(text);
+    // Someone at risk is not turned away for their words: the burden burns and help follows. Anyone else is
+    // asked, kindly, to write it without insults, and nothing is handed over.
+    if (!atRisk.current) {
+      const verdict = checkContent(text);
+      if (!verdict.ok) {
+        setBurdenNotice(rejectionMessage(verdict.reason, t.moderation));
+        return false;
+      }
+    }
+    setBurdenNotice(undefined);
     setRitual(true);
     return true;
   };
@@ -238,6 +252,11 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       setDialog("help");
       return false;
     }
+    const verdict = checkContent(text);
+    if (!verdict.ok) {
+      setSheetNotice(rejectionMessage(verdict.reason, t.moderation));
+      return false;
+    }
     if (!scene.notePlacement(self.id)) {
       setSheetNotice(t.gestures.arriving);
       return false;
@@ -245,6 +264,10 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     const result = await petitions.create(text);
     if (result.status === "daily-limit") {
       setDialog("limit");
+      return false;
+    }
+    if (result.status === "rejected") {
+      setSheetNotice(rejectionMessage(result.reason, t.moderation));
       return false;
     }
     if (result.status !== "created") return false;
@@ -302,6 +325,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
             onClick={() => {
               if (ritual) return;
               opener.current = "burden";
+              setBurdenNotice(undefined);
               setDialog("burden");
             }}
             disabled={ritual}
@@ -335,6 +359,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       </p>
       {dialog === "burden" && (
         <BurdenDialog
+          notice={burdenNotice}
           onSubmit={begin}
           getTarget={target}
           onLaunch={launch}
