@@ -79,9 +79,8 @@ describe("MemoryPresence", () => {
 describe("MemoryFire", () => {
   async function setup() {
     const people = presence();
-    let now = 0;
-    const fire = new MemoryFire({ presence: people, now: () => now });
-    return { people, fire, advance: (seconds: number) => (now += seconds) };
+    const fire = new MemoryFire({ presence: people });
+    return { people, fire };
   }
 
   it("does nothing for someone who is not seated", async () => {
@@ -89,18 +88,15 @@ describe("MemoryFire", () => {
     expect(await fire.throwWood()).toEqual({ status: "not-seated" });
   });
 
-  it("lets the visitor throw once a minute and tells the room", async () => {
-    const { people, fire, advance } = await setup();
+  it("lets the visitor throw as often as they like and tells the room", async () => {
+    const { people, fire } = await setup();
     const me = await people.join();
     const seen: string[] = [];
     fire.subscribe((event) => seen.push(event.by));
     expect(await fire.throwWood()).toEqual({ status: "thrown" });
-    advance(20);
-    expect(await fire.throwWood()).toEqual({ status: "cooling", secondsLeft: 40 });
-    expect(fire.woodCooldown()).toBe(40);
-    advance(40);
     expect(await fire.throwWood()).toEqual({ status: "thrown" });
-    expect(seen).toEqual([me?.id, me?.id]);
+    expect(await fire.throwWood()).toEqual({ status: "thrown" });
+    expect(seen).toEqual([me?.id, me?.id, me?.id]);
   });
 });
 

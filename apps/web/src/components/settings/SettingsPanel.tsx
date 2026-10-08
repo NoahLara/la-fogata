@@ -7,6 +7,7 @@ import { applyAnimalChoice } from "@/preferences/applyAnimalChoice";
 import type { AnimalChoice } from "@/preferences/preferences";
 import { useSettings } from "@/preferences/SettingsProvider";
 import { useSound } from "@/sound/SoundProvider";
+import { TermsDialog } from "../legal/TermsDialog";
 import { ModalDialog } from "../ModalDialog";
 import { useInteraction } from "../scene/Interaction";
 import { CharacterChoice } from "./CharacterChoice";
@@ -32,6 +33,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { reportDialog } = useInteraction();
   const titleId = useId();
   const [taken, setTaken] = useState(false);
+  const [terms, setTerms] = useState(false);
 
   useEffect(() => {
     reportDialog("settings", "dialog");
@@ -107,9 +109,17 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                 { value: "large", label: t.settings.textSize.large, className: "text-base" },
               ]}
             />
+            <button
+              type="button"
+              onClick={() => setTerms(true)}
+              className="self-start text-sm text-ink-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-deep"
+            >
+              {t.terms.open}
+            </button>
           </div>
         </div>
       </div>
+      {terms && <TermsDialog mode="read" onClose={() => setTerms(false)} />}
     </ModalDialog>
   );
 }

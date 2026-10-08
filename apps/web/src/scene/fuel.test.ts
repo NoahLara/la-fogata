@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addLog, burn, FIRE, fireIntensityFor, WOOD_COOLDOWN_SECONDS, WoodCooldowns } from "./fuel";
+import { addLog, burn, FIRE, fireIntensityFor } from "./fuel";
 
 describe("fireIntensityFor", () => {
   it("is really low with nobody there and no wood, but never out", () => {
@@ -59,68 +59,26 @@ describe("burn", () => {
     expect(fuel).toBe(0);
   });
 
-  it("holds about one log's fuel for a couple of minutes, so one person alone keeps a small fire", () => {
-    const afterAMinute = burn(addLog(0), WOOD_COOLDOWN_SECONDS);
-    expect(afterAMinute).toBeGreaterThan(FIRE.logFuel * 0.4);
-    expect(afterAMinute).toBeLessThan(FIRE.logFuel);
+  it("lets one log fade within about a minute, so the fire goes down soon after the wood stops", () => {
+    const afterAMinute = burn(addLog(0), 60);
+    expect(afterAMinute).toBeGreaterThan(FIRE.logFuel * 0.1);
+    expect(afterAMinute).toBeLessThan(FIRE.logFuel * 0.5);
   });
 });
 
-describe("WoodCooldowns", () => {
-  it("lets anyone throw the first time", () => {
-    expect(new WoodCooldowns().canThrow("a", 0)).toBe(true);
-    expect(new WoodCooldowns().remaining("a", 1234)).toBe(0);
-  });
-
-  it("blocks someone for a minute after they throw", () => {
-    const cooldowns = new WoodCooldowns();
-    cooldowns.record("a", 10);
-    expect(cooldowns.canThrow("a", 10)).toBe(false);
-    expect(cooldowns.remaining("a", 10)).toBe(WOOD_COOLDOWN_SECONDS);
-    expect(cooldowns.remaining("a", 40)).toBe(30);
-    expect(cooldowns.canThrow("a", 69.9)).toBe(false);
-    expect(cooldowns.canThrow("a", 70)).toBe(true);
-    expect(cooldowns.remaining("a", 500)).toBe(0);
-  });
-
-  it("keeps everyone's wait to themselves", () => {
-    const cooldowns = new WoodCooldowns();
-    cooldowns.record("a", 0);
-    expect(cooldowns.canThrow("b", 1)).toBe(true);
-  });
-
-  it("forgets someone who has gone", () => {
-    const cooldowns = new WoodCooldowns();
-    cooldowns.record("a", 0);
-    cooldowns.forget("a");
-    expect(cooldowns.canThrow("a", 1)).toBe(true);
-  });
-
-  it("can use another wait", () => {
-    const cooldowns = new WoodCooldowns(5);
-    cooldowns.record("a", 0);
-    expect(cooldowns.canThrow("a", 4.9)).toBe(false);
-    expect(cooldowns.canThrow("a", 5)).toBe(true);
-  });
-
-  it("makes a full room's logs hold the fire at its top only while they keep throwing", () => {
-    // Seven people each throw once a minute: the fuel climbs to its limit and stays there.
-    const cooldowns = new WoodCooldowns();
+describe("a log at any moment", () => {
+  it("always adds fuel up to the ceiling, and never past it", () => {
     let fuel = 0;
-    const ids = ["a", "b", "c", "d", "e", "f", "g"];
-    for (let second = 0; second < 600; second++) {
-      fuel = burn(fuel, 1);
-      ids.forEach((id, i) => {
-        if (second >= i * 8 && cooldowns.canThrow(id, second)) {
-          cooldowns.record(id, second);
-          fuel = addLog(fuel);
-        }
-      });
-    }
-    expect(fuel).toBeGreaterThan(0.85);
-    expect(fuel).toBeLessThanOrEqual(FIRE.maxFuel);
-    // Then they stop, and the fire dies down to its small self.
-    for (let second = 0; second < 900; second++) fuel = burn(fuel, 1);
+    for (let i = 0; i < 30; i++) fuel = addLog(fuel);
+    expect(fuel).toBe(FIRE.maxFuel);
+    const topLight = fireIntensityFor(7, fuel);
+    expect(topLight).toBeLessThanOrEqual(FIRE.max);
+    expect(fireIntensityFor(7, addLog(fuel))).toBe(topLight);
+  });
+
+  it("lets a fire at its top die down to its small self once they stop", () => {
+    let fuel: number = FIRE.maxFuel;
+    for (let second = 0; second < 400; second++) fuel = burn(fuel, 1);
     expect(fireIntensityFor(7, fuel)).toBeCloseTo(fireIntensityFor(7, 0), 2);
   });
 });

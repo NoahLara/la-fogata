@@ -13,11 +13,15 @@ const COMMON = {
 
 export function WoodIcon() {
   return (
-    <svg {...COMMON}>
-      <path d="M4 17.5 14 9.5" />
-      <path d="M8 19.5 20 11" />
-      <circle cx="16.4" cy="7.4" r="1.3" />
-      <path d="M4 20.2h6" />
+    <svg {...COMMON} width={26} height={26}>
+      {/* Two logs leaning together, and a flame leaping above them. */}
+      <path d="M4 19.5 14.5 12.5" />
+      <path d="M20 19.5 9.5 12.5" />
+      <path d="M3.5 21h17" />
+      <path
+        className="gesture-flame"
+        d="M12 3c.4 2.2 2.6 3.2 2.6 5.4a2.6 2.6 0 0 1-5.2 0c0-1 .5-1.7 1-2.3.7-.8 1.4-1.6 1.6-3.1Z"
+      />
     </svg>
   );
 }
@@ -25,9 +29,10 @@ export function WoodIcon() {
 export function BurdenIcon() {
   return (
     <svg {...COMMON}>
-      <path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" />
-      <path d="M14 3.5V8h4" />
-      <path d="M9.5 12.5h5M9.5 15.5h5" />
+      {/* A folded note with its corner already catching light. */}
+      <path d="M6 4.5h8l4 4V19.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V5a.5.5 0 0 1 .5-.5Z" />
+      <path d="M14 4.5v4h4" />
+      <path d="M9 13h6M9 16h4" className="gesture-lines" />
     </svg>
   );
 }
@@ -35,7 +40,12 @@ export function BurdenIcon() {
 export function PetitionIcon() {
   return (
     <svg {...COMMON}>
-      <path d="m12 3.5 2.4 5.2 5.6.7-4.1 3.9 1 5.6L12 16.2l-4.9 2.7 1-5.6L4 9.4l5.6-.7L12 3.5Z" />
+      {/* A star with a thread of smoke rising to it. */}
+      <path
+        className="gesture-star"
+        d="m12 3 2.1 4.6 5 .6-3.7 3.4 1 5-4.4-2.5-4.4 2.5 1-5L4.9 8.2l5-.6L12 3Z"
+      />
+      <path className="gesture-lines" d="M12 17.8c-1 .8-1 1.6 0 2.2s1 1.2 0 1.8" />
     </svg>
   );
 }

@@ -22,8 +22,6 @@ export const es = {
     wood: { label: "Leña", aria: "Echar leña" },
     burden: { label: "Carga", aria: "Entregar una carga" },
     petition: { label: "Petición", aria: "Dejar una petición" },
-    // {seconds} is how long until they can throw wood again.
-    woodCooling: "Podrás echar más leña en {seconds} s.",
     notSeated: "Todavía no tienes un lugar junto a la fogata.",
     // They have a seat but are still walking to it.
     arriving: "Un momento, todavía te estás sentando junto al fuego.",
@@ -193,6 +191,42 @@ export const es = {
       "Lo que escribiste no salió de tu pantalla y nadie lo vio. Si estás pasando por algo muy difícil, hablar con una persona puede ayudar, y hay líneas de ayuda gratuitas en casi todos los países.",
     link: "Encontrar una línea de ayuda",
     back: "Volver a la fogata",
+  },
+  // The terms people agree to once, and can read again in the settings.
+  terms: {
+    title: "Antes de sentarte",
+    intro: "Son pocas reglas, escritas claras. Léelas con calma.",
+    company: {
+      heading: "Compañía, no ayuda profesional",
+      body: "La Fogata te acompaña, pero no es terapia, ni atención médica, ni un servicio de emergencia, y no reemplaza la ayuda profesional. Si estás en peligro o piensas en hacerte daño, busca ayuda ahora mismo.",
+    },
+    age: {
+      heading: "Edad",
+      body: "La Fogata es para personas de 16 años o más. Si tienes menos, pide permiso a tu madre, padre o tutor antes de entrar.",
+    },
+    privacy: {
+      heading: "Anonimato y privacidad",
+      body: "No hay cuentas ni datos personales: no te pedimos nombre ni correo y no guardamos tu dirección IP. En tu navegador solo se guarda lo necesario para que todo funcione: tus ajustes, la clave secreta de tus estrellas y esta aceptación. Lo que entregas como carga se escribe y se quema en tu navegador: nunca se envía ni se guarda.",
+    },
+    petitions: {
+      heading: "Lo que dejas en una petición",
+      body: "Antes de mostrarse, una petición se revisa. Luego se ve como una estrella, sin nombre, para todas las personas del bosque. Al dejarla nos permites mostrarla así mientras dura (30 días, y 30 más si la marcas como respondida). Sigue siendo tuya: si la devuelves al fuego, deja de mostrarse. No escribas datos tuyos ni de otras personas, como nombres, teléfonos o direcciones.",
+    },
+    respect: {
+      heading: "Convivencia",
+      body: "No escribas odio, acoso, amenazas, contenido sexual o ilegal, publicidad ni spam, ni nada que haga daño a otras personas. Podemos retirar una petición, o limitar el acceso, para cuidar a quienes están aquí. Lo que muestra señales de riesgo no se publica: en su lugar te mostramos dónde encontrar ayuda.",
+    },
+    liability: {
+      heading: "Sin garantías",
+      body: "La Fogata se ofrece tal cual, sin garantía de que esté siempre disponible ni libre de errores. Eres responsable de lo que escribes. Las demás personas son desconocidas: no compartas nada que no quieras que sepan. En la medida en que la ley lo permita, no respondemos por daños derivados del uso de La Fogata ni por lo que otras personas escriban.",
+    },
+    changes: {
+      heading: "Cambios",
+      body: "Si estas condiciones cambian de forma importante, te lo volveremos a preguntar. Puedes releerlas cuando quieras en Ajustes.",
+    },
+    accept: "Acepto y entro",
+    acceptNote: "Al tocar «Acepto y entro» confirmas que las leíste y estás de acuerdo.",
+    open: "Términos y privacidad",
   },
   // The other campfires, and who comes and goes at this one.
   company: {
