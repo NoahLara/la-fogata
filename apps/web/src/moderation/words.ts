@@ -46,6 +46,11 @@ export const WORDS_ES: readonly string[] = [
   // Mierda, culo and the like
   "mierd**",
   "merda",
+  "mielda**",
+  "mierad*",
+  "mirda*",
+  "meirda*",
+  "mierdaa*",
   "mierdero*",
   "culer**",
   "culo*",
@@ -465,6 +470,7 @@ export const PHRASES: readonly string[] = [
 export const ROOTS: readonly string[] = [
   "cabron",
   "mierda",
+  "mielda",
   "pendejo",
   "pendeja",
   "culero",
