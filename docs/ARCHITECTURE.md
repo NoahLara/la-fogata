@@ -41,7 +41,7 @@ Rules of thumb:
 - `data/` knows rules and state. It never touches Pixi or the DOM.
 - `components/` is the glue: it subscribes to services and calls scene methods. No per-frame work in React; the sky's buttons are moved through refs.
 - Everything user-facing comes from `i18n/`.
-- Known inversion to clean up: `data/` currently imports a few helpers from `scene/` (wood cooldown, `pickArrival`, random, math).
+- Known inversion to clean up: `data/` currently imports a few helpers from `scene/` (`pickArrival`, random, math).
 
 ## Data flow: services → React → scene
 
@@ -55,7 +55,7 @@ Rules of thumb:
 **Throw wood**
 
 1. `GestureBar.throwWood` calls `fire.throwWood()`.
-2. `MemoryFire` checks the per-person cooldown (`WOOD_COOLDOWN_SECONDS`) and, if free, emits `{ type: "wood", by }`.
+2. `MemoryFire` checks that the visitor is seated and emits `{ type: "wood", by }`.
 3. `FogataScene` receives it and calls `scene.throwWood(by, …)`: the member swings, a log flies, the fire flares and its fuel rises (`scene/fuel.ts`).
 4. The scene emits the `wood` sound event; `SoundProvider` plays the thump.
 

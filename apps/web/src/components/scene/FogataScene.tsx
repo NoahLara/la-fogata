@@ -10,6 +10,7 @@ import { skyLimit } from "@/data/sky";
 import { readDevFlags } from "@/scene/devFlags";
 import { GestureBar } from "../gestures/GestureBar";
 import { SettingsButton } from "../settings/SettingsButton";
+import { TermsGate } from "../legal/TermsGate";
 import { SitDown } from "./SitDown";
 import { SoundProvider } from "@/sound/SoundProvider";
 import { PetitionSky } from "../sky/PetitionSky";
@@ -129,8 +130,8 @@ export function FogataScene() {
           }),
           // Real campfires burning far off; none unless a service lists them (or ?demo makes some).
           services.distantFires.subscribe((fires) => created.setDistantFires(fires)),
-          // Everyone sees a log thrown; the service has already enforced the cooldown.
-          services.fire.subscribe((event) => created.throwWood(event.by, { ignoreCooldown: true })),
+          // Everyone sees a log thrown.
+          services.fire.subscribe((event) => created.throwWood(event.by)),
         ];
         created.setDistantFires(services.distantFires.fires());
         stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
@@ -178,7 +179,9 @@ export function FogataScene() {
               <PetitionSky scene={mounted.scene} />
               {!clean && <GestureBar scene={mounted.scene} />}
               <SettingsButton />
-              <SitDown scene={mounted.scene} />
+              <TermsGate>
+                <SitDown scene={mounted.scene} />
+              </TermsGate>
               {demo && !clean && <DemoControls local={mounted.services} scene={mounted.scene} />}
             </SoundProvider>
           </InteractionProvider>

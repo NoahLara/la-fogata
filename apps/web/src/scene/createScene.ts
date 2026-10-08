@@ -5,7 +5,7 @@ import { debounce } from "./debounce";
 import { SPECIES, SpriteArt, type Species } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { createLightEffects, type LightEffects, type LightHandle } from "./lightEffect";
-import { addLog, burn, FIRE, fireIntensityFor, WoodCooldowns } from "./fuel";
+import { addLog, burn, FIRE, fireIntensityFor } from "./fuel";
 import type { DistantFire } from "@/data/types";
 import { DistantFireBoard } from "./distantFires";
 import { easeToward } from "./math";
@@ -66,10 +66,10 @@ export interface FogataScene {
    */
   replaceMember(member: MemberSpec, options: { animate: boolean }): void;
   /**
-   * Has someone throw a log into the fire, which makes it stronger for a while. Everyone can throw one a
-   * minute; the fire can only get so big.
+   * Has someone throw a log into the fire, which makes it stronger for a while. Anyone can throw one whenever
+   * they like; the fire can only get so big, and past that the logs still fly but add no more light.
    */
-  throwWood(id: string, options?: { ignoreCooldown?: boolean }): ThrowResult;
+  throwWood(id: string): ThrowResult;
   /**
    * Has someone hand over a burden. A small folded note, with nothing written on it, is in their hands: they stand
    * up, walk to the stones, lean over them to put it on the ember bed, and walk back to sit down while it burns
@@ -145,8 +145,6 @@ export interface FogataScene {
   setDistantFires(fires: readonly DistantFire[]): void;
   /** Marks this person as the visitor: their animal gets a label when they arrive and a glow when they do something. */
   setSelf(id: string | undefined): void;
-  /** Seconds before they can throw wood again; 0 when they can throw now. */
-  woodCooldown(id: string): number;
   members(): MemberInfo[];
   destroy(): void;
 }
@@ -207,8 +205,7 @@ export interface PetitionRequest extends BurdenRequest {
 
 export type BurdenResult = { status: "burning" } | { status: "not-seated" };
 
-export type ThrowResult =
-  { status: "thrown" } | { status: "cooling"; secondsLeft: number } | { status: "not-seated" };
+export type ThrowResult = { status: "thrown" } | { status: "not-seated" };
 
 export interface SceneFonts {
   /** The interface font, for labels. */
@@ -341,7 +338,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   let fuel = 0;
   /** The brief surge as a log lands, on top of the strength the fire settles at. */
   let flare = 0;
-  const cooldowns = new WoodCooldowns();
   /** The petitions that are stars in the sky, in the order they became stars: each keeps its spot across rebuilds. */
   const petitionIds: string[] = [];
   /** Of those, the ones answered, and the ones that went back to the fire (which only keep their place). */
@@ -759,11 +755,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     else if (animate && selfId !== undefined && member.id !== selfId) emitSound("arrive");
   };
 
-  const removeMemberFrom = (
-    id: string,
-    animate: boolean,
-    { forgetCooldown, onGone }: { forgetCooldown: boolean; onGone?: () => void },
-  ) => {
+  const removeMemberFrom = (id: string, animate: boolean, { onGone }: { onGone?: () => void }) => {
     const member = roster.get(id);
     if (!member || member.status !== "seated") {
       console.warn(`Could not send ${id} away: not sitting by the fire`);
@@ -780,7 +772,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       finished = true;
       leaving.delete(id);
       roster.remove(id);
-      if (forgetCooldown) cooldowns.forget(id);
       onGone?.();
     };
     leaving.set(id, gone);
@@ -792,7 +783,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     seatCount: SEATS.length,
     addMember: addMemberTo,
     removeMember(id, { animate }) {
-      removeMemberFrom(id, animate, { forgetCooldown: true });
+      removeMemberFrom(id, animate, {});
     },
     replaceMember(member, { animate }) {
       const existing = roster.get(member.id);
@@ -800,10 +791,8 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         console.warn(`Could not change ${member.id}: not sitting by the fire`);
         return;
       }
-      // The old one walks off and, once gone, the new one walks in to the same seat. The wood cooldown stays: a
-      // new character is the same person.
+      // The old one walks off and, once gone, the new one walks in to the same seat.
       removeMemberFrom(member.id, animate, {
-        forgetCooldown: false,
         onGone: () => addMemberTo({ ...member, seat: existing.seat }, { animate }),
       });
     },
@@ -812,11 +801,9 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       selfSeatedAt = undefined;
       glowSince = undefined;
     },
-    throwWood(id, { ignoreCooldown = false } = {}) {
+    throwWood(id) {
       const member = roster.get(id);
       if (!member || member.status !== "seated") return { status: "not-seated" };
-      const secondsLeft = ignoreCooldown ? 0 : cooldowns.remaining(id, time);
-      if (secondsLeft > 0) return { status: "cooling", secondsLeft };
       // The log is added to the fire once it lands, whatever happens to the scene before that.
       const land = () => {
         emitSound("wood");
@@ -832,7 +819,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
         if (!current || !hand) return { status: "not-seated" };
         current.effects.launch({ x: hand.x, y: hand.y }, hand.scale, land);
       }
-      cooldowns.record(id, time);
       return { status: "thrown" };
     },
     notePlacement(id) {
@@ -1007,7 +993,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       flare = Math.min(flare + FIRE.flarePerBurden, 0.6);
       current.fire.burst(5);
     },
-    woodCooldown: (id) => cooldowns.remaining(id, time),
     members: () => roster.members(),
     setLabels(labels) {
       canvas.setAttribute("aria-label", labels.label);

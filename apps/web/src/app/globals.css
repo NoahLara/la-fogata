@@ -227,6 +227,77 @@ input:checked + .segment {
 }
 
 /* A button that can't be pressed lies flat and dim. */
+/* The hearth: the three gestures in one piece of dark wood, lit from below by the fire. */
+.hearth-dock {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.625rem;
+  border-radius: 9999px;
+  background: linear-gradient(to bottom, rgb(29 20 14 / 0.78), rgb(61 36 19 / 0.82));
+  border: 1px solid color-mix(in srgb, var(--color-ember) 28%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 217 160 / 0.1),
+    0 10px 30px rgb(0 0 0 / 0.5),
+    0 6px 36px rgb(255 150 80 / 0.18);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* The icons come alive a little when you reach for them. */
+.gesture-flame {
+  fill: currentColor;
+  fill-opacity: 0.25;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.gesture-star {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gesture-icon {
+    display: flex;
+    transition: transform 160ms ease-out;
+  }
+
+  .gesture:not([aria-disabled="true"]):is(:hover, :focus-visible) .gesture-icon {
+    transform: translateY(-2px);
+  }
+
+  .gesture:not([aria-disabled="true"]):is(:hover, :focus-visible) .gesture-flame {
+    animation: gesture-flicker 0.9s ease-in-out infinite;
+  }
+
+  .gesture:not([aria-disabled="true"]):is(:hover, :focus-visible) .gesture-star {
+    animation: gesture-twinkle 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes gesture-flicker {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(0.92, 1.12) rotate(-3deg);
+  }
+}
+
+@keyframes gesture-twinkle {
+  0%,
+  100% {
+    transform: scale(1);
+    fill: transparent;
+  }
+  50% {
+    transform: scale(1.12);
+    fill: currentColor;
+  }
+}
+
 .btn-wood:is(:disabled, [aria-disabled="true"]),
 .btn-ember:is(:disabled, [aria-disabled="true"]) {
   transform: translateY(var(--lip));

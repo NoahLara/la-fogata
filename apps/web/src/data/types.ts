@@ -49,16 +49,13 @@ export interface PresenceService {
 
 // Fire
 
-export type WoodResult =
-  { status: "thrown" } | { status: "cooling"; secondsLeft: number } | { status: "not-seated" };
+export type WoodResult = { status: "thrown" } | { status: "not-seated" };
 
 export type FireEvent = { type: "wood"; by: string };
 
 export interface FireService {
   /** The visitor throws a log. Everyone in the campfire sees it. */
   throwWood(): Promise<WoodResult>;
-  /** Seconds before the visitor can throw again; 0 when they can now. */
-  woodCooldown(): number;
   subscribe(listener: (event: FireEvent) => void): Unsubscribe;
 }
 

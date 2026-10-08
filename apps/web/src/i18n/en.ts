@@ -24,8 +24,6 @@ export const en = {
     wood: { label: "Wood", aria: "Throw a log on the fire" },
     burden: { label: "Burden", aria: "Hand over a burden" },
     petition: { label: "Ask", aria: "Ask for something" },
-    // {seconds} is how long until they can throw wood again.
-    woodCooling: "You can throw another log in {seconds} s.",
     notSeated: "You don't have a seat by the fire yet.",
     // They have a seat but are still walking to it.
     arriving: "One moment, you're still taking your seat by the fire.",
@@ -183,6 +181,42 @@ export const en = {
       "What you wrote never left your screen, and no one saw it. If you're going through something really hard, talking with a person can help, and there are free helplines in almost every country.",
     link: "Find a helpline",
     back: "Back to the fire",
+  },
+  // The terms people agree to once, and can read again in the settings.
+  terms: {
+    title: "Before you sit down",
+    intro: "There are only a few rules, written plainly. Take your time.",
+    company: {
+      heading: "Company, not professional help",
+      body: "La Fogata keeps you company, but it isn't therapy, medical care or an emergency service, and it doesn't replace professional help. If you're in danger or thinking of hurting yourself, please reach out for help right now.",
+    },
+    age: {
+      heading: "Age",
+      body: "La Fogata is for people aged 16 or older. If you're younger, please ask a parent or guardian before coming in.",
+    },
+    privacy: {
+      heading: "Anonymous and private",
+      body: "There are no accounts and no personal data: we don't ask for your name or email, and we don't keep your IP address. Your browser keeps only what's needed for things to work: your settings, the secret key to your stars and this agreement. A burden you hand over is written and burned in your browser: it is never sent or saved.",
+    },
+    petitions: {
+      heading: "What you leave in a star",
+      body: "Before it's shown, what you write is reviewed. Then it appears as a star, with no name, for everyone in the forest. By leaving it you let us show it that way for as long as it lasts (30 days, and 30 more if you mark it answered). It stays yours: if you send it back to the fire, it stops being shown. Please don't write personal details about yourself or others, like names, phone numbers or addresses.",
+    },
+    respect: {
+      heading: "Living together",
+      body: "Please don't write hate, harassment, threats, sexual or illegal content, ads or spam, or anything that hurts other people. We may remove a star, or limit access, to look after the people here. Anything that shows signs of risk isn't published: instead we show you where to find help.",
+    },
+    liability: {
+      heading: "No guarantees",
+      body: "La Fogata is offered as it is, with no promise that it will always be available or free of errors. You are responsible for what you write. The other people here are strangers: don't share anything you wouldn't want them to know. To the extent the law allows, we aren't liable for harm that comes from using La Fogata or from what other people write.",
+    },
+    changes: {
+      heading: "Changes",
+      body: "If these terms change in a way that matters, we'll ask you again. You can read them any time in Settings.",
+    },
+    accept: "I agree, take me in",
+    acceptNote: "By tapping “I agree, take me in” you confirm you've read this and you agree.",
+    open: "Terms and privacy",
   },
   // The other campfires, and who comes and goes at this one.
   company: {

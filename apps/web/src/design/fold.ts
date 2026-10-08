@@ -7,15 +7,16 @@ export const FOLD = {
   chromeFade: 0.2,
   /** The writing fades as the first fold begins, so nothing that differs in how it wraps shows. */
   textFade: 0.25,
-  /** The bottom half folds up over the top, then the right half over the left, like a letter folded twice. */
-  first: 0.6,
-  second: 0.55,
+  /** The bottom half folds up over the top, then the right half over the left, then the bottom half up once more. */
+  first: 0.5,
+  second: 0.45,
+  third: 0.4,
   /** The folded note shrinks and flies down to the animal's paws. */
-  fly: 0.7,
+  fly: 0.6,
 } as const;
 
 /** From pressing the button until the note is in the animal's paws. */
-export const FOLD_TOTAL = FOLD.chromeFade + FOLD.first + FOLD.second + FOLD.fly;
+export const FOLD_TOTAL = FOLD.chromeFade + FOLD.first + FOLD.second + FOLD.third + FOLD.fly;
 
 export interface FlyTransform {
   /** Translation, in the folded note's own (tilted) frame. */

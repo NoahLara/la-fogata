@@ -12,7 +12,7 @@ This file holds the core rules. Area guidance loads on demand from `.claude/rule
 
 - Many campfires in the same forest, each a room of at most 7. Nobody ever waits: when a campfire is full, you join another. From your campfire you can see other campfires glowing far away between the trees.
 - Characters: the 7 animals (panda, cat, owl, fox, capybara, rabbit, bear), one of each per fire; you get your preferred animal if it is free, otherwise a free one. In the UI: "personaje" / "character".
-- The fire is small when the room is empty (never out) and grows with each connected person. Wood makes it big, burns down on its own, has a ceiling; one log per person per `WOOD_COOLDOWN_SECONDS` (60). Constants in `apps/web/src/scene/fuel.ts`.
+- The fire is small when the room is empty (never out) and grows with each connected person. Wood makes it big, burns down on its own (in about two minutes it is back to its small self), has a ceiling; anyone can throw wood whenever they like, and past the ceiling logs still fly but add no more light. Constants in `apps/web/src/scene/fuel.ts`.
 - Three gestures only: throw wood, hand over a burden, leave a petition.
   - The burden is written, burns, and is 100% browser-side: NEVER sent, stored, logged or rendered in the scene or in any event. Everyone sees the same ritual with a blank folded note.
   - A petition rises from the fire and becomes a star in one shared sky: up to 2000 characters (a letter; a burden up to 3000, an answer up to 2000), dated with the day it was written and the day it was answered (only the day), 1 per person per day, moderated before it is shown, expires after 30 days (answered ones twinkle 30 more). Ownership is a secret key kept in the browser; no accounts.
@@ -41,9 +41,10 @@ Rules: never preach, no religious vocabulary in the default UI, everyone is welc
 ## Safety (non-negotiable)
 
 - Anonymous session. Zero personal data (no email, no name, no stored IP).
+- Terms: the first visit asks for a one-time acceptance (`legal/terms.ts`, `TermsGate`; only the version is kept in localStorage) before the visitor sits down; bump `TERMS_VERSION` when they change in a way that matters. Readable again from the settings. Copy lives in `terms` in `es.ts`/`en.ts`; have a lawyer review it before launch.
 - Every petition goes through moderation before it becomes a star.
 - Risk messages (self-harm, suicide): never published; show the help screen with a link to https://findahelpline.com.
-- Rate limits: 1 petition per day, 1 log per `WOOD_COOLDOWN_SECONDS` (60), prayer taps limited per session.
+- Rate limits: 1 petition per day, prayer taps limited per session.
 - The UI must state that the app keeps you company but does not replace professional help.
 
 ## Stack

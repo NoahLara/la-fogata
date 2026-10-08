@@ -33,7 +33,9 @@ describe("flyTransform", () => {
 
 describe("FOLD", () => {
   it("takes about two seconds to get the note to the paws", () => {
-    expect(FOLD_TOTAL).toBeCloseTo(FOLD.chromeFade + FOLD.first + FOLD.second + FOLD.fly);
+    expect(FOLD_TOTAL).toBeCloseTo(
+      FOLD.chromeFade + FOLD.first + FOLD.second + FOLD.third + FOLD.fly,
+    );
     expect(FOLD_TOTAL).toBeGreaterThan(1.6);
     expect(FOLD_TOTAL).toBeLessThan(2.2);
   });

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { AFTERGLOW_SECONDS } from "@/burden/burden";
 import { hasRiskSignals } from "@/burden/risk";
 import { useServices } from "@/data/DataProvider";
-import { format } from "@/i18n/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
 import { HelpScreen } from "../help/HelpScreen";
@@ -20,8 +19,13 @@ const NOTICE_MS = 3000;
 /** How long "Ya brilla en tu cielo." stays on screen. */
 const STAR_AFTERGLOW_MS = 4000;
 
-const GESTURE =
-  "flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-4 text-sm btn-wood focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold aria-disabled:opacity-50";
+/** One round piece of the hearth: the wood in the middle is bigger and lit, the other two are dark wood. */
+const GESTURE_BASE =
+  "gesture group flex cursor-pointer flex-col items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold aria-disabled:cursor-default aria-disabled:opacity-60";
+const GESTURE_SIZE = {
+  main: "btn-ember size-16 -translate-y-2 min-[400px]:size-[4.5rem]",
+  side: "btn-wood size-14 min-[400px]:size-16",
+} as const;
 
 function Gesture({
   name,
@@ -46,18 +50,24 @@ function Gesture({
       aria-label={aria}
       aria-disabled={disabled}
       onClick={onClick}
-      className={GESTURE}
+      className={`${GESTURE_BASE} ${GESTURE_SIZE[name === "wood" ? "main" : "side"]}`}
     >
-      {icon}
+      <span className="gesture-icon">{icon}</span>
       {/* Below 400px only the icon shows; the aria-label says what it does. */}
-      <span className="hidden min-[400px]:inline" aria-hidden="true">
+      <span
+        className="mt-0.5 hidden text-[0.7rem] leading-none font-medium tracking-wide min-[400px]:block"
+        aria-hidden="true"
+      >
         {label}
       </span>
     </button>
   );
 }
 
-/** The three gestures, at the bottom of the scene: throw wood, hand over a burden, leave a petition. */
+/**
+ * The three gestures, at the bottom of the scene, set in one wooden hearth: the burden and the petition on either
+ * side and, lit and a little higher like a flame, the wood in the middle, which is what people reach for most often.
+ */
 export function GestureBar({ scene }: { scene: FogataScene }) {
   const { t } = useI18n();
   const { fire, presence, petitions } = useServices();
@@ -89,7 +99,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const [sheetNotice, setSheetNotice] = useState<string>();
   // Which help screen to show: what was written was burned (a burden) or never left the screen (a petition).
   const [helpFor, setHelpFor] = useState<"burden" | "petition">("burden");
-  const [cooling, setCooling] = useState(false);
   const timers = useRef(new Set<number>());
 
   // The fire doesn't speak over a dialog, and stays quiet around the help screen.
@@ -114,12 +123,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     };
   }, []);
 
-  // Dims the wood button while the visitor has to wait.
-  useEffect(() => {
-    const interval = window.setInterval(() => setCooling(fire.woodCooldown() > 0), 1000);
-    return () => window.clearInterval(interval);
-  }, [fire]);
-
   const say = useCallback(
     (text: string) => {
       setNotice(text);
@@ -131,10 +134,7 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const throwWood = async () => {
     if (ritual) return;
     const result = await fire.throwWood();
-    if (result.status === "cooling") {
-      say(format(t.gestures.woodCooling, { seconds: Math.ceil(result.secondsLeft) }));
-    } else if (result.status === "not-seated") say(t.gestures.notSeated);
-    else setCooling(true);
+    if (result.status === "not-seated") say(t.gestures.notSeated);
   };
 
   /**
@@ -291,36 +291,38 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
         ref={groupRef}
         role="group"
         aria-label={t.gestures.groupLabel}
-        className="absolute inset-x-0 bottom-0 z-10 flex justify-center gap-2 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <Gesture
-          name="wood"
-          icon={<WoodIcon />}
-          label={t.gestures.wood.label}
-          aria={t.gestures.wood.aria}
-          onClick={throwWood}
-          disabled={cooling || ritual}
-        />
-        <Gesture
-          name="burden"
-          icon={<BurdenIcon />}
-          label={t.gestures.burden.label}
-          aria={t.gestures.burden.aria}
-          onClick={() => {
-            if (ritual) return;
-            opener.current = "burden";
-            setDialog("burden");
-          }}
-          disabled={ritual}
-        />
-        <Gesture
-          name="petition"
-          icon={<PetitionIcon />}
-          label={t.gestures.petition.label}
-          aria={t.gestures.petition.aria}
-          onClick={openPetition}
-          disabled={ritual}
-        />
+        <div className="hearth-dock pointer-events-auto">
+          <Gesture
+            name="burden"
+            icon={<BurdenIcon />}
+            label={t.gestures.burden.label}
+            aria={t.gestures.burden.aria}
+            onClick={() => {
+              if (ritual) return;
+              opener.current = "burden";
+              setDialog("burden");
+            }}
+            disabled={ritual}
+          />
+          <Gesture
+            name="wood"
+            icon={<WoodIcon />}
+            label={t.gestures.wood.label}
+            aria={t.gestures.wood.aria}
+            onClick={throwWood}
+            disabled={ritual}
+          />
+          <Gesture
+            name="petition"
+            icon={<PetitionIcon />}
+            label={t.gestures.petition.label}
+            aria={t.gestures.petition.aria}
+            onClick={openPetition}
+            disabled={ritual}
+          />
+        </div>
       </div>
       {/* One polite live region for notices and for the line after a burden burns. */}
       <p

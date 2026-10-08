@@ -42,6 +42,6 @@ export function createLocalServices(options: LocalOptions): LocalServices {
     ...(options.unlimitedPetitions ? { petitionsPerDay: Infinity } : {}),
   });
   const distantFires = new MemoryDistantFires(rand);
-  const fire = new MemoryFire({ presence, now: () => performance.now() / 1000 });
+  const fire = new MemoryFire({ presence });
   return { presence, distantFires, fire, petitions, prayers: petitions };
 }

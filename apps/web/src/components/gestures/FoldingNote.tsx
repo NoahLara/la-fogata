@@ -70,7 +70,7 @@ const FLAT: CSSProperties = {
 };
 
 /**
- * The sheet folds in half twice like a letter (CSS 3D), shrinks and flies down to the animal's paws. The writing
+ * The sheet folds in half three times like a letter (CSS 3D), shrinks and flies down to the animal's paws. The writing
  * fades as the first fold begins and is hidden under the first flap, so it is gone from the page before the note
  * leaves. `onFlyStart` is called as the note starts to fly and `onLanded` when it is at the paws, with false if
  * it could not be flown anywhere. It renders over the sheet, which is hidden meanwhile.
@@ -89,7 +89,8 @@ export function FoldingNote({
   onLanded: (landed: boolean) => void;
 }) {
   const { width: w, height: h } = measure;
-  const [second, setSecond] = useState(false);
+  // Which fold is on: 1 is the written sheet, 2 and 3 are plain blank halves.
+  const [stage, setStage] = useState<1 | 2 | 3>(1);
   const rootRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<HTMLDivElement>(null);
@@ -101,11 +102,9 @@ export function FoldingNote({
   const swapped = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
-    if (second) {
-      swapped.current?.();
-      swapped.current = undefined;
-    }
-  }, [second]);
+    swapped.current?.();
+    swapped.current = undefined;
+  }, [stage]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -156,10 +155,12 @@ export function FoldingNote({
       if (cancelled) return;
 
       // Swap to the folded half (looks exactly the same, a plain blank half) so the second fold can begin.
-      await new Promise<void>((resolve) => {
-        swapped.current = resolve;
-        setSecond(true);
-      });
+      const swapTo = (next: 2 | 3) =>
+        new Promise<void>((resolve) => {
+          swapped.current = resolve;
+          setStage(next);
+        });
+      await swapTo(2);
       if (cancelled) return;
       const [flap2] = part("flap-2");
       if (!flap2) return fail();
@@ -179,6 +180,27 @@ export function FoldingNote({
       );
       if (cancelled) return;
 
+      // The third fold: the bottom half of what is left comes up over the top, so the note ends small.
+      await swapTo(3);
+      if (cancelled) return;
+      const [flap3] = part("flap-3");
+      if (!flap3) return fail();
+      part("shade-front-3").forEach((element) =>
+        play(element, [{ opacity: 0 }, { opacity: 0.4 }], FOLD.third / 2, "ease-in"),
+      );
+      part("shade-back-3").forEach((element) =>
+        play(element, [{ opacity: 0.4 }, { opacity: 0 }], FOLD.third / 2, "ease-out"),
+      );
+      await play(
+        flap3,
+        [
+          { transform: "translateZ(1px) rotateX(0deg)" },
+          { transform: "translateZ(1px) rotateX(180deg)" },
+        ],
+        FOLD.third,
+      );
+      if (cancelled) return;
+
       // Fly: shrink and travel from where the folded note is to the animal's paws.
       const target = callbacks.current.getTarget();
       const marker = markerRef.current;
@@ -188,7 +210,7 @@ export function FoldingNote({
       }
       callbacks.current.onFlyStart();
       const at = marker.getBoundingClientRect();
-      const fly = flyTransform({ x: at.left, y: at.top, height: h / 2 }, target, PAPER_TILT);
+      const fly = flyTransform({ x: at.left, y: at.top, height: h / 4 }, target, PAPER_TILT);
       await play(
         note,
         [
@@ -228,16 +250,16 @@ export function FoldingNote({
           top: 0,
           width: w,
           height: h,
-          transformOrigin: `${w / 4}px ${h / 4}px`,
+          transformOrigin: `${w / 4}px ${h / 8}px`,
           transformStyle: "preserve-3d",
         }}
       >
         {/* Where the middle of the folded note is, to measure from. */}
         <div
           ref={markerRef}
-          style={{ position: "absolute", left: w / 4, top: h / 4, width: 0, height: 0 }}
+          style={{ position: "absolute", left: w / 4, top: h / 8, width: 0, height: 0 }}
         />
-        {!second ? (
+        {stage === 1 ? (
           <>
             <div style={{ position: "absolute", inset: 0, clipPath: "inset(0 0 50% 0)" }}>
               <div style={WRITTEN_FACE} />
@@ -269,7 +291,7 @@ export function FoldingNote({
               </div>
             </div>
           </>
-        ) : (
+        ) : stage === 2 ? (
           <>
             <div
               style={{
@@ -303,6 +325,43 @@ export function FoldingNote({
               <div style={{ ...FLAT, inset: 0, transform: "rotateY(180deg)" }}>
                 <div style={BLANK_FACE} />
                 <div data-fold="shade-back-2" style={{ ...SHADE, opacity: 0.4 }} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: w / 2,
+                height: h / 4,
+                overflow: "hidden",
+              }}
+            >
+              <div style={BLANK_FACE} />
+            </div>
+            <div
+              data-fold="flap-3"
+              style={{
+                position: "absolute",
+                left: 0,
+                top: h / 4,
+                width: w / 2,
+                height: h / 4,
+                transformOrigin: "50% 0",
+                transformStyle: "preserve-3d",
+                transform: "translateZ(1px) rotateX(0deg)",
+              }}
+            >
+              <div style={{ ...FLAT, inset: 0 }}>
+                <div style={BLANK_FACE} />
+                <div data-fold="shade-front-3" style={SHADE} />
+              </div>
+              <div style={{ ...FLAT, inset: 0, transform: "rotateX(180deg)" }}>
+                <div style={BLANK_FACE} />
+                <div data-fold="shade-back-3" style={{ ...SHADE, opacity: 0.4 }} />
               </div>
             </div>
           </>
