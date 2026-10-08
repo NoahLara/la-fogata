@@ -5,7 +5,8 @@
  * - `WORDS`: a whole word. One ending in `*` also matches the word with up to three more letters
  *   ("mierd*" is mierda, mierdas, mierdoso).
  * - `PHRASES`: said as a run of letters with no spaces, so they are found however they are spaced or joined
- *   ("hijo de puta", "hijodeputa", "h i j o d e p u t a"). Keep them long (8 letters or more) so they are
+ *   ("hijo de puta", "hijodeputa", "h i j o d e p u t a"). Keep them long (8 letters or more, or a word nobody
+ * uses otherwise, like "cerote") so they are
  *   never found by chance across two ordinary words.
  * - `ALLOWED`: ordinary words that look like a bad one, written as they are (not stretched or disguised).
  *
@@ -109,6 +110,29 @@ export const WORDS_ES: readonly string[] = [
   "ptmre",
   "ctmre",
   "suicidate",
+  // Central America, the River Plate, the Andes and the Caribbean
+  "cerot*",
+  "forro",
+  "forra",
+  "forros",
+  "mogolic*",
+  "trolo",
+  "trola",
+  "trolos",
+  "sorete*",
+  "cojudo*",
+  "caremonda*",
+  "careverga*",
+  "marico",
+  "maricos",
+  "pajuo*",
+  "mierdero*",
+  "guevon*",
+  "baboso",
+  "babosa",
+  "cabrona*",
+  "pendejon*",
+  "vergon*",
   "muerete",
   "matate",
   "pudrete",
@@ -193,6 +217,12 @@ export const PHRASES: readonly string[] = [
   "ojalatemueras",
   "ojalatemuerasya",
   "hijodemierda",
+  "cerote",
+  "concha de tu madre",
+  "conchadetumadre",
+  "remilputa",
+  "hijoderemilputa",
+  "lacagadadetumadre",
   "mecagoen",
   "voyamatarte",
   "tevoyaviolar",
