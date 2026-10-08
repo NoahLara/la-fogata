@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRandom } from "@/scene/random";
-import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
-import { MemoryPetitions } from "./memoryPetitions";
-import { MemoryPresence } from "./memoryPresence";
+import { TestDistantFires, TestPetitions, TestPresence } from "./testing";
 import { MemoryKeyStore } from "./keyStore";
 import {
   DAY,
@@ -15,7 +13,7 @@ import {
 import type { PresenceEvent } from "./types";
 
 function presence(seatCount = 7) {
-  return new MemoryPresence({ seatCount, rand: createRandom(1) });
+  return new TestPresence({ seatCount, rand: createRandom(1) });
 }
 
 describe("MemoryPresence", () => {
@@ -47,7 +45,7 @@ describe("MemoryPresence", () => {
   });
 
   it("has no room for the visitor when every seat is taken", async () => {
-    const service = new MemoryPresence({
+    const service = new TestPresence({
       seatCount: 1,
       rand: createRandom(1),
       initial: [{ id: "a", species: "fox", seat: 0 }],
@@ -125,7 +123,7 @@ function petitions(
 ) {
   let id = 0;
   let clock = 1_000_000;
-  const service = new MemoryPetitions({
+  const service = new TestPetitions({
     now: overrides.now ?? (() => clock),
     rand: createRandom(7),
     keys: overrides.keys ?? new MemoryKeyStore(),
@@ -202,7 +200,7 @@ describe("MemoryPetitions: writing", () => {
     expect(await service.dailyLimitReached()).toBe(false);
   });
 
-  it("has no daily limit when development lifts it", async () => {
+  it("can be given another daily limit", async () => {
     const { service } = petitions({ petitionsPerDay: Infinity });
     for (const text of ["uno", "dos", "tres"]) {
       expect((await service.create(text)).status).toBe("created");
@@ -422,7 +420,7 @@ describe("petitionAvailableAt", () => {
 
 describe("MemoryPresence animals", () => {
   const withOwl = () =>
-    new MemoryPresence({
+    new TestPresence({
       seatCount: 7,
       rand: createRandom(5),
       initial: [{ id: "other", species: "owl", seat: 0 }],
@@ -442,7 +440,7 @@ describe("MemoryPresence animals", () => {
 
   it("gives a free animal when there is no preference (a first visit)", async () => {
     for (let seed = 1; seed <= 20; seed++) {
-      const service = new MemoryPresence({
+      const service = new TestPresence({
         seatCount: 7,
         rand: createRandom(seed),
         initial: [{ id: "other", species: "owl", seat: 0 }],
@@ -480,22 +478,23 @@ describe("MemoryPresence animals", () => {
 
 describe("MemoryDistantFires", () => {
   it("starts with no other campfires: nothing is made up", () => {
-    expect(new MemoryDistantFires(createRandom(1)).fires()).toEqual([]);
+    expect(new TestDistantFires().fires()).toEqual([]);
   });
 
-  it("lists demo campfires and tells listeners, and the last one goes out first", () => {
-    const service = new MemoryDistantFires(createRandom(1));
+  it("lists the campfires it is told about and tells listeners", () => {
+    const service = new TestDistantFires();
     const seen: number[] = [];
     const stop = service.subscribe((fires) => seen.push(fires.length));
-    service.addDemo();
-    service.addDemo();
-    service.removeDemo();
+    service.light(3);
+    service.light(5);
+    service.putOutLast();
     stop();
-    service.addDemo();
+    service.light(2);
     expect(seen).toEqual([1, 2, 1]);
-    expect(service.fires()).toHaveLength(2);
-    expect(service.fires().every((fire) => fire.people >= 1 && fire.people <= 7)).toBe(true);
+    expect(service.fires().map((fire) => fire.people)).toEqual([3, 2]);
     expect(new Set(service.fires().map((fire) => fire.id)).size).toBe(2);
+    service.setFires([]);
+    expect(service.fires()).toEqual([]);
   });
 });
 

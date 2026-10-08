@@ -63,14 +63,7 @@ function motionStyle(phase: Phase, rise: number, reduced: boolean): React.CSSPro
  * from it, as real text floating in the sky above the trees. Only a tiny verse number shows; the full reference
  * and the translation notice appear when the visitor taps that number.
  */
-export function WordFromFire({
-  scene,
-  unlimited = false,
-}: {
-  scene: FogataScene;
-  /** Development (`?demo`): the fire answers burdens, petitions and being alone every time, not once per page load. */
-  unlimited?: boolean;
-}) {
+export function WordFromFire({ scene }: { scene: FogataScene }) {
   const { t, locale } = useI18n();
   const { presence } = useServices();
   const sound = useSound();
@@ -186,7 +179,6 @@ export function WordFromFire({
   const triggers = useRef<Triggers | undefined>(undefined);
   useEffect(() => {
     const created = createTriggers({
-      unlimited,
       blockers: () => {
         const dialog = dialogState();
         return {
@@ -212,7 +204,7 @@ export function WordFromFire({
       for (const stop of stops) stop();
       created.dispose();
     };
-  }, [unlimited, onFire, presence, dialogState]);
+  }, [onFire, presence, dialogState]);
 
   // The word waits while it is being read.
   const reading = revealed || hovered || focused;

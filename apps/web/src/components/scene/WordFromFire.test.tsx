@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createLocalServices, type LocalServices } from "@/data";
+import { createTestServices } from "@/data/testing";
 import { DataProvider } from "@/data/DataProvider";
 import { TRIGGER_DELAY_MS } from "@/fire/triggerPolicy";
 import { contextualWordsFor, type WordTheme } from "@/fire/words";
@@ -43,7 +43,7 @@ const wordsOf = (theme: WordTheme) =>
     .map((word) => word.text.es);
 
 describe("the fire answers a burden and a petition", () => {
-  let services: LocalServices;
+  let services: ReturnType<typeof createTestServices>;
   let finish: ReturnType<typeof fakeScene>["finish"];
 
   beforeEach(async () => {
@@ -61,7 +61,7 @@ describe("the fire answers a burden and a petition", () => {
     HTMLDialogElement.prototype.close = function close() {
       this.removeAttribute("open");
     };
-    services = createLocalServices({ seatCount: 7, keys: { get: () => "key", set: () => {} } });
+    services = createTestServices({ seatCount: 7, keys: { get: () => "key", set: () => {} } });
     await services.presence.join();
     const fake = fakeScene();
     finish = fake.finish;

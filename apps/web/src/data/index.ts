@@ -8,7 +8,7 @@ import type { Person, Services } from "./types";
 
 export type { Services } from "./types";
 
-/** The in-memory services behind the UI, plus the demo-only handles a real server won't have. */
+/** The in-memory services behind the UI. The server will replace them. */
 export interface LocalServices extends Services {
   presence: MemoryPresence;
   distantFires: MemoryDistantFires;
@@ -20,8 +20,6 @@ interface LocalOptions {
   /** People already seated when the services start. */
   initial?: readonly Person[];
   keys?: KeyStore;
-  /** Development only (`?demo`): no daily limit on petitions. */
-  unlimitedPetitions?: boolean;
 }
 
 let counter = 0;
@@ -39,9 +37,8 @@ export function createLocalServices(options: LocalOptions): LocalServices {
     keys: options.keys ?? new BrowserKeyStore(),
     newId: () => `petition-${Date.now().toString(36)}-${counter++}`,
     newKey: randomKey,
-    ...(options.unlimitedPetitions ? { petitionsPerDay: Infinity } : {}),
   });
-  const distantFires = new MemoryDistantFires(rand);
+  const distantFires = new MemoryDistantFires();
   const fire = new MemoryFire({ presence });
   return { presence, distantFires, fire, petitions, prayers: petitions };
 }

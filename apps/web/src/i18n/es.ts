@@ -253,15 +253,4 @@ export const es = {
       other: "Ahora son {count} junto al fuego.",
     },
   },
-  /** Only shown with ?demo in development. */
-  demo: {
-    groupLabel: "Controles de demostración",
-    arrives: "Alguien llega",
-    leaves: "Alguien se va",
-    // Plays the ritual for someone else, to check it works for anyone.
-    burden: "Alguien entrega una carga",
-    farFireAdd: "+ fogata lejana",
-    farFireRemove: "− fogata lejana",
-    someoneAccompanies: "Alguien acompaña mi estrella",
-  },
 } as const;

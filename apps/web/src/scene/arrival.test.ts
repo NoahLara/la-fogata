@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SPECIES, type Species } from "./characters/species";
-import { pickArrival } from "./demo";
+import { pickArrival } from "./arrival";
 import { createRandom } from "./random";
 
 describe("pickArrival", () => {

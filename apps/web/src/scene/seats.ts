@@ -33,7 +33,7 @@ import { ringScaleFor, SEATS } from "./seatTable";
 import type { TextureBag } from "./textures";
 import { planArrival, planDeparture, planErrand } from "./walk";
 
-export { DEFAULT_ASSIGNMENT, SEATS } from "./seatTable";
+export { SEATS } from "./seatTable";
 
 export type EntranceMode = "walk" | "fade" | "instant";
 

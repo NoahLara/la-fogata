@@ -2,7 +2,7 @@ import { Application, Container } from "pixi.js";
 import { createBackground, type Background } from "./background";
 import type { SkyOptions, SkyPetitions } from "./sky";
 import { debounce } from "./debounce";
-import { SPECIES, SpriteArt, type Species } from "./characters";
+import { SPECIES, SpriteArt } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { createLightEffects, type LightEffects, type LightHandle } from "./lightEffect";
 import { addLog, burn, FIRE, fireIntensityFor } from "./fuel";
@@ -30,8 +30,7 @@ import { skyGeometry } from "./skyGeometry";
 import { SkyView } from "./skyView";
 import { prefersReducedMotion, watchReducedMotion } from "./motion";
 import { Roster, type MemberInfo, type MemberSpec } from "./roster";
-import { createSeats, DEFAULT_ASSIGNMENT, SEATS, type Seats } from "./seats";
-import { shuffled } from "./random";
+import { createSeats, SEATS, type Seats } from "./seats";
 import { TextureBag } from "./textures";
 import {
   createNoteEffects,
@@ -221,10 +220,6 @@ interface SceneOptions {
   fonts: SceneFonts;
   /** Space reserved for UI at the top and bottom of the host. */
   insets?: Insets;
-  /** Randomizes who sits where, once per scene, and seats everyone at the start. For checking every animal in every seat. */
-  shuffle?: boolean;
-  /** Seats this species in every seat at the start, to see it from every angle. Takes precedence over `shuffle`. Ignored if it isn't a species. */
-  animal?: string;
 }
 
 const NIGHT = "#0b0d1a";
@@ -312,18 +307,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   let resolution = density;
   const governor = createQualityGovernor();
 
-  // Fixed for the life of the scene, so a resize doesn't reshuffle everyone.
-  const only = SPECIES.find((species) => species === options.animal);
-  if (options.animal && !only) {
-    console.warn(`Unknown animal "${options.animal}"; expected one of ${SPECIES.join(", ")}`);
-  }
-  // Nobody is around the fire unless asked for, for looking at the art: then every seat is taken from the start.
-  const assignment: readonly Species[] | undefined = only
-    ? SEATS.map(() => only)
-    : options.shuffle
-      ? shuffled(DEFAULT_ASSIGNMENT, Math.random)
-      : undefined;
-
   const canvas = app.canvas;
   canvas.style.display = "block";
   canvas.setAttribute("role", "img");
@@ -331,9 +314,6 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   host.appendChild(canvas);
 
   const roster = new Roster(SEATS.length);
-  assignment?.forEach((species, seat) => {
-    roster.add({ id: `seat-${seat}`, species, seat }, "seated");
-  });
   // The fire eases toward the strength the people and the wood give it, and starts at it.
   let fuel = 0;
   /** The brief surge as a log lands, on top of the strength the fire settles at. */

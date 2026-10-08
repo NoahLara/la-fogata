@@ -21,8 +21,6 @@ export const HELP_QUIET_MS = 60_000;
 export interface TriggerState {
   /** Events that have already been answered since the page loaded. */
   fired: ReadonlySet<TriggerEvent>;
-  /** Development (`?demo`): no limit, so it can be tried over and over. */
-  unlimited: boolean;
   /** A word is on the page, or still fading out. */
   wordShowing: boolean;
   /** A ritual is running, or a star is turning golden or going back to the fire. */
@@ -37,12 +35,12 @@ export type TriggerDecision = "show" | "queue" | "skip";
 
 /**
  * Whether the fire speaks now, waits for the way to clear, or stays silent:
- * - an event is answered once per page load (always, with `unlimited`);
+ * - an event is answered once per page load;
  * - never at or soon after the help screen: that moment belongs to the person, and waiting would only land the word later;
  * - while something else is going on it waits, and is shown as soon as that is over.
  */
 export function decideTrigger(event: TriggerEvent, state: TriggerState): TriggerDecision {
-  if (!state.unlimited && state.fired.has(event)) return "skip";
+  if (state.fired.has(event)) return "skip";
   if (state.msSinceHelp !== undefined && state.msSinceHelp < HELP_QUIET_MS) return "skip";
   if (state.wordShowing || state.ritualRunning || state.dialogOpen) return "queue";
   return "show";
