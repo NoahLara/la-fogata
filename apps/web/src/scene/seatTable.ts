@@ -1,5 +1,4 @@
 import type { View } from "./characters";
-import type { Species } from "./characters/species";
 
 export interface SeatSpec {
   /** Angle on the seat ellipse; 90° is the point closest to the viewer. */
@@ -25,17 +24,6 @@ export const SEATS: readonly SeatSpec[] = [
   { degrees: 225, view: "front", log: true },
   { degrees: 255, view: "front" },
   { degrees: 300, view: "front", log: true },
-];
-
-/** Who sits where, by seat index. People join in any order, so this is just one possible arrangement. */
-export const DEFAULT_ASSIGNMENT: readonly Species[] = [
-  "cat",
-  "panda",
-  "fox",
-  "capybara",
-  "owl",
-  "rabbit",
-  "bear",
 ];
 
 /** Every seat except the ones seen from behind sits closer to the fire sideways: the ring is squeezed by this much there. */

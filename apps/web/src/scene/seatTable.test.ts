@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPECIES } from "./characters/species";
-import { DEFAULT_ASSIGNMENT, ringScaleFor, SEATS } from "./seatTable";
+import { ringScaleFor, SEATS } from "./seatTable";
 
 describe("the seat layout", () => {
   it("has seven seats at the agreed angles", () => {
@@ -26,10 +25,5 @@ describe("the seat layout", () => {
 
   it("squeezes every seat but the back-view ones to 80% sideways", () => {
     for (const seat of SEATS) expect(ringScaleFor(seat)).toBe(seat.view === "back" ? 1 : 0.8);
-  });
-
-  it("can seat all seven animals, one each, in any seat", () => {
-    expect(new Set(DEFAULT_ASSIGNMENT)).toEqual(new Set(SPECIES));
-    expect(DEFAULT_ASSIGNMENT).toHaveLength(SEATS.length);
   });
 });

@@ -10,7 +10,7 @@ Check, in the diff or files you are given:
 
 - No religious vocabulary in default UI copy (God, Lord, prayer, pray, Jesus, bless, Bible, church, etc.). Scripture appears only when the visitor asks for it (the verse reference). In English, never the word "petition" (use "Ask" and "star").
 - No likes, ranking, streaks, profiles, chat or direct messages; the ichthys is the only response and has one counter.
-- Never fake people in production: no simulated arrivals, no invented activity, no promise that someone will come. Demo data stays behind `?demo` in development.
+- Never fake people in production: no simulated arrivals, no invented activity, no promise that someone will come. There is no demo mode: no sample petitions, no simulated people, no dev flags in the app.
 - Other people's stars reveal nothing about the author.
 - Copy is warm and calm, never preachy; es and en have the same keys and the English is natural, not literal.
 

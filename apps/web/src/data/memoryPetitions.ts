@@ -9,7 +9,6 @@ import {
   PETITION_ANSWER_MAX_LENGTH,
   PETITION_MAX_LENGTH,
   PETITION_MIN_LENGTH,
-  DAY,
   PETITIONS_PER_DAY,
   petitionAvailableAt,
   PRAYERS_PER_SESSION,
@@ -27,7 +26,7 @@ import type {
   ReportPetitionResult,
 } from "./types";
 
-interface Options {
+export interface PetitionOptions {
   /** Milliseconds since the epoch. */
   now: () => number;
   rand: Random;
@@ -35,11 +34,11 @@ interface Options {
   newId: () => string;
   newKey: () => string;
   prayersPerSession?: number;
-  /** Petitions a day. Only development raises it, to test the ritual over and over. */
+  /** Petitions a day. */
   petitionsPerDay?: number;
 }
 
-interface Stored {
+export interface Stored {
   id: string;
   text: string;
   createdAt: number;
@@ -54,8 +53,8 @@ interface Stored {
  * queue here: a petition that is not a risk is shown at once.
  */
 export class MemoryPetitions implements PetitionService, PrayerService {
-  private readonly records = new Map<string, Stored>();
-  private readonly events = new Emitter<PetitionEvent>();
+  protected readonly records = new Map<string, Stored>();
+  protected readonly events = new Emitter<PetitionEvent>();
   private readonly prayedFor = new Set<string>();
   /** What the visitor reported: kept for review (the database will hold them) and hidden from their sky. */
   private readonly reported = new Set<string>();
@@ -63,7 +62,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   /** When the visitor made each petition: only the moments, never the text, so returning one doesn't give the day's back. */
   private readonly madeAt: number[] = [];
 
-  constructor(private readonly options: Options) {}
+  constructor(protected readonly options: PetitionOptions) {}
 
   async sky(limit?: number): Promise<readonly Petition[]> {
     const shown = this.living().filter((record) => !this.reported.has(record.id));
@@ -160,46 +159,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     return this.events.subscribe(listener);
   }
 
-  /** Demo and tests only: a petition someone else wrote. */
-  seedOther(
-    text: string,
-    options: {
-      prayers?: number;
-      createdAt?: number;
-      /** How many days ago it was written (the demo uses it so the letters carry different dates). */
-      daysAgo?: number;
-      answered?: string;
-    } = {},
-  ): Petition {
-    const record = this.add(text, "someone-else");
-    record.prayers = options.prayers ?? 0;
-    if (options.createdAt !== undefined) record.createdAt = options.createdAt;
-    else if (options.daysAgo !== undefined)
-      record.createdAt = this.options.now() - options.daysAgo * DAY;
-    if (options.answered !== undefined) {
-      record.answered = {
-        // Answered some time after it was written, and never in the future.
-        at: Math.min(
-          this.options.now(),
-          record.createdAt + Math.ceil((options.daysAgo ?? 0) / 2) * DAY,
-        ),
-        ...(options.answered ? { note: options.answered } : {}),
-      };
-    }
-    return this.view(record);
-  }
-
-  /** Demo and tests only: someone else is with one of the visitor's petitions. */
-  simulateAccompany(id: string): boolean {
-    const record = this.records.get(id);
-    if (!record || !isAlive(record, this.options.now()) || !this.isMine(record)) return false;
-    record.prayers++;
-    const petition = this.view(record);
-    this.events.emit({ type: "accompanied", petition });
-    return true;
-  }
-
-  private add(text: string, ownerKey: string): Stored {
+  protected add(text: string, ownerKey: string): Stored {
     const record: Stored = {
       id: this.options.newId(),
       text,
@@ -231,13 +191,13 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     return key;
   }
 
-  private isMine(record: Stored): boolean {
+  protected isMine(record: Stored): boolean {
     const key = this.options.keys.get();
     return key !== undefined && record.ownerKey === key;
   }
 
   /** What the UI sees: never the owner's key. */
-  private view(record: Stored): Petition {
+  protected view(record: Stored): Petition {
     return {
       id: record.id,
       text: record.text,

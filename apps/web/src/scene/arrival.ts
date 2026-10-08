@@ -1,13 +1,13 @@
 import { SPECIES, type Species } from "./characters/species";
 import { pick, type Random } from "./random";
 
-export interface DemoArrival {
+export interface Arrival {
   species: Species;
   seat: number;
 }
 
 /**
- * Who arrives next in the demo: a random free seat, and an animal not already around the fire when there is one
+ * Who sits down next: a random free seat, and an animal not already around the fire when there is one
  * (every animal is allowed in every seat). Nothing when the fire is full. A `preferred` animal wins when it is free.
  */
 export function pickArrival(
@@ -16,7 +16,7 @@ export function pickArrival(
   takenSeats: ReadonlySet<number>,
   presentSpecies: ReadonlySet<Species>,
   preferred?: Species,
-): DemoArrival | undefined {
+): Arrival | undefined {
   const freeSeats = Array.from({ length: seatCount }, (_, seat) => seat).filter(
     (seat) => !takenSeats.has(seat),
   );

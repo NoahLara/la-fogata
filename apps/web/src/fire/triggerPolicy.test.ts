@@ -3,7 +3,6 @@ import { decideTrigger, HELP_QUIET_MS, TRIGGER_THEME, type TriggerState } from "
 
 const clear: TriggerState = {
   fired: new Set(),
-  unlimited: false,
   wordShowing: false,
   ritualRunning: false,
   dialogOpen: false,
@@ -30,11 +29,6 @@ describe("decideTrigger", () => {
     expect(decideTrigger("burden", { ...clear, fired })).toBe("skip");
     expect(decideTrigger("petition", { ...clear, fired })).toBe("show");
     expect(decideTrigger("alone", { ...clear, fired })).toBe("show");
-  });
-
-  it("has no limit when unlimited (development)", () => {
-    const fired = new Set(["burden" as const, "petition" as const, "alone" as const]);
-    expect(decideTrigger("alone", { ...clear, fired, unlimited: true })).toBe("show");
   });
 
   it("stays silent at and soon after the help screen, rather than waiting", () => {

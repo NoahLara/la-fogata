@@ -9,11 +9,10 @@ const open = {
   msSinceHelp: undefined as number | undefined,
 };
 
-function setup(unlimited = false) {
+function setup() {
   const blockers = { ...open };
   const spoken: TriggerEvent[] = [];
   const triggers = createTriggers({
-    unlimited,
     blockers: () => ({ ...blockers }),
     speak: (event) => {
       spoken.push(event);
@@ -82,15 +81,6 @@ describe("createTriggers", () => {
     expect(spoken).toEqual(["burden", "petition"]);
   });
 
-  it("answers every time when unlimited", () => {
-    const { spoken, triggers } = setup(true);
-    for (let i = 0; i < 3; i++) {
-      triggers.notify("alone");
-      vi.advanceTimersByTime(TRIGGER_DELAY_MS + 100);
-    }
-    expect(spoken).toEqual(["alone", "alone", "alone"]);
-  });
-
   it("stays silent right after the help screen, even if it clears", () => {
     const { blockers, spoken, triggers } = setup();
     blockers.msSinceHelp = 0;
@@ -104,7 +94,6 @@ describe("createTriggers", () => {
   it("keeps an event unanswered when it could not speak, so the next one tries again", () => {
     const attempts: TriggerEvent[] = [];
     const triggers = createTriggers({
-      unlimited: false,
       blockers: () => ({ ...open }),
       speak: (event) => {
         attempts.push(event);

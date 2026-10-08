@@ -243,15 +243,4 @@ export const en = {
       other: "There are {count} by the fire now.",
     },
   },
-  /** Only shown with ?demo in development. */
-  demo: {
-    groupLabel: "Demo controls",
-    arrives: "Someone arrives",
-    leaves: "Someone leaves",
-    // Plays the ritual for someone else, to check it works for anyone.
-    burden: "Someone hands over a burden",
-    farFireAdd: "+ distant fire",
-    farFireRemove: "− distant fire",
-    someoneAccompanies: "Someone is with my star",
-  },
 } satisfies Messages;

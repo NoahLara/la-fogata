@@ -9,11 +9,9 @@ import {
 /** How often a word that is waiting looks again to see if the way is clear. */
 const RECHECK_MS = 200;
 
-type Blockers = Omit<TriggerState, "fired" | "unlimited">;
+type Blockers = Omit<TriggerState, "fired">;
 
 interface Options {
-  /** Development (`?demo`): no limit. */
-  unlimited: boolean;
   /** What is going on over the scene right now. */
   blockers(): Blockers;
   /** Says a word for this event. Returns false if it could not (so the event stays unanswered). */
@@ -44,8 +42,7 @@ export function createTriggers(options: Options): Triggers {
     return handle;
   };
 
-  const decide = (event: TriggerEvent) =>
-    decideTrigger(event, { ...options.blockers(), fired, unlimited: options.unlimited });
+  const decide = (event: TriggerEvent) => decideTrigger(event, { ...options.blockers(), fired });
 
   /** Tries now; if something is in the way, tries again until it clears or the limit passes. */
   const attempt = (event: TriggerEvent, waited: number) => {
