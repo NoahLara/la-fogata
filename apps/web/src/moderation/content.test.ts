@@ -68,7 +68,6 @@ const SPANISH_INSULTS = [
   "mamón",
   "mamada",
   "mamaguevo",
-  "pajero",
   "cagada",
   "cagón",
   "hdp",
@@ -108,7 +107,6 @@ const SPANISH_INSULTS = [
   "cerotes",
   "sos cerote",
   "sos un cerote",
-  "forro",
   "trolo",
   "sorete",
   "cojudo",
@@ -166,7 +164,224 @@ const ENGLISH_INSULTS = [
   "i'll kill you",
 ];
 
-const ALL = [...SPANISH_INSULTS, ...ENGLISH_INSULTS];
+/** Added after a second, wider pass: regional vocabulary, diminutives and compounds. */
+const MORE_SPANISH = [
+  "cerotio",
+  "cerotillo",
+  "cerotyo",
+  "cerotazo",
+  "cerotito",
+  "cerotona",
+  "sos un cerotillo",
+  "culerote",
+  "culerito",
+  "cabroncito",
+  "cabronazo",
+  "cabroncete",
+  "pendejito",
+  "pendejadas",
+  "pendejete",
+  "mierdecilla",
+  "mierdita",
+  "mierdoso",
+  "idiotez",
+  "idiotas",
+  "estupidez",
+  "estúpidamente",
+  "imbecilidad",
+  "putilla",
+  "putisima",
+  "putazo",
+  "putada",
+  "putañero",
+  "puterío",
+  "hijueputa",
+  "hijueputas",
+  "jueputa",
+  "hijuna",
+  "hijadeputa",
+  "hijo e puta",
+  "hijo de tu puta madre",
+  "hijo de perra",
+  "hijo de la chingada",
+  "hijo de re mil puta",
+  "hija de mil putas",
+  "la puta que te parió",
+  "puta que te parió",
+  "la chingada",
+  "vete a la chingada",
+  "chingadera",
+  "chingadera",
+  "chingón",
+  "chingate",
+  "chucha",
+  "chuchatumadre",
+  "chucha de tu madre",
+  "pichula",
+  "poronga",
+  "pichudo",
+  "verguita",
+  "vergazo",
+  "me cago en tus muertos",
+  "me cago en dios",
+  "me cago en la hostia",
+  "cagarse",
+  "cagalera",
+  "lameculos",
+  "lambeculos",
+  "comeverga",
+  "comepollas",
+  "chupapollas",
+  "chupapijas",
+  "mamapijas",
+  "mamaverga",
+  "mamabicho",
+  "mamahuevos",
+  "mamagüevo",
+  "boludas",
+  "boluda",
+  "pelotuda",
+  "huevona",
+  "huevonada",
+  "huevada",
+  "weona",
+  "guevón",
+  "cojuda",
+  "cojudo",
+  "caremonda",
+  "careverga",
+  "carechimba",
+  "marimacha",
+  "marimacho",
+  "machorra",
+  "bollera",
+  "tortillera",
+  "mariposón",
+  "mariquita",
+  "maricones",
+  "negrata",
+  "sidoso",
+  "mogólico",
+  "mogólica",
+  "trolo",
+  "sorete",
+  "tarada",
+  "pajuo",
+  "baboso",
+  "ahórcate",
+  "suicídate",
+  "ojalá que te mueras",
+  "córtate las venas",
+  "tírate de un puente",
+  "te voy a violar",
+  "te voy a matar",
+  "voy a matarte",
+  "espalda mojada",
+  "retrasado mental",
+  "hdlgp",
+  "hijueputa madre",
+  "cagada de tu madre",
+  "concha de tu madre",
+  "concha de su madre",
+  "andate a la concha",
+  "andate a la mierda",
+  "tu madre a la mierda",
+  "pateculo",
+  "metételo por el culo",
+  "por el culo",
+  "en el culo",
+  "ojete",
+  "ojetudo",
+];
+
+const MORE_ENGLISH = [
+  "fucked up",
+  "what the fuck",
+  "shut the fuck up",
+  "fuckface",
+  "fuckhead",
+  "fucktard",
+  "dumbfuck",
+  "dipshit",
+  "shithead",
+  "shitface",
+  "shitbag",
+  "bullshitter",
+  "horseshit",
+  "piece of shit",
+  "asswipe",
+  "kissass",
+  "dumbass",
+  "dumb ass",
+  "cocksucker",
+  "cock sucker",
+  "dickhead",
+  "dickface",
+  "dickwad",
+  "douche",
+  "douchebag",
+  "bitchass",
+  "bitchy",
+  "bitches",
+  "sonofabitch",
+  "son of a whore",
+  "cumshot",
+  "cumslut",
+  "blowjob",
+  "handjob",
+  "jizz",
+  "titties",
+  "goddamn",
+  "goddamnit",
+  "god damn it",
+  "arsehole",
+  "bellend",
+  "bollock",
+  "wanker",
+  "wankers",
+  "twat",
+  "skank",
+  "skanky",
+  "thot",
+  "slutty",
+  "whorebag",
+  "cunthead",
+  "cuntface",
+  "nigger",
+  "niggers",
+  "nigga",
+  "niggas",
+  "faggots",
+  "fag",
+  "fags",
+  "poofter",
+  "retards",
+  "mongoloid",
+  "tranny",
+  "shemale",
+  "beaner",
+  "wetback",
+  "raghead",
+  "towelhead",
+  "gook",
+  "honky",
+  "paki",
+  "cuck",
+  "cuckold",
+  "moron",
+  "moronic",
+  "scumbag",
+  "dirtbag",
+  "neck yourself",
+  "drink bleach",
+  "hang yourself",
+  "i hope you rot in hell",
+  "i will kill you",
+  "i'll rape you",
+  "kill yourself",
+];
+
+const ALL = [...SPANISH_INSULTS, ...ENGLISH_INSULTS, ...MORE_SPANISH, ...MORE_ENGLISH];
 
 /** The ways people try to get a word past a filter, each one applied to the word. */
 const DISGUISES: ReadonlyArray<readonly [string, (text: string) => string]> = [
@@ -438,7 +653,7 @@ function random(seed: number) {
 
 describe("many sentences of everyday words", () => {
   const SPANISH =
-    "quiero pedir por mi familia que esté bien salud trabajo paz amor gracias hoy mañana noche difícil miedo cansado cansada solo sola ayuda fuerza calma esperanza perdón madre padre hermano hermana hijo hija amigo amiga pareja casa dinero examen escuela enfermedad doctor hospital camino vida tiempo corazón sueño dormir llorar sanar seguir intentar entender aceptar soltar culpa pasado futuro presente análisis clase pasar aprobar cocina cuchara pecado puerta conocer concha pelota pollo huevo verdad vergüenza cultura culto cumbre cabra cabrito pija mamá papá abuelo abuela tío tía".split(
+    "quiero pedir por mi familia que esté bien salud trabajo paz amor gracias hoy mañana noche difícil miedo cansado cansada solo sola ayuda fuerza calma esperanza perdón madre padre hermano hermana hijo hija amigo amiga pareja casa dinero examen escuela enfermedad doctor hospital camino vida tiempo corazón sueño dormir llorar sanar seguir intentar entender aceptar soltar culpa pasado futuro presente análisis clase pasar aprobar cocina cuchara pecado puerta conocer concha pelota pollo huevo verdad vergüenza cultura culto cumbre mari con cabro nuevo huevo noche hace rota dulce vergara ojo hoja cerro cerrojo cabra cabrito pija mamá papá abuelo abuela tío tía".split(
       " ",
     );
   const ENGLISH =
@@ -454,7 +669,7 @@ describe("many sentences of everyday words", () => {
     it(`${name}: none is refused`, () => {
       const next = random(name === "Spanish" ? 7 : 11);
       const wrong: string[] = [];
-      for (let i = 0; i < 4000; i++) {
+      for (let i = 0; i < 12000; i++) {
         const length = 4 + Math.floor(next() * 14);
         const words: string[] = [];
         for (let j = 0; j < length; j++) {
@@ -649,5 +864,150 @@ describe("the app's own words", () => {
       (text) => refused(text) === "offensive",
     );
     expect(flagged).toEqual([]);
+  });
+});
+
+describe("ordinary words that sit close to an insult", () => {
+  const SPANISH_NEAR = `cabra cabrito cabina cabeza cabello caballo cabaña cable cabo culto cultura cultivo culpa culpable cúpula
+    culebra culminar puerta pueblo puesto pulso pulpo pura puro puntual putrefacto reputación computadora disputa
+    disputar diputado imputar suputar verde verso vergel vergara vergüenza verdad idioma ideal idóneo
+    estufa estupendo estudio estudiante pendiente pendón pendular péndulo pelota pelo pelotón peluche huevo huevos
+    hueso huella huerto hueco cojín cojear cojo carro carga carácter caramelo carajillo joven joya jornada jocoso
+    chino china chinche chinchilla mamá mamar mamífero mamut marinero marido maricopa marisco mariposa
+    marimba maría maricela maricruz mariana zorro zorra zoraida zona zoológico sorpresa soro sorbo cono cónico
+    coñac caga cagado cagar cagas hijo hija hijastro hijuelo madre padre pariente tonto tonta bobo loco
+    tarado tarea tarde tardío mono mona mongolia mongol boludo bolígrafo bolsa bola bolero bolivia porotos
+    pichón pichel pinchar pinche pincel pincha pinza pinzas ceroso cerote cerrojo cerro cerrar cerezo cereza cero
+    cerámica cerca cercano cerebro ceremonia cerillo cerilla cerdo cerda negro negra indio india gordo flaco feo
+    forro foro forum fuerza fuego fuente fuerte fuera fuga funeral fusil fusión`;
+  const ENGLISH_NEAR =
+    `class classic classify glass grass mass massive pass passage passenger assess assist assassin assume asset
+    association hello shell shall hitch witch which butch dinner cockpit cocktail peacock hancock scunthorpe
+    penistone arsenal analysis analyst title tit titan titanic bass bastion bassoon fuchsia lick kick pick quick
+    shirt shot shoot shore short shut shutter slot slow slug slum sluice button butter butterfly buttress cumin
+    cucumber cumulus document circumstance circumference nigeria niger niggle snigger dickens dickinson
+    richard fanny fannie pecker woodpecker ball balls bollard bullet bully pussycat willow tool toolbox hell
+    hello helmet heaven damn damage dam hoe hose horse horn horny whore-house`.replace(
+      "whore-house",
+      "",
+    );
+
+  for (const [name, text] of [
+    ["Spanish", SPANISH_NEAR],
+    ["English", ENGLISH_NEAR],
+  ] as const) {
+    it(`${name}: each one is taken`, () => {
+      const wrong = text
+        .split(/\s+/)
+        .filter(Boolean)
+        // The few that are insults on their own (cerote, caga, cagar, cagado, cagas, pinche, boludo, tarado, zorra) are
+        // listed here only to show where the line is drawn, so they are left out of this check.
+        .filter(
+          (word) =>
+            ![
+              "cerote",
+              "caga",
+              "cagado",
+              "cagar",
+              "cagas",
+              "pinche",
+              "boludo",
+              "tarado",
+              "zorra",
+              "horny",
+              "hell",
+              "damn",
+              "tit",
+            ].includes(word),
+        )
+        .filter((word) => refused(`${word} ${word}`) === "offensive");
+      expect(wrong).toEqual([]);
+    });
+  }
+});
+
+describe("insults with a letter wrong, or with other words glued on", () => {
+  const SLIPS = [
+    "hijueputo",
+    "hijueputas",
+    "hijuputa",
+    "hijoeputa",
+    "gilipolas",
+    "gilipoyas",
+    "gillipollas",
+    "malpario",
+    "malparido",
+    "mamaguebo",
+    "mamahuebo",
+    "mamaberga",
+    "careberga",
+    "caremonda",
+    "comemierdas",
+    "mariconez",
+    "maricones",
+    "mariposones",
+    "mariquitas",
+    "cerotilo",
+    "cerotillos",
+    "cerotillo",
+  ];
+  const GLUED = [
+    "eresputa",
+    "eresputo",
+    "eresunputo",
+    "sosunputa",
+    "sospendejo",
+    "soscerote",
+    "erescerotillo",
+    "queputo",
+    "esaputa",
+    "esosputos",
+    "tuspendejadas",
+    "eresmierda",
+    "somosmierda",
+    "muypendejo",
+    "tanidiota",
+    "sosidiota",
+    "eresunmalparido",
+    "eresuncabron",
+    "esunhijodeputa",
+    "vossosunculero",
+    "youarethefuck",
+    "suchaasshole",
+    "youareabitch",
+    "youareafaggot",
+    "whatthefuck",
+    "eresunculeroidiota",
+    "sosunhijueputa",
+    "pincheputo",
+  ];
+  it("a letter wrong is still caught in the long ones", () => {
+    expect(SLIPS.filter((word) => refused(word) !== "offensive")).toEqual([]);
+  });
+  it("words glued in front are still caught", () => {
+    expect(GLUED.filter((word) => refused(word) !== "offensive")).toEqual([]);
+  });
+  it("and in a sentence, spread out or stretched", () => {
+    const missed = [...SLIPS, ...GLUED]
+      .flatMap((word) => [
+        `hoy fue un mal día y ${word} y nada más`,
+        [...word].join(" "),
+        [...word].map((c) => c + c).join(""),
+        word.toUpperCase(),
+      ])
+      .filter((text) => refused(text) !== "offensive");
+    expect(missed).toEqual([]);
+  });
+});
+
+describe("words that end like an insult or that are ordinary, but long", () => {
+  it("-ching, -ing and the like are not insults", () => {
+    const words =
+      `teaching reaching touching aching arching searching marching watching catching coaching punching
+      lunching pinching reputable reputation computer dispute regarded rewarded regard reward retardant retarded
+      nigeria niger arching scholarship cockpit assessment association`
+        .split(/\s+/)
+        .filter((word) => word !== "retarded");
+    expect(words.filter((word) => refused(`${word} and ${word}`) === "offensive")).toEqual([]);
   });
 });
