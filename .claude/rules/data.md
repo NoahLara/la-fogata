@@ -9,7 +9,7 @@ paths:
 
 # Data, petitions, the fire word and preferences
 
-Moved out of CLAUDE.md. The web is built first against the in-memory services in `apps/web/src/data`; realtime and Supabase come later behind the same interfaces. Only the visitor sits in them: other people, other fires and other people's petitions come from the server, and tests make them with `data/testing.ts` (never imported by the app).
+Moved out of CLAUDE.md. The web is built first against the in-memory services in `apps/web/src/data`; realtime and the database (Cloudflare D1) come later behind the same interfaces. Only the visitor sits in them: other people, other fires and other people's petitions come from the server, and tests make them with `data/testing.ts` (never imported by the app).
 
 - The group of your stars is named for its counts: "Tus peticiones: {n} estrellas, {m} respondidas" (plural rules, both languages). The roving focus between your stars stays.
 - Up to 2000 characters (answers 2000, burdens 3000; limits in `data/limits.ts` and `burden/burden.ts`), 1 petition per person per day, moderated before it is shown. A petition carries the day it was written and, once answered, the day it was answered (`createdOn`, `answered.on`, `YYYY-MM-DD`, only the day); the UI heads the letter with it (`data/dates.ts`).
