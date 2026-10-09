@@ -5,6 +5,8 @@ import { SEAT_COUNT, personSchema, speciesSchema } from "./presence";
 export const clientEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("join"), preferred: speciesSchema.optional() }).strict(),
   z.object({ type: z.literal("changeSpecies"), species: speciesSchema }).strict(),
+  // Sent every few seconds while sitting: a device that went to sleep without saying goodbye stops sending it.
+  z.object({ type: z.literal("ping") }).strict(),
 ]);
 export type ClientEvent = z.infer<typeof clientEventSchema>;
 

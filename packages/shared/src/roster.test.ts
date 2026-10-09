@@ -49,3 +49,34 @@ describe("Roster", () => {
     expect(roster.people().find((p) => p.id === "a")?.species).toBe("owl");
   });
 });
+
+describe("Roster silence", () => {
+  it("gives up only those who stopped giving signs of life", () => {
+    let now = 0;
+    const roster = new Roster(Math.random, () => now);
+    const quiet = roster.join("quiet");
+    const alive = roster.join("alive");
+    expect(quiet && alive).toBeTruthy();
+    now = 50_000;
+    roster.touch("alive");
+    now = 60_000;
+    expect(roster.expired(60_000)).toEqual(["quiet"]);
+  });
+
+  it("ignores a sign of life from someone who is not sitting", () => {
+    let now = 0;
+    const roster = new Roster(Math.random, () => now);
+    roster.touch("stranger");
+    now = 1_000_000;
+    expect(roster.expired(1)).toEqual([]);
+  });
+
+  it("forgets whoever leaves", () => {
+    let now = 0;
+    const roster = new Roster(Math.random, () => now);
+    roster.join("a");
+    roster.leave("a");
+    now = 1_000_000;
+    expect(roster.expired(1)).toEqual([]);
+  });
+});

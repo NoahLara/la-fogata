@@ -19,7 +19,12 @@ export interface Person {
 }
 
 export type PresenceEvent =
-  | { type: "joined"; person: Person }
+  | {
+      type: "joined";
+      person: Person;
+      /** They were already sitting when the visitor arrived: they are simply there, they do not walk in. */
+      already?: boolean;
+    }
   | { type: "left"; id: string }
   /** The same person, in the same seat, now as another animal: the old one leaves and the new one arrives. */
   | { type: "changed"; person: Person };

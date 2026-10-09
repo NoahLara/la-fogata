@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createLocalServices, type LocalServices } from "@/data";
 import { DataProvider } from "@/data/DataProvider";
+import { realtimeTarget } from "@/data/realtimeTarget";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene as Scene } from "@/scene/createScene";
 import { GestureBar } from "../gestures/GestureBar";
@@ -75,7 +76,10 @@ export function FogataScene() {
           return;
         }
         scene = created;
-        const services = createLocalServices({ seatCount: created.seatCount });
+        const services = createLocalServices({
+          seatCount: created.seatCount,
+          realtime: realtimeTarget(window.location),
+        });
         // Your own sky: your petitions that are still alive are already stars.
         const mine = await services.petitions.mine();
         if (disposed) {
@@ -93,7 +97,8 @@ export function FogataScene() {
         // The scene follows who the service says is there.
         const unsubscribers = [
           services.presence.subscribe((event) => {
-            if (event.type === "joined") created.addMember(event.person, { animate: true });
+            if (event.type === "joined")
+              created.addMember(event.person, { animate: !event.already });
             else if (event.type === "changed")
               created.replaceMember(event.person, { animate: true });
             else created.removeMember(event.id, { animate: true });
@@ -104,7 +109,11 @@ export function FogataScene() {
           services.fire.subscribe((event) => created.throwWood(event.by)),
         ];
         created.setDistantFires(services.distantFires.fires());
-        stop = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+        stop = () => {
+          unsubscribers.forEach((unsubscribe) => unsubscribe());
+          // Closes the socket, if there is one: the seat is free for the next person.
+          services.presence.leave();
+        };
         // The visitor sits down once the scene is up (`SitDown`).
         setMounted({ scene: created, services });
       })

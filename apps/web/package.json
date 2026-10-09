@@ -13,6 +13,7 @@
   "dependencies": {
     "@fogata/shared": "workspace:*",
     "next": "16.3.7",
+    "partysocket": "^1.3.0",
     "pixi.js": "^8.21.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

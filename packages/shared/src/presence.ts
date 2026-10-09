@@ -21,3 +21,8 @@ export const personSchema = z
   .strict();
 
 export type Person = z.infer<typeof personSchema>;
+
+/** The browser tells the campfire it is still there this often. */
+export const PING_EVERY_MS = 15_000;
+/** A seat whose owner has been silent this long is given up: their device is gone without a goodbye. */
+export const IDLE_LIMIT_MS = 60_000;

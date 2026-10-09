@@ -16,8 +16,13 @@ function pick<T>(items: readonly T[], rand: () => number): T | undefined {
  */
 export class Roster {
   private readonly seated = new Map<string, Person>();
+  /** When each seated person last gave a sign of life. */
+  private readonly heard = new Map<string, number>();
 
-  constructor(private readonly rand: () => number = Math.random) {}
+  constructor(
+    private readonly rand: () => number = Math.random,
+    private readonly clock: () => number = Date.now,
+  ) {}
 
   people(): Person[] {
     return [...this.seated.values()];
@@ -45,7 +50,19 @@ export class Roster {
     if (seat === undefined || species === undefined) return undefined;
     const person: Person = { id, species, seat };
     this.seated.set(id, person);
+    this.heard.set(id, this.clock());
     return person;
+  }
+
+  /** `id` just gave a sign of life. Ignored unless they are sitting here. */
+  touch(id: string): void {
+    if (this.seated.has(id)) this.heard.set(id, this.clock());
+  }
+
+  /** Who has been silent for `limitMs` or more: their device is gone without a goodbye. */
+  expired(limitMs: number): string[] {
+    const now = this.clock();
+    return [...this.heard].filter(([, at]) => now - at >= limitMs).map(([id]) => id);
   }
 
   changeSpecies(id: string, species: Species): ChangeSpeciesOutcome {
@@ -60,6 +77,7 @@ export class Roster {
 
   /** True when `id` was sitting here. */
   leave(id: string): boolean {
+    this.heard.delete(id);
     return this.seated.delete(id);
   }
 }

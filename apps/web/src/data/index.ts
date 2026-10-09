@@ -2,6 +2,8 @@ import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
+import { RealtimePresence } from "./realtimePresence";
+import type { RealtimeTarget } from "./realtimeTarget";
 import { randomKey } from "./randomKey";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
 import type { Person, Services } from "./types";
@@ -20,17 +22,21 @@ interface LocalOptions {
   /** People already seated when the services start. */
   initial?: readonly Person[];
   keys?: KeyStore;
+  /** Where the realtime server is. Without it the visitor sits alone in this browser. */
+  realtime?: RealtimeTarget | undefined;
 }
 
 let counter = 0;
 
 export function createLocalServices(options: LocalOptions): LocalServices {
   const rand = Math.random;
-  const presence = new MemoryPresence({
-    seatCount: options.seatCount,
-    rand,
-    ...(options.initial ? { initial: options.initial } : {}),
-  });
+  const presence = options.realtime
+    ? new RealtimePresence({ target: options.realtime, seatCount: options.seatCount, rand })
+    : new MemoryPresence({
+        seatCount: options.seatCount,
+        rand,
+        ...(options.initial ? { initial: options.initial } : {}),
+      });
   const petitions = new MemoryPetitions({
     now: () => Date.now(),
     rand,

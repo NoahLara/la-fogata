@@ -76,6 +76,12 @@ export class MemoryPresence implements PresenceService {
     return person;
   }
 
+  /** Nobody is in view any more, the visitor included. */
+  protected clear(): void {
+    this.me = undefined;
+    for (const id of [...this.everyone.keys()]) this.remove(id);
+  }
+
   protected remove(id: string): void {
     if (this.everyone.delete(id)) this.events.emit({ type: "left", id });
   }

@@ -10,6 +10,11 @@ describe("clientEventSchema", () => {
     expect(clientEventSchema.safeParse({ type: "join", preferred: "dragon" }).success).toBe(false);
   });
 
+  it("accepts a ping and nothing more", () => {
+    expect(clientEventSchema.safeParse({ type: "ping" }).success).toBe(true);
+    expect(clientEventSchema.safeParse({ type: "ping", at: 1 }).success).toBe(false);
+  });
+
   it("rejects extra fields", () => {
     expect(clientEventSchema.safeParse({ type: "join", name: "Ana" }).success).toBe(false);
   });

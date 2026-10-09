@@ -355,6 +355,13 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   const rituals = new Set<() => void>();
   /** People walking off: what finishes their leaving, so a rebuild that cuts the walk short can still run it. */
   const leaving = new Map<string, () => void>();
+  // Real people come and go at any moment, so a change can reach someone the scene cannot act on yet. It waits
+  // here and happens as soon as it can: a departure or a change of animal for someone still walking in, an arrival for a seat whose
+  // owner is still walking off.
+  const afterSeated = new Map<string, () => void>();
+  /** People whose character is being swapped: the new one arrives once the old one is gone, if they are still here. */
+  const replacing = new Set<string>();
+  const arrivals = new Map<string, { member: MemberSpec; animate: boolean }>();
   /** Timers that must not outlive the scene. */
   const timers = new Set<number>();
   const later = (callback: () => void, ms: number) => {
@@ -410,7 +417,10 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       insets,
       intensity,
       sprites,
-      (id) => roster.markSeated(id),
+      (id) => {
+        roster.markSeated(id);
+        flushPending();
+      },
       youLabel,
       options.fonts,
       { ids: petitionIds, answered: answeredIds, retired: retiredIds },
@@ -425,6 +435,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     for (let i = 0; i < warmUp; i++) current.fire.update(1 / 30, time + i / 30, reduced);
     app.stage.addChild(current.root);
     for (const finishLeaving of interrupted) finishLeaving();
+    flushPending();
     notifyLayout();
     notifyView();
   };
@@ -720,10 +731,29 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     return { status: "burning" };
   };
 
+  /** Does what had to wait: what those who have sat down were to do, and the arrivals whose place is free now. */
+  function flushPending() {
+    for (const [id, action] of [...afterSeated]) {
+      if (roster.get(id)?.status !== "seated") continue;
+      afterSeated.delete(id);
+      action();
+    }
+    for (const [id, waiting] of [...arrivals]) {
+      if (roster.takenSeats().has(waiting.member.seat)) continue;
+      arrivals.delete(id);
+      addMemberTo(waiting.member, { animate: waiting.animate });
+    }
+  }
+
   const addMemberTo = (member: MemberSpec, { animate }: { animate: boolean }) => {
     // Without motion they fade in where they sit instead of walking in.
     const mode = animate ? (reduced ? "fade" : "walk") : "instant";
     const result = roster.add(member, mode === "instant" ? "seated" : "arriving");
+    if (result === "seat-taken") {
+      // Its owner is still walking off: sit down as soon as the seat is free.
+      arrivals.set(member.id, { member, animate });
+      return;
+    }
     if (result !== "added") {
       console.warn(`Could not seat ${member.id}: ${result}`);
       return;
@@ -736,7 +766,14 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
   };
 
   const removeMemberFrom = (id: string, animate: boolean, { onGone }: { onGone?: () => void }) => {
+    if (arrivals.delete(id)) return; // never got to sit down
     const member = roster.get(id);
+    if (member?.status === "arriving") {
+      // Still walking in: they go as soon as they have sat.
+      afterSeated.set(id, () => removeMemberFrom(id, animate, { ...(onGone ? { onGone } : {}) }));
+      return;
+    }
+    if (member?.status === "leaving" && replacing.delete(id)) return; // left while changing: no new arrival
     if (!member || member.status !== "seated") {
       console.warn(`Could not send ${id} away: not sitting by the fire`);
       return;
@@ -753,10 +790,32 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       leaving.delete(id);
       roster.remove(id);
       onGone?.();
+      flushPending();
     };
     leaving.set(id, gone);
     const started = current?.seats.removeMember(id, mode, Math.random, gone);
     if (!started) gone();
+  };
+
+  const replaceMemberIn = (member: MemberSpec, { animate }: { animate: boolean }) => {
+    const existing = roster.get(member.id);
+    if (existing?.status === "arriving") {
+      afterSeated.set(member.id, () => replaceMemberIn(member, { animate }));
+      return;
+    }
+    if (!existing || existing.status !== "seated") {
+      console.warn(`Could not change ${member.id}: not sitting by the fire`);
+      return;
+    }
+    // The old one walks off and, once gone, the new one walks in to the same seat, unless they left meanwhile.
+    replacing.add(member.id);
+    removeMemberFrom(member.id, animate, {
+      onGone: () => {
+        if (replacing.delete(member.id)) {
+          addMemberTo({ ...member, seat: existing.seat }, { animate });
+        }
+      },
+    });
   };
 
   return {
@@ -765,17 +824,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     removeMember(id, { animate }) {
       removeMemberFrom(id, animate, {});
     },
-    replaceMember(member, { animate }) {
-      const existing = roster.get(member.id);
-      if (!existing || existing.status !== "seated") {
-        console.warn(`Could not change ${member.id}: not sitting by the fire`);
-        return;
-      }
-      // The old one walks off and, once gone, the new one walks in to the same seat.
-      removeMemberFrom(member.id, animate, {
-        onGone: () => addMemberTo({ ...member, seat: existing.seat }, { animate }),
-      });
-    },
+    replaceMember: replaceMemberIn,
     setSelf(id) {
       selfId = id;
       selfSeatedAt = undefined;
