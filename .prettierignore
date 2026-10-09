@@ -1,5 +1,7 @@
 node_modules
 .next
+.open-next
+.wrangler
 .turbo
 dist
 pnpm-lock.yaml
