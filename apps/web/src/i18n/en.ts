@@ -4,7 +4,8 @@ import type { Messages } from "./messages";
 export const en = {
   meta: {
     title: "La Fogata",
-    description: "A campfire for hard nights",
+    description:
+      "A free, anonymous campfire for hard nights. Throw wood, hand over what weighs on you, and leave an ask that becomes a star. No chat, no profiles.",
   },
   scene: {
     ariaLabel: "A campfire at night, with people sitting around it.",

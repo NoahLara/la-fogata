@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">La Fogata</title>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="70%" r="58%">
+      <stop offset="0" stop-color="#ff9650" stop-opacity="0.45" />
+      <stop offset="0.55" stop-color="#ff9650" stop-opacity="0.13" />
+      <stop offset="1" stop-color="#ff9650" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="outer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff9650" />
+      <stop offset="1" stop-color="#e07a38" />
+    </linearGradient>
+    <linearGradient id="middle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb070" />
+      <stop offset="1" stop-color="#ff9650" />
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd9a0" />
+      <stop offset="1" stop-color="#ffb070" />
+    </linearGradient>
+  </defs>
+
+  <!-- The night and the light the fire throws on it -->
+  <rect width="512" height="512" rx="112" fill="#0b0d1a" />
+  <rect width="512" height="512" rx="112" fill="url(#glow)" />
+
+  <!-- A few stars -->
+  <g fill="#ffd9a0">
+    <circle cx="118" cy="98" r="3.2" opacity="0.85" />
+    <circle cx="398" cy="126" r="2.6" opacity="0.7" />
+    <circle cx="86" cy="214" r="2.2" opacity="0.6" />
+    <circle cx="432" cy="248" r="2.8" opacity="0.8" />
+    <circle cx="334" cy="70" r="2" opacity="0.6" />
+    <circle cx="188" cy="58" r="1.8" opacity="0.55" />
+  </g>
+
+  <!-- Two logs leaning on each other, behind the flame -->
+  <g stroke-linecap="round" fill="none">
+    <line x1="382" y1="452" x2="212" y2="320" stroke="#5a3f27" stroke-width="38" />
+    <line x1="130" y1="452" x2="300" y2="320" stroke="#7a5632" stroke-width="38" />
+    <line x1="136" y1="438" x2="296" y2="314" stroke="#b08452" stroke-width="6" opacity="0.6" />
+    <line x1="376" y1="438" x2="218" y2="314" stroke="#9a6f40" stroke-width="6" opacity="0.45" />
+  </g>
+
+  <!-- The flame: the same one that waits for the fire to be lit -->
+  <g transform="translate(124 94) scale(4.4)">
+    <path d="M30 74 C12 64 14 40 26 22 C27 34 33 36 36 26 C46 42 50 62 30 74 Z" fill="url(#outer)" />
+    <path d="M30 74 C19 67 21 52 30 41 C32 50 37 52 39 47 C44 58 42 68 30 74 Z" fill="url(#middle)" />
+    <path d="M30 74 C24 70 25 62 30 56 C35 62 36 70 30 74 Z" fill="url(#core)" />
+  </g>
+
+  <!-- The log in front, and a spark or two rising -->
+  <g stroke-linecap="round" fill="none">
+    <line x1="168" y1="458" x2="344" y2="458" stroke="#8a6238" stroke-width="36" />
+    <line x1="176" y1="446" x2="336" y2="446" stroke="#c39a62" stroke-width="6" opacity="0.7" />
+  </g>
+  <circle cx="212" cy="152" r="5.5" fill="#ffd9a0" />
+  <circle cx="302" cy="120" r="4.2" fill="#ffb070" />
+  <circle cx="262" cy="92" r="3" fill="#ffd9a0" opacity="0.9" />
+</svg>

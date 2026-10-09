@@ -1,6 +1,24 @@
 {
   "name": "la-fogata",
   "private": true,
+  "description": "A free, anonymous campfire for hard nights. Throw wood, hand over what weighs on you, leave an ask that becomes a star.",
+  "homepage": "https://app.lafogata.workers.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoahLara/la-fogata.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "campfire",
+    "community",
+    "anonymous",
+    "mental-health",
+    "nextjs",
+    "cloudflare-workers",
+    "durable-objects",
+    "pixijs",
+    "open-source"
+  ],
   "packageManager": "pnpm@12.8.1",
   "engines": {
     "node": ">=22"
