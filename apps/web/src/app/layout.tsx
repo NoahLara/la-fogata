@@ -16,9 +16,28 @@ const fraunces = Fraunces({
 const atkinson = Atkinson_Hyperlegible_Next({ variable: "--font-atkinson", subsets: ["latin"] });
 const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin"] });
 
+/**
+ * Where this instance lives, so the picture shown when its link is shared gets an absolute address. The official
+ * instance is the default; a copy run elsewhere sets `NEXT_PUBLIC_SITE_URL` when it builds.
+ */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://app.lafogata.workers.dev";
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { meta } = DICTIONARIES[await getLocale()];
-  return { title: meta.title, description: meta.description };
+  const locale = await getLocale();
+  const { meta } = DICTIONARIES[locale];
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: meta.title,
+    description: meta.description,
+    openGraph: {
+      type: "website",
+      siteName: meta.title,
+      title: meta.title,
+      description: meta.description,
+      locale: locale === "es" ? "es_ES" : "en_US",
+    },
+    twitter: { card: "summary_large_image", title: meta.title, description: meta.description },
+  };
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -2,7 +2,8 @@
 export const es = {
   meta: {
     title: "La Fogata",
-    description: "Una fogata para las noches difíciles",
+    description:
+      "Una fogata anónima y gratuita para las noches difíciles. Echa leña, entrega lo que te pesa y deja una petición que se vuelve estrella. Sin chat, sin perfiles.",
   },
   scene: {
     ariaLabel: "Una fogata de noche con personas sentadas alrededor.",
