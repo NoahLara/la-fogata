@@ -18,9 +18,13 @@ You need a free Cloudflare account (no card). The code is MIT: anyone may run th
 3. Create an API token (_My Profile, API Tokens_) from the **Edit Cloudflare Workers** template, add _Account, D1, Edit_, and limit it to your account.
 4. In your fork's GitHub settings (_Secrets and variables, Actions_) add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Never paste them anywhere else.
 5. Turn on **Secret scanning** and **Push protection** (_Settings, Code security_).
-6. Push to `master`: `.github/workflows/deploy.yml` deploys after CI passes. Run it by hand from the _Actions_ tab with _Run workflow_.
+6. Push to `master` (or run it by hand from the _Actions_ tab with _Run workflow_): `.github/workflows/deploy.yml` deploys the **realtime Worker** after CI passes. It answers `ok` at `https://fogata-realtime.<your-subdomain>.workers.dev`.
+7. Add that host, **without** `https://`, as a repository **variable** (not a secret) called `REALTIME_HOST` (_Settings, Secrets and variables, Actions, Variables_). It is baked into the web when it is built, so the page finds its campfires there (it uses `wss://` on its own).
+8. `.github/workflows/deploy-web.yml` then deploys the **web** the same way, at `https://fogata-web.<your-subdomain>.workers.dev`. Run it by hand once if CI has not run since you added the variable.
 
-Without the two secrets the workflow does nothing, so forks and pull requests never fail or deploy.
+Without the two secrets neither workflow does anything, and without `REALTIME_HOST` the web is not deployed, so forks and pull requests never fail or deploy.
+
+The web is a Next.js app served on Workers through `@opennextjs/cloudflare`. `pnpm --filter @fogata/web preview` builds it and serves it locally on the Workers runtime. The adapter needs Next 16.3.8 or newer.
 
 ## Secrets
 
