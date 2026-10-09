@@ -56,7 +56,8 @@ export function Company({ scene }: { scene: FogataScene }) {
     let aloneTimer: number | undefined;
     let aloneSaid = false;
     const stop = presence.subscribe((event) => {
-      if (event.type === "changed") return;
+      // Those already by the fire when the visitor sat down are not news.
+      if (event.type === "changed" || (event.type === "joined" && event.already)) return;
       const isSelf = event.type === "joined" && event.person.id === presence.self?.id;
       if (isSelf) {
         // Once per visit, and only if nobody has sat down beside them by then.

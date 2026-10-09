@@ -6,7 +6,7 @@ paths:
 
 # Realtime and shared schemas
 
-Phase 3 is not built yet: `apps/realtime` is a stub and `packages/shared` has only a ping schema.
+Phase 3 is under way. Built: presence (`packages/shared` events + `Roster`, the `Campfire` Durable Object, and the web's `RealtimePresence` in `apps/web/src/data/realtimePresence.ts`, which walks through fires `fogata-1`, `fogata-2`… when one is full). Not built yet: shared wood, distant fires, the shared sky.
 
 - One Durable Object per campfire (`partyserver` on the server, `partysocket` on the client). Presence lives in the object's memory.
 - Every WebSocket event is defined in `packages/shared` with zod and validated on both client and server. Schemas are `.strict()`.
