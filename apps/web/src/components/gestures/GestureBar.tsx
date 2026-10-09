@@ -72,7 +72,7 @@ function Gesture({
  */
 export function GestureBar({ scene }: { scene: FogataScene }) {
   const { t } = useI18n();
-  const { fire, presence, petitions } = useServices();
+  const { fire, presence, petitions, rituals } = useServices();
   const [dialog, setDialog] = useState<Dialog>();
   const [notice, setNotice] = useState<string>();
   // The soft line after a burden has burned or a petition has become a star.
@@ -207,6 +207,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       say(t.gestures.arriving);
       return false;
     }
+    // The others watch their animal do it. Only that it is a burden is said, never what it was.
+    rituals.announce("burden");
     return true;
   };
 
@@ -298,6 +300,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       say(t.gestures.arriving);
       return false;
     }
+    // The others watch their animal do it; the star is born only in the visitor's own sky.
+    rituals.announce("petition");
     return true;
   };
 

@@ -8,8 +8,9 @@ import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
+import { MemoryRituals } from "./memoryRituals";
 import { isAlive } from "./sky";
-import type { DistantFire, Person, Petition } from "./types";
+import type { DistantFire, Person, Petition, RitualKind } from "./types";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
 import { randomKey } from "./randomKey";
 
@@ -95,6 +96,13 @@ interface TestServicesOptions {
   now?: () => number;
 }
 
+/** Rituals with a handle to have somebody else hand something over. */
+export class TestRituals extends MemoryRituals {
+  watch(by: string, kind: RitualKind): void {
+    this.events.emit({ type: "ritual", kind, by });
+  }
+}
+
 /** The services as the UI uses them, with the test handles on top. */
 export function createTestServices(options: TestServicesOptions) {
   const rand = createRandom(options.seed ?? 1);
@@ -113,5 +121,6 @@ export function createTestServices(options: TestServicesOptions) {
   });
   const distantFires = new TestDistantFires();
   const fire = new MemoryFire({ presence });
-  return { presence, distantFires, fire, petitions, prayers: petitions };
+  const rituals = new TestRituals();
+  return { presence, distantFires, fire, rituals, petitions, prayers: petitions };
 }

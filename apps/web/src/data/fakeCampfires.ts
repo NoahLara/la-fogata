@@ -97,6 +97,10 @@ export class FakeCampfires {
       if (roster.has(id)) {
         this.broadcast(room, { type: "wood", by: id, fuel: this.fire(room).throwLog() });
       }
+    } else if (event.type === "ritual") {
+      if (roster.has(id)) {
+        this.broadcast(room, { type: "ritual", kind: event.kind, by: id }, id);
+      }
     } else if (event.type === "changeSpecies") {
       const outcome = roster.changeSpecies(id, event.species);
       if (outcome.status === "changed") {

@@ -4,6 +4,13 @@ import { SEAT_COUNT, personSchema, speciesSchema } from "./presence";
 
 const fuelSchema = z.number().min(0).max(FUEL.maxFuel);
 
+/**
+ * What a person hands over at the fire. The others see the ritual (the animal stands, walks to the stones and puts a
+ * blank folded note on the embers), never what it was: nothing written ever travels, so these events have no text.
+ */
+export const ritualKindSchema = z.enum(["burden", "petition"]);
+export type RitualKind = z.infer<typeof ritualKindSchema>;
+
 /** Browser → campfire. Leaving is just closing the socket. */
 export const clientEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("join"), preferred: speciesSchema.optional() }).strict(),
@@ -12,6 +19,8 @@ export const clientEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ping") }).strict(),
   // A log into the fire.
   z.object({ type: z.literal("wood") }).strict(),
+  // The visitor starts handing a burden or a petition over: the others at the campfire watch it.
+  z.object({ type: z.literal("ritual"), kind: ritualKindSchema }).strict(),
 ]);
 export type ClientEvent = z.infer<typeof clientEventSchema>;
 
@@ -33,6 +42,10 @@ export const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("changed"), person: personSchema }).strict(),
   // Someone threw a log, whoever they are, and the fuel the fire has once it has landed. Never any more about them.
   z.object({ type: z.literal("wood"), by: z.string().min(1).max(64), fuel: fuelSchema }).strict(),
+  // Someone else is handing a burden or a petition over: who, and which of the two. Never any more.
+  z
+    .object({ type: z.literal("ritual"), kind: ritualKindSchema, by: z.string().min(1).max(64) })
+    .strict(),
   // This campfire has no room: the client should try another one.
   z.object({ type: z.literal("full") }).strict(),
 ]);

@@ -14,6 +14,8 @@ const MAX_MESSAGE_LENGTH = 256;
 
 /** Anyone may throw as many logs as they like; this only drops absurd bursts (a held-down button, a script). */
 const WOOD_LIMITS = { burst: 10, perSecond: 6 };
+/** A ritual takes about eight seconds, so nobody hands things over more often than this. */
+const RITUAL_LIMITS = { burst: 2, perSecond: 0.2 };
 
 function encode(event: ServerEvent): string {
   return JSON.stringify(event);
@@ -25,6 +27,7 @@ export class Campfire extends Server {
   /** The fire's fuel: the same for everyone at this campfire, whoever drew it first. */
   private readonly fire = new Fire();
   private readonly woodFlood = new Throttle(WOOD_LIMITS);
+  private readonly ritualFlood = new Throttle(RITUAL_LIMITS);
   private sweeper: ReturnType<typeof setInterval> | undefined;
 
   override onMessage(connection: Connection, message: WSMessage): void {
@@ -64,6 +67,15 @@ export class Campfire extends Server {
       return;
     }
 
+    if (event.type === "ritual") {
+      if (!this.roster.has(connection.id) || !this.ritualFlood.allow(connection.id)) return;
+      // The others watch it; the one handing over has it on their own screen already. Nothing written travels.
+      this.broadcast(encode({ type: "ritual", kind: event.kind, by: connection.id }), [
+        connection.id,
+      ]);
+      return;
+    }
+
     const outcome = this.roster.changeSpecies(connection.id, event.species);
     if (outcome.status === "changed") {
       this.broadcast(encode({ type: "changed", person: outcome.person }));
@@ -77,6 +89,7 @@ export class Campfire extends Server {
   /** Frees the seat and tells the others, once. */
   private release(id: string): void {
     this.woodFlood.forget(id);
+    this.ritualFlood.forget(id);
     if (this.roster.leave(id)) {
       this.broadcast(encode({ type: "left", id }));
     }

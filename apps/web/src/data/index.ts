@@ -2,10 +2,12 @@ import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
+import { MemoryRituals } from "./memoryRituals";
 import { partySocketLink } from "./partySocketLink";
 import { RealtimeChannel } from "./realtimeChannel";
 import { RealtimeFire } from "./realtimeFire";
 import { RealtimePresence } from "./realtimePresence";
+import { RealtimeRituals } from "./realtimeRituals";
 import type { RealtimeTarget } from "./realtimeTarget";
 import { randomKey } from "./randomKey";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
@@ -53,5 +55,6 @@ export function createLocalServices(options: LocalOptions): LocalServices {
   });
   const distantFires = new MemoryDistantFires();
   const fire = channel ? new RealtimeFire({ channel, presence }) : new MemoryFire({ presence });
-  return { presence, distantFires, fire, petitions, prayers: petitions };
+  const rituals = channel ? new RealtimeRituals(channel) : new MemoryRituals();
+  return { presence, distantFires, fire, rituals, petitions, prayers: petitions };
 }
