@@ -20,7 +20,7 @@ You need a free Cloudflare account (no card). The code is MIT: anyone may run th
 5. Turn on **Secret scanning** and **Push protection** (_Settings, Code security_).
 6. Push to `master` (or run it by hand from the _Actions_ tab with _Run workflow_): `.github/workflows/deploy.yml` deploys the **realtime Worker** after CI passes. It answers `ok` at `https://fogata-realtime.<your-subdomain>.workers.dev`.
 7. Add that host, **without** `https://`, as a repository **variable** (not a secret) called `REALTIME_HOST` (_Settings, Secrets and variables, Actions, Variables_). It is baked into the web when it is built, so the page finds its campfires there (it uses `wss://` on its own).
-8. `.github/workflows/deploy-web.yml` then deploys the **web** the same way, at `https://fogata-web.<your-subdomain>.workers.dev`. Run it by hand once if CI has not run since you added the variable.
+8. `.github/workflows/deploy-web.yml` then deploys the **web** the same way, at `https://app.<your-subdomain>.workers.dev`. Run it by hand once if CI has not run since you added the variable.
 
 Without the two secrets neither workflow does anything, and without `REALTIME_HOST` the web is not deployed, so forks and pull requests never fail or deploy.
 
