@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addLog, burn, FIRE, fireIntensityFor } from "./fuel";
+import { addLog, burn, FIRE, fireIntensityFor, fuelAfterLanding } from "./fuel";
 
 describe("fireIntensityFor", () => {
   it("is really low with nobody there and no wood, but never out", () => {
@@ -80,5 +80,20 @@ describe("a log at any moment", () => {
     let fuel: number = FIRE.maxFuel;
     for (let second = 0; second < 400; second++) fuel = burn(fuel, 1);
     expect(fireIntensityFor(7, fuel)).toBeCloseTo(fireIntensityFor(7, 0), 2);
+  });
+});
+
+describe("fuelAfterLanding", () => {
+  it("adds a log to what there is when the log is the visitor's own", () => {
+    expect(fuelAfterLanding(0.3, undefined, 1)).toBeCloseTo(0.3 + FIRE.logFuel);
+  });
+
+  it("takes the campfire's fuel, burnt down for the flight, when the log is somebody else's", () => {
+    expect(fuelAfterLanding(0.05, 0.6, 0)).toBe(0.6);
+    expect(fuelAfterLanding(0.9, 0.6, 1)).toBeCloseTo(burn(0.6, 1));
+  });
+
+  it("is the same fire for everyone whatever they had before", () => {
+    expect(fuelAfterLanding(0, 0.5, 0.5)).toBeCloseTo(fuelAfterLanding(1, 0.5, 0.5));
   });
 });

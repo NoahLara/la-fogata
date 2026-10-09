@@ -5,10 +5,10 @@ import { debounce } from "./debounce";
 import { SPECIES, SpriteArt } from "./characters";
 import { createFire, type Fire } from "./fire";
 import { createLightEffects, type LightEffects, type LightHandle } from "./lightEffect";
-import { addLog, burn, FIRE, fireIntensityFor } from "./fuel";
+import { burn, FIRE, fireIntensityFor, fuelAfterLanding } from "./fuel";
 import type { DistantFire } from "@/data/types";
 import { DistantFireBoard } from "./distantFires";
-import { easeToward } from "./math";
+import { clamp, easeToward } from "./math";
 import {
   computeLayout,
   skyDragBottom,
@@ -66,9 +66,16 @@ export interface FogataScene {
   replaceMember(member: MemberSpec, options: { animate: boolean }): void;
   /**
    * Has someone throw a log into the fire, which makes it stronger for a while. Anyone can throw one whenever
-   * they like; the fire can only get so big, and past that the logs still fly but add no more light.
+   * they like; the fire can only get so big, and past that the logs still fly but add no more light. A log thrown
+   * by somebody else comes with `serverFuel`, the fuel the campfire says the fire has once it lands, and the fire
+   * takes that value (burnt down for the time the log was in the air), so it is the same fire for everyone.
    */
-  throwWood(id: string): ThrowResult;
+  throwWood(id: string, serverFuel?: number): ThrowResult;
+  /**
+   * Sets the fire's fuel to what the campfire says it has, with no surge: what someone sees on sitting down, so the
+   * fire is the same for the latecomer as for those who were there. Never more than the fire can hold.
+   */
+  setFuel(fuel: number): void;
   /**
    * Has someone hand over a burden. A small folded note, with nothing written on it, is in their hands: they stand
    * up, walk to the stones, lean over them to put it on the ember bed, and walk back to sit down while it burns
@@ -830,13 +837,17 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
       selfSeatedAt = undefined;
       glowSince = undefined;
     },
-    throwWood(id) {
+    setFuel(value) {
+      fuel = clamp(value, 0, FIRE.maxFuel);
+    },
+    throwWood(id, serverFuel) {
       const member = roster.get(id);
       if (!member || member.status !== "seated") return { status: "not-seated" };
       // The log is added to the fire once it lands, whatever happens to the scene before that.
+      const thrownAt = time;
       const land = () => {
         emitSound("wood");
-        fuel = addLog(fuel);
+        fuel = fuelAfterLanding(fuel, serverFuel, time - thrownAt);
         flare = Math.min(flare + FIRE.flarePerLog, 0.6);
         current?.fire.burst(reduced ? 0 : 14);
       };

@@ -105,8 +105,11 @@ export function FogataScene() {
           }),
           // Real campfires burning far off; none unless a service lists them.
           services.distantFires.subscribe((fires) => created.setDistantFires(fires)),
-          // Everyone sees a log thrown.
-          services.fire.subscribe((event) => created.throwWood(event.by)),
+          // Everyone sees a log thrown, and a newcomer sees the fire as big as it is.
+          services.fire.subscribe((event) => {
+            if (event.type === "wood") created.throwWood(event.by, event.fuel);
+            else created.setFuel(event.fuel);
+          }),
         ];
         created.setDistantFires(services.distantFires.fires());
         stop = () => {

@@ -15,6 +15,11 @@ describe("clientEventSchema", () => {
     expect(clientEventSchema.safeParse({ type: "ping", at: 1 }).success).toBe(false);
   });
 
+  it("accepts a log and nothing more", () => {
+    expect(clientEventSchema.safeParse({ type: "wood" }).success).toBe(true);
+    expect(clientEventSchema.safeParse({ type: "wood", fuel: 1 }).success).toBe(false);
+  });
+
   it("rejects extra fields", () => {
     expect(clientEventSchema.safeParse({ type: "join", name: "Ana" }).success).toBe(false);
   });
@@ -23,6 +28,22 @@ describe("clientEventSchema", () => {
 describe("serverEventSchema", () => {
   it("accepts a full campfire", () => {
     expect(serverEventSchema.safeParse({ type: "full" }).success).toBe(true);
+  });
+
+  it("tells who threw a log and the fuel after it, nothing else", () => {
+    expect(serverEventSchema.safeParse({ type: "wood", by: "a", fuel: 0.4 }).success).toBe(true);
+    expect(serverEventSchema.safeParse({ type: "wood", by: "a", fuel: 2 }).success).toBe(false);
+    expect(
+      serverEventSchema.safeParse({ type: "wood", by: "a", fuel: 0.4, text: "x" }).success,
+    ).toBe(false);
+  });
+
+  it("brings the fire's fuel in the welcome", () => {
+    const person = { id: "a", species: "fox", seat: 1 };
+    const welcome = { type: "welcome", self: person, people: [person] };
+    expect(serverEventSchema.safeParse({ ...welcome, fuel: 0.5 }).success).toBe(true);
+    expect(serverEventSchema.safeParse(welcome).success).toBe(false);
+    expect(serverEventSchema.safeParse({ ...welcome, fuel: -1 }).success).toBe(false);
   });
 
   it("rejects a seat out of range", () => {

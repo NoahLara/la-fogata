@@ -90,7 +90,9 @@ describe("MemoryFire", () => {
     const { people, fire } = await setup();
     const me = await people.join();
     const seen: string[] = [];
-    fire.subscribe((event) => seen.push(event.by));
+    fire.subscribe((event) => {
+      if (event.type === "wood") seen.push(event.by);
+    });
     expect(await fire.throwWood()).toEqual({ status: "thrown" });
     expect(await fire.throwWood()).toEqual({ status: "thrown" });
     expect(await fire.throwWood()).toEqual({ status: "thrown" });

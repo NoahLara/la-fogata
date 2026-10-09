@@ -4,6 +4,7 @@ import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
 import { partySocketLink } from "./partySocketLink";
 import { RealtimeChannel } from "./realtimeChannel";
+import { RealtimeFire } from "./realtimeFire";
 import { RealtimePresence } from "./realtimePresence";
 import type { RealtimeTarget } from "./realtimeTarget";
 import { randomKey } from "./randomKey";
@@ -32,12 +33,12 @@ let counter = 0;
 
 export function createLocalServices(options: LocalOptions): LocalServices {
   const rand = Math.random;
-  const presence = options.realtime
-    ? new RealtimePresence({
-        channel: new RealtimeChannel(partySocketLink(options.realtime)),
-        seatCount: options.seatCount,
-        rand,
-      })
+  // One session with the campfire, shared by everything that listens to it.
+  const channel = options.realtime
+    ? new RealtimeChannel(partySocketLink(options.realtime))
+    : undefined;
+  const presence = channel
+    ? new RealtimePresence({ channel, seatCount: options.seatCount, rand })
     : new MemoryPresence({
         seatCount: options.seatCount,
         rand,
@@ -51,6 +52,6 @@ export function createLocalServices(options: LocalOptions): LocalServices {
     newKey: randomKey,
   });
   const distantFires = new MemoryDistantFires();
-  const fire = new MemoryFire({ presence });
+  const fire = channel ? new RealtimeFire({ channel, presence }) : new MemoryFire({ presence });
   return { presence, distantFires, fire, petitions, prayers: petitions };
 }

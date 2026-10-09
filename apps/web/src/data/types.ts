@@ -57,7 +57,11 @@ export interface PresenceService {
 
 export type WoodResult = { status: "thrown" } | { status: "not-seated" };
 
-export type FireEvent = { type: "wood"; by: string };
+export type FireEvent =
+  /** Someone threw a log. For other people's, `fuel` is the fire's fuel once it has landed, as the campfire keeps it. */
+  | { type: "wood"; by: string; fuel?: number }
+  /** How much fuel the fire has right now, as the campfire keeps it: what a late arrival sees. */
+  | { type: "fuel"; fuel: number };
 
 export interface FireService {
   /** The visitor throws a log. Everyone in the campfire sees it. */

@@ -80,3 +80,14 @@ describe("Roster silence", () => {
     expect(roster.expired(1)).toEqual([]);
   });
 });
+
+describe("Roster has", () => {
+  it("knows who is sitting", () => {
+    const roster = new Roster();
+    roster.join("a");
+    expect(roster.has("a")).toBe(true);
+    expect(roster.has("b")).toBe(false);
+    roster.leave("a");
+    expect(roster.has("a")).toBe(false);
+  });
+});
