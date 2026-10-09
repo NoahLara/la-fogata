@@ -28,6 +28,10 @@ export class Roster {
     return [...this.seated.values()];
   }
 
+  has(id: string): boolean {
+    return this.seated.has(id);
+  }
+
   isFull(): boolean {
     return this.seated.size >= SEAT_COUNT;
   }

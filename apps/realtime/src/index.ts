@@ -1,14 +1,19 @@
 import {
   clientEventSchema,
+  Fire,
   IDLE_LIMIT_MS,
   PING_EVERY_MS,
   Roster,
+  Throttle,
   type ServerEvent,
 } from "@fogata/shared";
 import { Server, routePartykitRequest, type Connection, type WSMessage } from "partyserver";
 
 /** A client has no reason to send more than this; anything bigger is dropped unread. */
 const MAX_MESSAGE_LENGTH = 256;
+
+/** Anyone may throw as many logs as they like; this only drops absurd bursts (a held-down button, a script). */
+const WOOD_LIMITS = { burst: 10, perSecond: 6 };
 
 function encode(event: ServerEvent): string {
   return JSON.stringify(event);
@@ -17,6 +22,9 @@ function encode(event: ServerEvent): string {
 // Durable Object: one instance per campfire. Presence lives in its memory and nowhere else.
 export class Campfire extends Server {
   private readonly roster = new Roster();
+  /** The fire's fuel: the same for everyone at this campfire, whoever drew it first. */
+  private readonly fire = new Fire();
+  private readonly woodFlood = new Throttle(WOOD_LIMITS);
   private sweeper: ReturnType<typeof setInterval> | undefined;
 
   override onMessage(connection: Connection, message: WSMessage): void {
@@ -42,8 +50,17 @@ export class Campfire extends Server {
         return;
       }
       this.startSweeping();
-      connection.send(encode({ type: "welcome", self, people: this.roster.people() }));
+      connection.send(
+        encode({ type: "welcome", self, people: this.roster.people(), fuel: this.fire.level() }),
+      );
       this.broadcast(encode({ type: "joined", person: self }), [connection.id]);
+      return;
+    }
+
+    if (event.type === "wood") {
+      // Only someone sitting here can throw a log, and not in absurd bursts.
+      if (!this.roster.has(connection.id) || !this.woodFlood.allow(connection.id)) return;
+      this.broadcast(encode({ type: "wood", by: connection.id, fuel: this.fire.throwLog() }));
       return;
     }
 
@@ -59,6 +76,7 @@ export class Campfire extends Server {
 
   /** Frees the seat and tells the others, once. */
   private release(id: string): void {
+    this.woodFlood.forget(id);
     if (this.roster.leave(id)) {
       this.broadcast(encode({ type: "left", id }));
     }

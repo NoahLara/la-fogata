@@ -1,4 +1,4 @@
-import { clientEventSchema, Roster, type ServerEvent } from "@fogata/shared";
+import { clientEventSchema, Fire, Roster, type ServerEvent } from "@fogata/shared";
 import type { Connect, Link, LinkHandlers } from "./realtimeChannel";
 
 interface Seat {
@@ -13,6 +13,7 @@ interface Seat {
  */
 export class FakeCampfires {
   private readonly rosters = new Map<string, Roster>();
+  private readonly fires = new Map<string, Fire>();
   private readonly seats = new Map<string, Seat[]>();
   private counter = 0;
   /** When true, nobody can reach the server. */
@@ -59,6 +60,12 @@ export class FakeCampfires {
     return (this.seats.get(room) ?? []).map((seat) => seat.id);
   }
 
+  private fire(room: string): Fire {
+    const fire = this.fires.get(room) ?? new Fire();
+    this.fires.set(room, fire);
+    return fire;
+  }
+
   private say(room: string, id: string, event: ServerEvent): void {
     const seat = this.seats.get(room)?.find((candidate) => candidate.id === id);
     if (seat) setTimeout(() => seat.handlers.message(JSON.stringify(event)), 0);
@@ -79,8 +86,17 @@ export class FakeCampfires {
     if (event.type === "join") {
       const self = roster.join(id, event.preferred);
       if (!self) return this.say(room, id, { type: "full" });
-      this.say(room, id, { type: "welcome", self, people: roster.people() });
+      this.say(room, id, {
+        type: "welcome",
+        self,
+        people: roster.people(),
+        fuel: this.fire(room).level(),
+      });
       this.broadcast(room, { type: "joined", person: self }, id);
+    } else if (event.type === "wood") {
+      if (roster.has(id)) {
+        this.broadcast(room, { type: "wood", by: id, fuel: this.fire(room).throwLog() });
+      }
     } else if (event.type === "changeSpecies") {
       const outcome = roster.changeSpecies(id, event.species);
       if (outcome.status === "changed") {
