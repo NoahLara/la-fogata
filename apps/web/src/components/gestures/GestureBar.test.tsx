@@ -10,14 +10,16 @@ import { resetSettingsStore, SettingsProvider } from "@/preferences/SettingsProv
 import { InteractionProvider } from "../scene/Interaction";
 import { GestureBar } from "./GestureBar";
 
-async function setup() {
+async function setup(scenes: { burning?: boolean } = {}) {
   const services: LocalServices = createLocalServices({
     seatCount: 7,
     keys: { get: () => "key", set: () => {} },
   });
   await services.presence.join();
-  const handOverBurden = vi.fn(() => ({ status: "burning" as const }));
-  const offerPetition = vi.fn(() => ({ status: "burning" as const }));
+  const result =
+    scenes.burning === false ? { status: "not-seated" as const } : { status: "burning" as const };
+  const handOverBurden = vi.fn(() => result);
+  const offerPetition = vi.fn(() => result);
   const scene = {
     notePlacement: () => ({ x: 10, y: 10, height: 40 }),
     handOverBurden,
@@ -35,7 +37,8 @@ async function setup() {
       </SettingsProvider>
     </I18nProvider>,
   );
-  return { services, handOverBurden, offerPetition };
+  const announce = vi.spyOn(services.rituals, "announce");
+  return { services, handOverBurden, offerPetition, announce };
 }
 
 beforeEach(() => {
@@ -129,5 +132,42 @@ describe("what the sheets will not take", () => {
     });
     expect(screen.queryByText(es.moderation.offensive)).toBeNull();
     expect(await services.petitions.mine()).toHaveLength(1);
+  });
+});
+
+describe("what the others at the fire are told", () => {
+  it("a burden handed over is announced as a burden, with nothing about what it said", async () => {
+    const { announce, handOverBurden } = await setup();
+    fireEvent.click(screen.getByRole("button", { name: es.gestures.burden.aria }));
+    write(es.burden.placeholder, "Estoy cansado de cargar con todo esto");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.burden.submit }));
+    });
+    await vi.waitFor(() => expect(handOverBurden).toHaveBeenCalled());
+    expect(announce.mock.calls).toEqual([["burden"]]);
+  });
+
+  it("a petition handed over is announced as a petition", async () => {
+    const { announce, offerPetition } = await setup();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.gestures.petition.aria }));
+    });
+    write(es.petition.placeholder, "Por mi mamá, que está enferma");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.petition.submit }));
+    });
+    await vi.waitFor(() => expect(offerPetition).toHaveBeenCalled());
+    expect(announce.mock.calls).toEqual([["petition"]]);
+  });
+
+  it("nothing is announced when the scene cannot start the ritual", async () => {
+    const { announce, handOverBurden } = await setup({ burning: false });
+    fireEvent.click(screen.getByRole("button", { name: es.gestures.burden.aria }));
+    write(es.burden.placeholder, "Estoy cansado de cargar con todo esto");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.burden.submit }));
+    });
+    await vi.waitFor(() => expect(handOverBurden).toHaveBeenCalled());
+    expect(announce).not.toHaveBeenCalled();
   });
 });

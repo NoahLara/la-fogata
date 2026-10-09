@@ -69,6 +69,21 @@ export interface FireService {
   subscribe(listener: (event: FireEvent) => void): Unsubscribe;
 }
 
+// Rituals
+
+/** What a person hands over at the fire. */
+export type RitualKind = "burden" | "petition";
+
+/** Someone else is handing something over: only who and which kind. What was written never leaves its writer. */
+export type RitualEvent = { type: "ritual"; kind: RitualKind; by: string };
+
+export interface RitualService {
+  /** The visitor has started handing something over: the others at the campfire watch their animal do it. */
+  announce(kind: RitualKind): void;
+  /** Somebody else's ritual, never the visitor's own. */
+  subscribe(listener: (event: RitualEvent) => void): Unsubscribe;
+}
+
 // Petitions
 
 export interface Petition {
@@ -180,6 +195,7 @@ export interface Services {
   presence: PresenceService;
   distantFires: DistantFireService;
   fire: FireService;
+  rituals: RitualService;
   petitions: PetitionService;
   prayers: PrayerService;
 }

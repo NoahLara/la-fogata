@@ -6,7 +6,7 @@ paths:
 
 # Realtime and shared schemas
 
-Phase 3 is under way. Built: presence (`packages/shared` events + `Roster`, the `Campfire` Durable Object, and the web's `RealtimePresence` in `apps/web/src/data/realtimePresence.ts`, which walks through fires `fogata-1`, `fogata-2`… when one is full). Shared wood is built too (`Fire` and `Throttle` in `packages/shared`, `RealtimeFire` and `RealtimeChannel` in `apps/web/src/data`; see `docs/decisions/0007-the-campfire-keeps-the-fire.md`). Not built yet: the gestures seen by others, distant fires, the shared sky.
+Phase 3 is under way. Built: presence (`packages/shared` events + `Roster`, the `Campfire` Durable Object, and the web's `RealtimePresence` in `apps/web/src/data/realtimePresence.ts`, which walks through fires `fogata-1`, `fogata-2`… when one is full). Shared wood is built too (`Fire` and `Throttle` in `packages/shared`, `RealtimeFire` and `RealtimeChannel` in `apps/web/src/data`; see `docs/decisions/0007-the-campfire-keeps-the-fire.md`). The gestures are shared too: handing a burden or a petition over is announced with only its kind (`ritual` events, `RealtimeRituals`), the campfire repeats it to the others (never back to the one who did it), and each browser plays it with `scene.handOverBurden(by)` (its shooting star crosses every sky) or `scene.watchPetition(by)` (no star: a petition's star is born only in the sky of the one who wrote it). Not built yet: distant fires, the shared sky.
 
 - One Durable Object per campfire (`partyserver` on the server, `partysocket` on the client). Presence lives in the object's memory.
 - Every WebSocket event is defined in `packages/shared` with zod and validated on both client and server. Schemas are `.strict()`.

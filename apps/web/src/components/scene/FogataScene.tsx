@@ -110,6 +110,12 @@ export function FogataScene() {
             if (event.type === "wood") created.throwWood(event.by, event.fuel);
             else created.setFuel(event.fuel);
           }),
+          // Everyone sees someone hand something over: the burden's shooting star crosses every sky, while a
+          // petition's star is born only in the sky of the one who wrote it.
+          services.rituals.subscribe((event) => {
+            if (event.kind === "burden") created.handOverBurden(event.by, { onDone: () => {} });
+            else created.watchPetition(event.by);
+          }),
         ];
         created.setDistantFires(services.distantFires.fires());
         stop = () => {

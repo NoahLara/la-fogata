@@ -93,6 +93,12 @@ export interface FogataScene {
    * flies: the note fades into the fire, then the star fades in.
    */
   offerPetition(id: string, request: PetitionRequest): BurdenResult;
+  /**
+   * Has someone else hand a petition over, as seen from the rest of the fire: the same errand and the same blank
+   * note, burning the same way. No star is born from it, because the star belongs to the sky of the one who wrote
+   * it. `onDone` is called when they are sitting again and the note has burned.
+   */
+  watchPetition(id: string, onDone?: () => void): BurdenResult;
   /** Puts these petitions' stars in the sky, all at once: the visitor's own, when the page loads. Ones already there stay. */
   setPetitionStars(stars: readonly { id: string; answered: boolean }[]): void;
   /** A petition was marked answered: its star starts to twinkle and a shooting star crosses the sky (none with reduced motion). */
@@ -877,6 +883,7 @@ export async function createScene(host: HTMLElement, options: SceneOptions): Pro
     offerPetition(id, { petitionId, onDone }) {
       return errand(id, onDone, (done) => becomeStar(petitionId, done));
     },
+    watchPetition: (id, onDone) => errand(id, onDone ?? (() => {})),
     setPetitionStars(stars) {
       for (const { id, answered } of stars) {
         if (petitionIds.includes(id)) continue;

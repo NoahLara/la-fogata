@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { clientEventSchema, serverEventSchema } from "./events";
 
 describe("clientEventSchema", () => {
@@ -49,5 +50,44 @@ describe("serverEventSchema", () => {
   it("rejects a seat out of range", () => {
     const person = { id: "a", species: "fox", seat: 7 };
     expect(serverEventSchema.safeParse({ type: "joined", person }).success).toBe(false);
+  });
+});
+
+describe("handing something over", () => {
+  it("is announced with its kind and nothing else", () => {
+    expect(clientEventSchema.safeParse({ type: "ritual", kind: "burden" }).success).toBe(true);
+    expect(clientEventSchema.safeParse({ type: "ritual", kind: "petition" }).success).toBe(true);
+    expect(clientEventSchema.safeParse({ type: "ritual", kind: "wish" }).success).toBe(false);
+    expect(clientEventSchema.safeParse({ type: "ritual" }).success).toBe(false);
+    expect(clientEventSchema.safeParse({ type: "ritual", kind: "burden", text: "x" }).success).toBe(
+      false,
+    );
+  });
+
+  it("reaches the others with who and which kind, nothing else", () => {
+    expect(serverEventSchema.safeParse({ type: "ritual", kind: "burden", by: "a" }).success).toBe(
+      true,
+    );
+    expect(
+      serverEventSchema.safeParse({ type: "ritual", kind: "burden", by: "a", text: "x" }).success,
+    ).toBe(false);
+    expect(serverEventSchema.safeParse({ type: "ritual", kind: "burden" }).success).toBe(false);
+  });
+
+  // The burden never travels. This is the guard: whatever is added to these events later, a free-text field
+  // (a string that is not a person's id) fails here.
+  it("has no free-text field in any event that carries a burden or a petition", () => {
+    for (const schema of [clientEventSchema, serverEventSchema]) {
+      const event = schema.options.find((option: z.AnyZodObject) => {
+        const type = option.shape.type;
+        return type instanceof z.ZodLiteral && type.value === "ritual";
+      });
+      expect(event).toBeDefined();
+      for (const [name, field] of Object.entries(event!.shape)) {
+        const isFixed = field instanceof z.ZodLiteral || field instanceof z.ZodEnum;
+        const isId = name === "by" && field instanceof z.ZodString && field.maxLength === 64;
+        expect(isFixed || isId, `ritual.${name} must be fixed values or a person's id`).toBe(true);
+      }
+    }
   });
 });
