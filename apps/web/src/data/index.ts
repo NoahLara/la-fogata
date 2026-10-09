@@ -2,6 +2,8 @@ import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
+import { partySocketLink } from "./partySocketLink";
+import { RealtimeChannel } from "./realtimeChannel";
 import { RealtimePresence } from "./realtimePresence";
 import type { RealtimeTarget } from "./realtimeTarget";
 import { randomKey } from "./randomKey";
@@ -31,7 +33,11 @@ let counter = 0;
 export function createLocalServices(options: LocalOptions): LocalServices {
   const rand = Math.random;
   const presence = options.realtime
-    ? new RealtimePresence({ target: options.realtime, seatCount: options.seatCount, rand })
+    ? new RealtimePresence({
+        channel: new RealtimeChannel(partySocketLink(options.realtime)),
+        seatCount: options.seatCount,
+        rand,
+      })
     : new MemoryPresence({
         seatCount: options.seatCount,
         rand,
