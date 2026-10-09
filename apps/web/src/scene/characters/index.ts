@@ -35,24 +35,12 @@ interface CharacterArt {
  */
 const FRAME = { width: 128, height: 128, originX: 64, originY: 118 } as const;
 
-const IMAGE_EXTENSIONS = ["webp", "png", "svg"] as const;
+/** The art is SVG, and that is the only format asked for: nothing is requested that is not there. */
+const ART_EXTENSION = "svg";
 
-/** First existing `/characters/<species>/<view>.<ext>`, in webp, png, svg order. */
-async function findImage(species: Species, view: View): Promise<string | undefined> {
-  // All the formats are asked at once (the answer is still the first in order that exists), not one after another.
-  const found = await Promise.all(
-    IMAGE_EXTENSIONS.map(async (extension) => {
-      const url = `/characters/${species}/${view}.${extension}`;
-      try {
-        const response = await fetch(url, { method: "HEAD" });
-        return response.ok ? url : undefined;
-      } catch {
-        // Network trouble: treat as missing.
-        return undefined;
-      }
-    }),
-  );
-  return found.find((url) => url !== undefined);
+/** Where the illustration of a view lives: `/characters/<species>/<view>.svg`. */
+export function artUrl(species: Species, view: View): string {
+  return `/characters/${species}/${view}.${ART_EXTENSION}`;
 }
 
 async function loadTexture(url: string): Promise<Texture> {
@@ -65,9 +53,9 @@ async function loadTexture(url: string): Promise<Texture> {
 }
 
 /**
- * The illustrations found in /public/characters/<species>/ as `front`, `back` and optionally `side` (each webp,
- * png or svg). A species only counts if front and back both load. Textures live in the PixiJS Assets cache,
- * which is shared, so they are never destroyed here.
+ * The illustrations in /public/characters/<species>/ as `front`, `back` and optionally `side` (SVG). A species
+ * only counts if front and back both load. Textures live in the PixiJS Assets cache, which is shared, so they
+ * are never destroyed here.
  */
 export class SpriteArt {
   private constructor(private readonly textures: ReadonlyMap<string, Texture>) {}
@@ -77,17 +65,11 @@ export class SpriteArt {
     await Promise.all(
       species.map(async (name) => {
         try {
-          // The three views are looked for, and loaded, side by side.
-          const [frontUrl, backUrl, sideUrl] = await Promise.all([
-            findImage(name, "front"),
-            findImage(name, "back"),
-            findImage(name, "side"),
-          ]);
-          if (!frontUrl || !backUrl) return;
+          // The three views are loaded side by side. The side view is optional: without it the front stands in.
           const [front, back, side] = await Promise.all([
-            loadTexture(frontUrl),
-            loadTexture(backUrl),
-            sideUrl ? loadTexture(sideUrl) : undefined,
+            loadTexture(artUrl(name, "front")),
+            loadTexture(artUrl(name, "back")),
+            loadTexture(artUrl(name, "side")).catch(() => undefined),
           ]);
           textures.set(`${name}|front`, front);
           textures.set(`${name}|back`, back);
