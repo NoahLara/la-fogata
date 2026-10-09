@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fogata/shared": "workspace:*",
     "partyserver": "^0.5.10"
   },
   "devDependencies": {
