@@ -46,6 +46,8 @@ Rules: never preach, no religious vocabulary in the default UI, everyone is welc
 - Content check (`apps/web/src/moderation/`): before a burden is handed over, a petition is raised or an answer is saved, the text is checked in the browser (and again in the service) for insults and swearing in Spanish and English, however disguised (spaced, stretched, leet, look-alike letters), and for nothing readable (only numbers, symbols, emoji or spaces, keyboard mashing, endless repetition). It is dropped right after; nothing is logged. A refusal says gently "La Fogata no es para esto" and never names the word. A text with signs of risk (`burden/risk.ts`) is never refused for rough words: help comes first. Lists live in `moderation/words.ts`; every change must keep `moderation/content.test.ts` green (it checks generated disguises, everyday texts, every verse and every UI string).
 - Risk messages (self-harm, suicide): never published; show the help screen with a link to https://findahelpline.com.
 - Rate limits: 1 petition per day, prayer taps limited per session.
+- Petitions are public by nature: their text is stored on the operator's servers and the operator can read it (the terms say so). Only the hash of an owner's key is stored, never the key, and a burden never reaches the server at all.
+- The repo is public and open source: never commit a secret. `.env*` and `.dev.vars*` are ignored; deploy credentials live only in GitHub Actions secrets and `wrangler secret`. Every deploy runs from `master` through `.github/workflows/deploy.yml`, and skips itself where the credentials are absent (forks).
 - The UI must state that the app keeps you company but does not replace professional help.
 
 ## Stack
@@ -54,7 +56,7 @@ Rules: never preach, no religious vocabulary in the default UI, everyone is welc
 - `apps/web`: Next.js (App Router) + TypeScript + Tailwind. Scene rendered with PixiJS. Petitions and UI animated with GSAP.
 - `apps/realtime`: Cloudflare Workers + Durable Objects with PartyKit (`partyserver` on the server, `partysocket` on the client). One Durable Object per campfire.
 - `packages/shared`: WebSocket event types and schemas with zod.
-- Persistence: Supabase (Postgres) for petitions, prayer counts, reports and aggregated metrics. Presence lives in the Durable Object's memory.
+- Persistence: Cloudflare D1 (SQLite) for petitions, prayer counts, reports and aggregated metrics, reached from the Worker through a binding (there is no database password). Presence and the fire live in the Durable Object's memory. See `docs/decisions/0008-cloudflare-d1-and-the-operator.md`.
 
 ## Conventions
 
@@ -81,7 +83,7 @@ The web experience is built first, against the in-memory services (`apps/web/src
    - sound ✅
    - the About page
 3. Realtime: many campfires, presence, shared wood, other people's petitions in one shared sky
-4. Persistence: Supabase for petitions, prayer counts, reports and metrics
+4. Persistence: Cloudflare D1 for petitions, prayer counts, reports and metrics
 5. Launch: moderation, crisis flow, deploy, README
 
 Don't start a phase until the previous one is done. For large changes, propose a plan before editing.
