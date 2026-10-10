@@ -9,6 +9,7 @@ import type { FogataScene as Scene } from "@/scene/createScene";
 import { GestureBar } from "../gestures/GestureBar";
 import { SettingsButton } from "../settings/SettingsButton";
 import { TermsGate } from "../legal/TermsGate";
+import { TutorialGate } from "../tutorial/TutorialGate";
 import { SitDown } from "./SitDown";
 import { SoundProvider } from "@/sound/SoundProvider";
 import { PetitionSky } from "../sky/PetitionSky";
@@ -167,6 +168,7 @@ export function FogataScene() {
               <SettingsButton />
               <TermsGate>
                 <SitDown scene={mounted.scene} />
+                <TutorialGate />
               </TermsGate>
             </SoundProvider>
           </InteractionProvider>

@@ -9,6 +9,7 @@ import { useSettings } from "@/preferences/SettingsProvider";
 import { useSound } from "@/sound/SoundProvider";
 import { TermsDialog } from "../legal/TermsDialog";
 import { ModalDialog } from "../ModalDialog";
+import { TutorialDialog } from "../tutorial/TutorialDialog";
 import { useInteraction } from "../scene/Interaction";
 import { CharacterChoice } from "./CharacterChoice";
 import { LanguageChoice } from "./LanguageChoice";
@@ -34,6 +35,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const titleId = useId();
   const [taken, setTaken] = useState(false);
   const [terms, setTerms] = useState(false);
+  const [tutorial, setTutorial] = useState(false);
 
   useEffect(() => {
     reportDialog("settings", "dialog");
@@ -109,17 +111,27 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                 { value: "large", label: t.settings.textSize.large, className: "text-base" },
               ]}
             />
-            <button
-              type="button"
-              onClick={() => setTerms(true)}
-              className="self-start text-sm text-ink-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-deep"
-            >
-              {t.terms.open}
-            </button>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 self-start">
+              <button
+                type="button"
+                onClick={() => setTutorial(true)}
+                className="text-sm text-ink-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-deep"
+              >
+                {t.tutorial.open}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTerms(true)}
+                className="text-sm text-ink-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-deep"
+              >
+                {t.terms.open}
+              </button>
+            </div>
           </div>
         </div>
       </div>
       {terms && <TermsDialog mode="read" onClose={() => setTerms(false)} />}
+      {tutorial && <TutorialDialog onClose={() => setTutorial(false)} />}
     </ModalDialog>
   );
 }

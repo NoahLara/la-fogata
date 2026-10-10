@@ -618,3 +618,318 @@ input:checked + .segment {
     transition: none;
   }
 }
+
+/*
+ * The tutorial's drawings. Each one is a still picture that reads on its own (what someone who asked for less motion
+ * sees); the movement is added only when motion is welcome. Elements turn around their own middle.
+ */
+.t-aura,
+.t-tap,
+.t-twinkle,
+.t-bloom,
+.t-receive,
+.t-flare {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.t-flare {
+  transform-origin: 50% 100%;
+}
+
+/* A still frame: the light is half way to the star, the ring around a tap is faint. */
+.t-light {
+  transform: translate(40px, -30px);
+}
+
+.t-gift {
+  transform: translate(44px, -23px);
+}
+
+.t-tap {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tutorial-step {
+    animation: tutorial-step 320ms ease-out both;
+  }
+
+  .t-distant {
+    animation: tutorial-distant 3.4s ease-in-out infinite alternate;
+  }
+
+  .t-log {
+    animation: tutorial-log 3.6s ease-in infinite;
+  }
+
+  .t-flare {
+    animation: tutorial-flare 3.6s ease-out infinite;
+  }
+
+  .t-note {
+    animation: tutorial-note 3.8s ease-in-out infinite;
+  }
+
+  .t-light {
+    animation: tutorial-light 3.2s ease-in-out infinite;
+  }
+
+  .t-bloom {
+    animation: tutorial-bloom 3.2s ease-out infinite;
+  }
+
+  .t-drift {
+    animation: tutorial-drift 7s ease-in-out infinite alternate;
+  }
+
+  .t-aura {
+    animation: tutorial-aura 2.6s ease-in-out infinite alternate;
+  }
+
+  .t-tap {
+    animation: tutorial-tap 2s ease-out infinite;
+  }
+
+  .t-twinkle {
+    animation: tutorial-twinkle 1.8s ease-in-out infinite alternate;
+  }
+
+  .t-shoot {
+    animation: tutorial-shoot 4.2s ease-in infinite;
+  }
+
+  .t-receive {
+    animation: tutorial-receive 3s ease-out infinite;
+  }
+
+  .t-gift {
+    animation: tutorial-gift 3s ease-in-out infinite;
+  }
+
+  .t-words {
+    animation: tutorial-words 5s ease-in-out infinite;
+  }
+}
+
+@keyframes tutorial-step {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes tutorial-distant {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tutorial-log {
+  0% {
+    transform: translate(-46px, -34px) rotate(-55deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  62% {
+    transform: translate(34px, 34px) rotate(14deg);
+    opacity: 1;
+  }
+  74%,
+  100% {
+    transform: translate(40px, 44px) rotate(20deg) scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-flare {
+  0%,
+  60% {
+    transform: scale(1);
+  }
+  70% {
+    transform: scale(1.1, 1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-note {
+  0% {
+    transform: translate(0, -30px);
+    opacity: 0;
+  }
+  14% {
+    transform: translate(0, -18px);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(0, 16px);
+  }
+  62% {
+    transform: translate(0, 22px) scale(0.92);
+    opacity: 1;
+  }
+  82%,
+  100% {
+    transform: translate(0, 24px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-light {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(26px, -34px);
+  }
+  80% {
+    transform: translate(80px, -28px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(82px, -28px);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-bloom {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(0.35);
+    opacity: 0.3;
+  }
+  80% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  92% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-drift {
+  to {
+    transform: translate(-12px, 2px);
+  }
+}
+
+@keyframes tutorial-aura {
+  from {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  to {
+    transform: scale(1.18);
+    opacity: 0.32;
+  }
+}
+
+@keyframes tutorial-tap {
+  from {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-twinkle {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+@keyframes tutorial-shoot {
+  0%,
+  55% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  85% {
+    transform: translate(-64px, 34px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-84px, 45px);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-receive {
+  0%,
+  68% {
+    transform: scale(1);
+  }
+  80% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-gift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(88px, -46px);
+    opacity: 1;
+  }
+  80%,
+  100% {
+    transform: translate(88px, -46px);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-words {
+  0% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  15%,
+  70% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  90%,
+  100% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}

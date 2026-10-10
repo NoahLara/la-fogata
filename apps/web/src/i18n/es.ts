@@ -199,6 +199,54 @@ export const es = {
       "La Fogata es para palabras de verdad. Cuéntalo con las tuyas: aquí cabe lo que sientes.",
   },
   // The terms people agree to once, and can read again in the settings.
+  tutorial: {
+    // The settings' way back to it, and the dialog's own name.
+    open: "Cómo funciona",
+    title: "Cómo funciona La Fogata",
+    skip: "Saltar",
+    back: "Atrás",
+    next: "Siguiente",
+    finish: "Entrar a la fogata",
+    // {current} and {total}, like "Paso 2 de 8".
+    progress: "Paso {current} de {total}",
+    // The name of the little dot that jumps to a step. {step} is its number.
+    goTo: "Ir al paso {step}",
+    stepsLabel: "Pasos",
+    steps: {
+      forest: {
+        title: "Un fuego en el bosque",
+        body: "Aquí no se habla: se acompaña. Quienes se sientan contigo son animales, sin nombre ni rostro. Y si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
+      },
+      wood: {
+        title: "Echa leña",
+        body: "Toca el botón del centro y tu animal lanza un tronco. El fuego crece, se va apagando solo, y todos los que están contigo ven cuando alguien echa leña.",
+      },
+      burden: {
+        title: "Entrega una carga",
+        body: "Escribe lo que te pesa y entrégaselo al fuego: se quema. Lo que escribes nunca sale de tu navegador, ni se envía ni se guarda. Los demás ven a tu animal llevarla a las brasas, pero nunca lo que dice.",
+      },
+      petition: {
+        title: "Deja una petición",
+        body: "Cuéntale al cielo lo que esperas: tu petición sube con el humo y se vuelve una estrella. Puedes dejar todas las que quieras.",
+      },
+      sky: {
+        title: "Tu cielo",
+        body: "Tus estrellas forman tu constelación, y un halo suave las distingue de las demás. Tócalas para leerlas. El cielo gira despacio y trae estrellas de otras personas: sin nombres, solo luz.",
+      },
+      answered: {
+        title: "Cuando se cumple",
+        body: "Si lo que pediste se cumple, vuelve, toca tu estrella y márcala como respondida. Cuenta en una línea cómo ocurrió: la estrella empezará a titilar.",
+      },
+      company: {
+        title: "Acompaña a otros",
+        body: "Toca la estrella de otra persona y luego el pez: le haces saber que estás con ella, sin que sepa quién eres. Si algo no debería estar ahí, la banderita sirve para avisar.",
+      },
+      word: {
+        title: "Y unas palabras",
+        body: "Toca el fuego y recibirás unas palabras breves; tócalas para ver de dónde vienen. La Fogata te acompaña, pero no reemplaza la ayuda profesional: si lo necesitas, busca a alguien que pueda ayudarte.",
+      },
+    },
+  },
   terms: {
     title: "Antes de sentarte",
     intro: "Son pocas reglas, escritas claras. Léelas con calma.",

@@ -211,3 +211,25 @@ describe("the crackle volume", () => {
     expect(localStorage.getItem(STORAGE_KEYS.crackle)).toBeNull();
   });
 });
+
+describe("the tutorial, from the settings", () => {
+  it("can be opened again from the settings, and closes back to them", () => {
+    setup(() => <SettingsButton />);
+    openSettings();
+    fireEvent.click(screen.getByRole("button", { name: es.tutorial.open }));
+    expect(screen.getByRole("dialog", { name: es.tutorial.title })).toBeDefined();
+    expect(screen.getByRole("heading", { name: es.tutorial.steps.forest.title })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: es.tutorial.skip }));
+    expect(screen.queryByRole("dialog", { name: es.tutorial.title })).toBeNull();
+    expect(screen.getByRole("dialog", { name: es.settings.title })).toBeDefined();
+  });
+
+  it("is beside the terms, in the language the visitor chose", () => {
+    setup(() => <SettingsButton />);
+    openSettings();
+    expect(screen.getByRole("button", { name: es.terms.open })).toBeDefined();
+    expect(screen.getByRole("button", { name: es.tutorial.open })).toBeDefined();
+    fireEvent.click(radio("English"));
+    expect(screen.getByRole("button", { name: en.tutorial.open })).toBeDefined();
+  });
+});

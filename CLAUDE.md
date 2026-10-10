@@ -18,6 +18,7 @@ This file holds the core rules. Area guidance loads on demand from `.claude/rule
   - A petition rises from the fire and becomes a star in one shared sky: up to 2000 characters (a letter; a burden up to 3000, an answer up to 2000), dated with the day it was written and the day it was answered (only the day), moderated before it is shown. There is no limit on how many a person may leave and they do not expire: a star stays until its author returns it to the fire. Ownership is a secret key kept in the browser; no accounts.
   - Other people's stars show no author information, ever. The ichthys is the only response (one counter, no likes, no ranking).
 - Touch the fire for a short verse (TLA es / WEB en, curated list in `apps/web/src/fire/words.ts`). Only the words show, with no number; tapping the words shows where they come from.
+- The first time, after accepting the terms, a short tutorial (`components/tutorial/`, `tutorial/tutorial.ts`) says what La Fogata is and what can be done in it, one step at a time with a small drawing of each; it can be skipped, is remembered (`fogata:tutorial`), and can be opened again from the settings. It stays neutral: no religious vocabulary, no promise of rules that do not exist (a test guards both).
 - No chat, no direct messages, no profiles, no likes, no streaks.
 - Never simulate fake people in production. When you are alone, the scene shows the stars and any real distant fires, and never says anyone will come.
 
