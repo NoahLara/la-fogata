@@ -189,6 +189,54 @@ export const en = {
       "La Fogata is for real words. Put it in your own: there's room here for what you feel.",
   },
   // The terms people agree to once, and can read again in the settings.
+  tutorial: {
+    // The settings' way back to it, and the dialog's own name.
+    open: "How it works",
+    title: "How La Fogata works",
+    skip: "Skip",
+    back: "Back",
+    next: "Next",
+    finish: "Go to the fire",
+    // {current} and {total}, like "Step 2 of 8".
+    progress: "Step {current} of {total}",
+    // The name of the little dot that jumps to a step. {step} is its number.
+    goTo: "Go to step {step}",
+    stepsLabel: "Steps",
+    steps: {
+      forest: {
+        title: "A fire in the woods",
+        body: "Nobody talks here: you keep each other company. The people who sit with you are animals, with no name or face. And if you see another campfire glowing far off between the trees, it means there are more people in the woods.",
+      },
+      wood: {
+        title: "Throw wood",
+        body: "Tap the button in the middle and your animal throws a log. The fire grows and slowly dies down on its own, and everyone sitting with you sees when someone throws wood.",
+      },
+      burden: {
+        title: "Hand over a burden",
+        body: "Write what weighs on you and hand it to the fire: it burns. What you write never leaves your browser: it isn't sent or stored. The others see your animal carry it to the embers, but never what it says.",
+      },
+      petition: {
+        title: "Leave an ask",
+        body: "Tell the sky what you hope for: your ask rises with the smoke and becomes a star. Leave as many as you like.",
+      },
+      sky: {
+        title: "Your sky",
+        body: "Your stars form your constellation, and a soft glow tells them apart from the rest. Tap one to read it. The sky turns slowly and brings stars from other people: no names, only light.",
+      },
+      answered: {
+        title: "When it comes true",
+        body: "If what you asked for comes true, come back, tap your star and mark it as answered. Tell in one line how it happened: the star will start to twinkle.",
+      },
+      company: {
+        title: "Keep others company",
+        body: "Tap someone else's star, then the fish: you let them know you are with them, without them knowing who you are. If something shouldn't be there, the little flag lets you say so.",
+      },
+      word: {
+        title: "And a few words",
+        body: "Touch the fire and you will receive a few short words; tap them to see where they come from. La Fogata keeps you company but doesn't replace professional help: if you need it, please reach out to someone who can help.",
+      },
+    },
+  },
   terms: {
     title: "Before you sit down",
     intro: "There are only a few rules, written plainly. Take your time.",
