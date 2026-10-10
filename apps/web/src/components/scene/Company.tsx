@@ -65,9 +65,12 @@ export function Company({ scene }: { scene: FogataScene }) {
           const state = { people: presence.people().length, alreadySaid: aloneSaid };
           if (!shouldSayAlone(state)) return;
           aloneSaid = true;
-          speak.current.say(
-            aloneLine(copy.current.locale, copy.current.t.company, distantFires.fires().length),
+          const line = aloneLine(
+            copy.current.locale,
+            copy.current.t.company,
+            distantFires.fires().length,
           );
+          if (line) speak.current.say(line);
         }, ALONE_DELAY_MS);
         return;
       }

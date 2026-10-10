@@ -20,7 +20,11 @@ export function otherFiresDescription(
   return format(plural(locale, t.otherFires, otherFires), { count: otherFires });
 }
 
-/** The line itself: how many other fires burn, or that the fire keeps them company when none does. It never says anyone will come. */
-export function aloneLine(locale: Locale, t: Messages["company"], otherFires: number): string {
-  return otherFires <= 0 ? t.keepsCompany : otherFiresDescription(locale, t, otherFires);
+/** The line itself: how many other fires burn, or nothing at all when none does. It never says anyone will come. */
+export function aloneLine(
+  locale: Locale,
+  t: Messages["company"],
+  otherFires: number,
+): string | undefined {
+  return otherFires <= 0 ? undefined : otherFiresDescription(locale, t, otherFires);
 }
