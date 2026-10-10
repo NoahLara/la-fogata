@@ -4,4 +4,14 @@
   "compatibility_date": "2025-01-01",
   "durable_objects": { "bindings": [{ "name": "Campfire", "class_name": "Campfire" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Campfire"] }],
+  // The petitions. The id below is only a stand-in for `wrangler dev`, which makes its own local database: when it
+  // is deployed, `scripts/provision-d1.mjs` finds or creates the real one and writes its id here first.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fogata",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../packages/api/migrations",
+    },
+  ],
 }

@@ -42,8 +42,9 @@ describe("terms acceptance", () => {
     expect(hasAcceptedTerms(memoryStorage({ [TERMS_STORAGE_KEY]: "0" }))).toBe(false);
   });
 
-  it("asks again of whoever agreed to the first terms, which spoke of petitions that expire", () => {
+  it("asks again of whoever agreed to an earlier version: the first spoke of petitions that expire, the second of petitions kept only in the browser", () => {
     expect(hasAcceptedTerms(memoryStorage({ [TERMS_STORAGE_KEY]: "1" }))).toBe(false);
+    expect(hasAcceptedTerms(memoryStorage({ [TERMS_STORAGE_KEY]: "2" }))).toBe(false);
   });
 
   it("does not throw when the browser refuses storage", () => {
@@ -64,6 +65,18 @@ describe("what the terms say about petitions", () => {
     expect(text).not.toMatch(/30|treinta|thirty/i);
     expect(text).not.toMatch(/al día|por día|a day|per day|each day/i);
   });
+
+  it.each([
+    ["es", es.terms.petitions.body, /servidores/, /quien administra/, /huella/],
+    ["en", en.terms.petitions.body, /servers/, /whoever runs/, /fingerprint/],
+  ])(
+    "says in %s that it is kept on the servers, who can read it, and how little says who wrote it",
+    (_language, body, kept, reads, fingerprint) => {
+      expect(body).toMatch(kept);
+      expect(body).toMatch(reads);
+      expect(body).toMatch(fingerprint);
+    },
+  );
 
   it("says in both languages that a petition stays until its author sends it back", () => {
     expect(es.terms.petitions.body).toContain("no caduca");

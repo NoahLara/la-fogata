@@ -87,6 +87,7 @@ The web experience is built first, against the in-memory services (`apps/web/src
    - distant campfires and the alone state ✅
    - sound ✅
    - the About page
+   - persistent petitions and a shared sky on Cloudflare D1 ✅ (`packages/api`; `docs/decisions/0008`)
 3. Realtime: many campfires, presence, shared wood, other people's petitions in one shared sky
 4. Persistence: Cloudflare D1 for petitions, prayer counts, reports and metrics
 5. Launch: moderation, crisis flow, deploy, README

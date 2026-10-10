@@ -1,3 +1,4 @@
+import { createApi } from "@fogata/api";
 import {
   clientEventSchema,
   Fire,
@@ -120,9 +121,18 @@ export class Campfire extends Server {
   }
 }
 
-// Worker: stateless front door that sends each request to its campfire.
+// Worker: stateless front door. The petitions' API answers what is under /api; everything else goes to its campfire.
+let api: ReturnType<typeof createApi> | undefined;
+
+interface Env extends Record<string, unknown> {
+  DB: D1Database;
+}
+
 export default {
-  async fetch(request: Request, env: Record<string, unknown>): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    api ??= createApi({ db: env.DB });
+    const answer = await api(request);
+    if (answer) return answer;
     const response = await routePartykitRequest(request, env);
     return response ?? new Response("ok");
   },

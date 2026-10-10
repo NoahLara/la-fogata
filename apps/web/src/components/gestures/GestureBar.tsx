@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AFTERGLOW_SECONDS } from "@/burden/burden";
-import { hasRiskSignals } from "@/burden/risk";
-import { checkContent } from "@/moderation/content";
+import { checkContent, hasRiskSignals } from "@fogata/shared";
 import { rejectionMessage } from "@/moderation/message";
 import { useServices } from "@/data/DataProvider";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -264,6 +263,11 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     const result = await petitions.create(text);
     if (result.status === "rejected") {
       setSheetNotice(rejectionMessage(result.reason, t.moderation));
+      return false;
+    }
+    // The server could not keep it: the sheet stays as it is, with what was written, to try again.
+    if (result.status === "unavailable") {
+      setSheetNotice(t.petition.unavailable);
       return false;
     }
     if (result.status !== "created") return false;

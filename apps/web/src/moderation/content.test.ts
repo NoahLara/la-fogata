@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import { WORDS as VERSES, textOf } from "@/fire/words";
 import { en } from "@/i18n/en";
 import { es } from "@/i18n/es";
-import { checkContent } from "./content";
-import { WORDS_EN, WORDS_ES } from "./words";
+import { checkContent, WORDS_EN, WORDS_ES } from "@fogata/shared";
 
 const refused = (text: string) => {
   const verdict = checkContent(text);

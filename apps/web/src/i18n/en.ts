@@ -56,6 +56,8 @@ export const en = {
     // Said aloud at a few points. {remaining} characters left.
     remaining: { one: "{remaining} character left.", other: "{remaining} characters left." },
     submit: "Lift it up",
+    // The server could not keep it; what was written is still on the sheet.
+    unavailable: "We couldn't keep your ask just now. Please try again in a moment.",
     cancel: "Cancel",
     // Said, and shown, when the star has settled in the sky.
     afterglow: "It's shining in your sky now.",
@@ -254,7 +256,7 @@ export const en = {
     },
     petitions: {
       heading: "What you leave in a star",
-      body: "Before it's shown, what you write is reviewed. Then it appears as a star, with no name, for everyone in the forest. By leaving it you let us show it that way for as long as it stays in the sky: it doesn't expire. It stays yours: if you send it back to the fire, it stops being shown. Please don't write personal details about yourself or others, like names, phone numbers or addresses.",
+      body: "Before it's shown, what you write is reviewed. Then it appears as a star, with no name, for everyone in the forest. We keep it on our servers so it is still there when you come back, and whoever runs La Fogata can read it, though they can't tell who wrote it: only a fingerprint of the secret key your browser keeps is stored, never the key. By leaving it you let us show it that way for as long as it stays in the sky: it doesn't expire. It stays yours: if you send it back to the fire, it stops being shown. Please don't write personal details about yourself or others, like names, phone numbers or addresses.",
     },
     respect: {
       heading: "Living together",
