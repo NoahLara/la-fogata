@@ -41,7 +41,6 @@ export const en = {
     remaining: { one: "{remaining} character left.", other: "{remaining} characters left." },
     submit: "Throw it in the fire",
     cancel: "Cancel",
-    afterglow: "You're not carrying it alone anymore.",
   },
   petition: {
     title: "Ask",

@@ -182,7 +182,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       ? scene.handOverBurden(self.id, {
           onDone: () => {
             setRitual(false);
-            setAfterglow(t.burden.afterglow);
             // Someone whose words showed signs of risk is shown the help screen next: the fire stays quiet.
             risky = atRisk.current;
             later(() => {
