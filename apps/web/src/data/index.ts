@@ -3,23 +3,28 @@ import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
 import { MemoryRituals } from "./memoryRituals";
+import { RemotePetitions } from "./remotePetitions";
 import { partySocketLink } from "./partySocketLink";
 import { RealtimeChannel } from "./realtimeChannel";
 import { RealtimeFire } from "./realtimeFire";
 import { RealtimePresence } from "./realtimePresence";
 import { RealtimeRituals } from "./realtimeRituals";
-import type { RealtimeTarget } from "./realtimeTarget";
+import { apiBase, type RealtimeTarget } from "./realtimeTarget";
 import { randomKey } from "./randomKey";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
-import type { Person, Services } from "./types";
+import type { Person, PetitionService, PrayerService, Services } from "./types";
 
 export type { Services } from "./types";
 
-/** The in-memory services behind the UI. The server will replace them. */
+/**
+ * The services behind the UI. With a server (`realtime`) the people, the fire, the rituals and the petitions are the
+ * campfire's; without one everything is kept in this browser and the visitor sits alone.
+ */
 export interface LocalServices extends Services {
   presence: MemoryPresence;
   distantFires: MemoryDistantFires;
-  petitions: MemoryPetitions;
+  petitions: PetitionService;
+  prayers: PrayerService;
 }
 
 interface LocalOptions {
@@ -46,13 +51,17 @@ export function createLocalServices(options: LocalOptions): LocalServices {
         rand,
         ...(options.initial ? { initial: options.initial } : {}),
       });
-  const petitions = new MemoryPetitions({
-    now: () => Date.now(),
-    rand,
-    keys: options.keys ?? new BrowserKeyStore(),
-    newId: () => `petition-${Date.now().toString(36)}-${counter++}`,
-    newKey: randomKey,
-  });
+  const keys = options.keys ?? new BrowserKeyStore();
+  // The petitions last on the server, and the sky is everyone's; without one they live in this browser.
+  const petitions = options.realtime
+    ? new RemotePetitions({ baseUrl: apiBase(options.realtime), keys, newKey: randomKey })
+    : new MemoryPetitions({
+        now: () => Date.now(),
+        rand,
+        keys,
+        newId: () => `petition-${Date.now().toString(36)}-${counter++}`,
+        newKey: randomKey,
+      });
   const distantFires = new MemoryDistantFires();
   const fire = channel ? new RealtimeFire({ channel, presence }) : new MemoryFire({ presence });
   const rituals = channel ? new RealtimeRituals(channel) : new MemoryRituals();

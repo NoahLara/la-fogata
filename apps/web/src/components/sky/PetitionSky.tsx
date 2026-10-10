@@ -13,6 +13,7 @@ import type { FogataScene, SkyViewState } from "@/scene/createScene";
 import { screenX, wrapSigned } from "@/scene/panorama";
 import { HelpScreen } from "../help/HelpScreen";
 import { useInteraction } from "../scene/Interaction";
+import { mergeSky } from "./mergeSky";
 import { starName } from "./cardState";
 import { OtherStarCard, type AccompanyOutcome } from "./OtherStarCard";
 import { skyCounts, groupName } from "./skySummary";
@@ -28,6 +29,10 @@ const TARGET = 44;
 const NAME_LENGTH = 60;
 /** How long the star takes to start twinkling and the shooting star to cross, so the gestures wait for both. */
 const ANSWER_ANIMATION_MS = 1400;
+/** The sky is looked at again this often while the page is open, so the stars of people who came by since appear. */
+const SKY_REFRESH_MS = 180_000;
+/** The sky never holds more than this many times what it shows at once: the oldest to arrive leave first. */
+const SKY_ROOM = 2;
 
 /** A star's name for a screen reader: the start of what was written, on one line (a letter has line breaks). */
 const shorten = (text: string) => {
@@ -126,6 +131,26 @@ export function PetitionSky({ scene }: { scene: FogataScene }) {
     return () => {
       alive = false;
       stop();
+    };
+  }, [petitions, scene]);
+  // The sky is renewed while the page is open: the stars of people who have come by since appear, the ones already
+  // there stay where they are, and nothing happens while the tab is hidden.
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      if (document.hidden) return;
+      const { panorama, viewport } = scene.sky.state();
+      const limit = skyLimit(panorama, viewport);
+      void petitions.sky(limit).then((list) => {
+        if (!alive) return;
+        const others = list.filter((petition) => !petition.mine);
+        setOthers((current) => mergeSky(current, others, limit * SKY_ROOM));
+      });
+    };
+    const timer = window.setInterval(refresh, SKY_REFRESH_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
     };
   }, [petitions, scene]);
   useEffect(() => {

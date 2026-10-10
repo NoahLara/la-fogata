@@ -26,6 +26,10 @@ Without the two secrets neither workflow does anything, and without `REALTIME_HO
 
 The web is a Next.js app served on Workers through `@opennextjs/cloudflare`. `pnpm --filter @fogata/web preview` builds it and serves it locally on the Workers runtime. The adapter needs Next 16.3.8 or newer.
 
+## The petitions' database
+
+Petitions live in a D1 database called `fogata`, reached by the realtime Worker (`/api/...`, code in `packages/api`). The Deploy workflow runs `scripts/provision-d1.mjs`, which finds the database or creates it on a new account and writes its id into `apps/realtime/wrangler.jsonc`, then applies `packages/api/migrations` with `wrangler d1 migrations apply fogata --remote` before deploying. Locally `pnpm dev` applies the migrations to a local copy and needs no account. The web finds the API at the same host as the campfires (`REALTIME_HOST`).
+
 ## Secrets
 
 | What                                | Where it lives                                                                      | In the repo? |

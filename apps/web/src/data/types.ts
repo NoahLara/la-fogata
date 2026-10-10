@@ -1,4 +1,4 @@
-import type { ContentIssue } from "@/moderation/content";
+import type { ContentIssue } from "@fogata/shared";
 import type { Species } from "@/scene/characters/species";
 
 /**
@@ -109,7 +109,9 @@ export type CreatePetitionResult =
   /** Signs of self-harm: never published. The UI shows the help screen. */
   | { status: "risk" }
   /** Insults, swearing or nothing readable: never published. The UI says La Fogata is not for this. */
-  | { status: "rejected"; reason: ContentIssue };
+  | { status: "rejected"; reason: ContentIssue }
+  /** The campfire's server could not be reached, or did not make sense: nothing was kept. */
+  | { status: "unavailable" };
 
 export type AnswerPetitionResult =
   | { status: "answered"; petition: Petition }
@@ -122,13 +124,23 @@ export type AnswerPetitionResult =
   /** Signs of risk in the line: it is never saved or shown, and the visitor is offered help instead. */
   | { status: "risk" }
   /** Insults, swearing or nothing readable: it is never saved or shown. */
-  | { status: "rejected"; reason: ContentIssue };
+  | { status: "rejected"; reason: ContentIssue }
+  /** The campfire's server could not be reached, or did not make sense: nothing was kept. */
+  | { status: "unavailable" };
 
 export type RemovePetitionResult =
-  { status: "removed" } | { status: "not-yours" } | { status: "not-found" };
+  | { status: "removed" }
+  | { status: "not-yours" }
+  | { status: "not-found" }
+  /** The campfire's server could not be reached, or did not make sense: nothing was kept. */
+  | { status: "unavailable" };
 
 export type ReportPetitionResult =
-  { status: "reported" } | { status: "own" } | { status: "not-found" };
+  | { status: "reported" }
+  | { status: "own" }
+  | { status: "not-found" }
+  /** The campfire's server could not be reached, or did not make sense: nothing was kept. */
+  | { status: "unavailable" };
 
 export type PetitionEvent =
   | { type: "added"; petition: Petition }
@@ -168,7 +180,9 @@ export type PrayResult =
   | { status: "rate-limited" }
   /** Nobody is with their own petition. */
   | { status: "own" }
-  | { status: "not-found" };
+  | { status: "not-found" }
+  /** The campfire's server could not be reached, or did not make sense: nothing was kept. */
+  | { status: "unavailable" };
 
 export interface PrayerService {
   pray(petitionId: string): Promise<PrayResult>;

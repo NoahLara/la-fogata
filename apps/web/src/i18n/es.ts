@@ -60,6 +60,8 @@ export const es = {
       other: "Te quedan {remaining} caracteres.",
     },
     submit: "Elevar",
+    // The server could not keep it; what was written is still on the sheet.
+    unavailable: "No pudimos guardar tu petición ahora mismo. Inténtalo de nuevo en un momento.",
     cancel: "Cancelar",
     // Said, and shown, when the star has settled in the sky.
     afterglow: "Ya brilla en tu cielo.",
@@ -264,7 +266,7 @@ export const es = {
     },
     petitions: {
       heading: "Lo que dejas en una petición",
-      body: "Antes de mostrarse, una petición se revisa. Luego se ve como una estrella, sin nombre, para todas las personas del bosque. Al dejarla nos permites mostrarla así mientras siga en el cielo: no caduca. Sigue siendo tuya: si la devuelves al fuego, deja de mostrarse. No escribas datos tuyos ni de otras personas, como nombres, teléfonos o direcciones.",
+      body: "Antes de mostrarse, una petición se revisa. Luego se ve como una estrella, sin nombre, para todas las personas del bosque. La guardamos en nuestros servidores para que siga ahí cuando vuelvas, y quien administra La Fogata puede leerla, aunque no sabe quién la escribió: solo se guarda una huella de la clave secreta que tu navegador conserva, nunca la clave. Al dejarla nos permites mostrarla así mientras siga en el cielo: no caduca. Sigue siendo tuya: si la devuelves al fuego, deja de mostrarse. No escribas datos tuyos ni de otras personas, como nombres, teléfonos o direcciones.",
     },
     respect: {
       heading: "Convivencia",

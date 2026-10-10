@@ -16,6 +16,7 @@ import { SettingsButton } from "@/components/settings/SettingsButton";
 import { TutorialDialog } from "@/components/tutorial/TutorialDialog";
 import { TutorialGate } from "@/components/tutorial/TutorialGate";
 import { FakeAudio, FakeContext } from "./fakeAudio";
+import { TERMS_VERSION } from "@/legal/terms";
 import { SoundProvider } from "./SoundProvider";
 import type { SoundEvent } from "./soundEvents";
 
@@ -208,7 +209,7 @@ describe("the sound and a first visit", () => {
   });
 
   it("starts with a press in the tutorial that opens by itself on a first visit", async () => {
-    localStorage.setItem("fogata:terms", "2");
+    localStorage.setItem("fogata:terms", TERMS_VERSION);
     FakeContext.blocked = true;
     setup(
       <TermsGate>
@@ -243,7 +244,7 @@ describe("the sound and a first visit", () => {
   });
 
   it("still starts with the first press outside a dialog, once the terms are behind", async () => {
-    localStorage.setItem("fogata:terms", "2");
+    localStorage.setItem("fogata:terms", TERMS_VERSION);
     FakeContext.blocked = true;
     setup(<TermsGate>dentro</TermsGate>);
     await act(async () => {});

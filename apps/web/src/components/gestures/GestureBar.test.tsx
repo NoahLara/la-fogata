@@ -171,3 +171,42 @@ describe("what the others at the fire are told", () => {
     expect(announce).not.toHaveBeenCalled();
   });
 });
+
+describe("when the server cannot keep a petition", () => {
+  it("keeps the sheet as it was, with what was written, says it was not kept, and starts no ritual", async () => {
+    const { services, offerPetition, announce } = await setup();
+    vi.spyOn(services.petitions, "create").mockResolvedValue({ status: "unavailable" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.gestures.petition.aria }));
+    });
+    write(es.petition.placeholder, "Por mi mamá, que está enferma");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.petition.submit }));
+    });
+    expect(screen.getByText(es.petition.unavailable)).toBeTruthy();
+    expect(
+      (screen.getByPlaceholderText(es.petition.placeholder) as HTMLTextAreaElement).value,
+    ).toBe("Por mi mamá, que está enferma");
+    expect(offerPetition).not.toHaveBeenCalled();
+    expect(announce).not.toHaveBeenCalled();
+  });
+
+  it("lets it be tried again, and goes on with the ritual once it is kept", async () => {
+    const { services, offerPetition } = await setup();
+    const create = vi.spyOn(services.petitions, "create");
+    create.mockResolvedValueOnce({ status: "unavailable" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.gestures.petition.aria }));
+    });
+    write(es.petition.placeholder, "Por mi mamá, que está enferma");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.petition.submit }));
+    });
+    expect(screen.getByText(es.petition.unavailable)).toBeTruthy();
+    create.mockRestore();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: es.petition.submit }));
+    });
+    await vi.waitFor(() => expect(offerPetition).toHaveBeenCalled());
+  });
+});

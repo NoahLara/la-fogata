@@ -5,8 +5,11 @@
  * letters ("puuuuta"). This only ever runs in the browser, on text that is checked and then dropped.
  */
 
+// These classes are made of invisible and combining characters on purpose: that is what they strip.
+/* eslint-disable no-misleading-character-class, no-irregular-whitespace */
 const INVISIBLE = /[­͏؜ᅟᅠ឴឵᠎​-‏‪-‮⁠-⁯ㅤ﻿ﾠ]/g;
 const MARKS = /[̀-ͯ]/g;
+/* eslint-enable no-misleading-character-class, no-irregular-whitespace */
 
 /** Letters from other alphabets that look like Latin ones. */
 const HOMOGLYPHS: Readonly<Record<string, string>> = {

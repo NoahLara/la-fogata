@@ -51,6 +51,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
         if: steps.gate.outputs.enabled == 'true'
 
+      # The petitions' database: found, or created on a new account, and its id written into the Worker's config.
+      - name: Find or create the D1 database
+        if: steps.gate.outputs.enabled == 'true'
+        run: node --experimental-strip-types scripts/provision-d1.mjs
+
+      - name: Apply the database migrations
+        if: steps.gate.outputs.enabled == 'true'
+        run: pnpm --filter @fogata/realtime exec wrangler d1 migrations apply fogata --remote
+
       - name: Deploy the realtime Worker
         if: steps.gate.outputs.enabled == 'true'
         run: pnpm --filter @fogata/realtime run deploy

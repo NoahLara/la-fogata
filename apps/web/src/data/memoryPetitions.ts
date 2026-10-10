@@ -1,5 +1,4 @@
-import { checkContent } from "@/moderation/content";
-import { hasRiskSignals } from "@/burden/risk";
+import { checkContent, hasRiskSignals } from "@fogata/shared";
 import { burdenLength } from "@/burden/burden";
 import type { Random } from "@/scene/random";
 import { dateKey } from "./dates";

@@ -6,6 +6,11 @@ export interface RealtimeTarget {
 
 const REALTIME_PORT = 8787;
 
+/** Where the server's petitions answer over plain http(s): the same host the campfires are reached at. */
+export function apiBase({ host, protocol }: RealtimeTarget): string {
+  return `${protocol === "wss" ? "https" : "http"}://${host}`;
+}
+
 /**
  * Where the browser finds the realtime server. By default it is the machine that served the page, on the
  * server's port, so a phone that opened `http://192.168.1.20:3000` talks to `192.168.1.20:8787`.

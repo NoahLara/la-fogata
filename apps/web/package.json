@@ -21,6 +21,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@fogata/api": "workspace:*",
     "@opennextjs/cloudflare": "1.20.9",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
