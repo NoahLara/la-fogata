@@ -42,7 +42,6 @@ export const es = {
     },
     submit: "Echar al fuego",
     cancel: "Cancelar",
-    afterglow: "Ya no lo cargas a solas.",
   },
   petition: {
     title: "Pídelo",

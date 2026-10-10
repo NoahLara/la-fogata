@@ -103,7 +103,6 @@ describe("the fire answers a burden and a petition", () => {
     expect(shown()).toBeUndefined();
     // The note has burned and the gestures are free: the light is still on its way, and so is the shooting star.
     act(() => finish.burden?.());
-    expect(screen.getByText(es.burden.afterglow)).toBeTruthy();
     await advance(TRIGGER_DELAY_MS * 4);
     expect(shown()).toBeUndefined();
     // The shooting star has crossed and gone: now the word follows, after its pause.
