@@ -10,7 +10,11 @@ import { resetSettingsStore, SettingsProvider } from "@/preferences/SettingsProv
 import type { FogataScene } from "@/scene/createScene";
 import { InteractionProvider } from "@/components/scene/Interaction";
 import { SitDown } from "@/components/scene/SitDown";
+import { TermsDialog } from "@/components/legal/TermsDialog";
+import { TermsGate } from "@/components/legal/TermsGate";
 import { SettingsButton } from "@/components/settings/SettingsButton";
+import { TutorialDialog } from "@/components/tutorial/TutorialDialog";
+import { TutorialGate } from "@/components/tutorial/TutorialGate";
 import { FakeAudio, FakeContext } from "./fakeAudio";
 import { SoundProvider } from "./SoundProvider";
 import type { SoundEvent } from "./soundEvents";
@@ -157,5 +161,94 @@ describe("the sound in the page", () => {
     );
     expect(localStorage.getItem(STORAGE_KEYS.sound)).toBe("1");
     expect(created).toHaveLength(1);
+  });
+});
+
+describe("the sound and a first visit", () => {
+  /** A press the way a browser sees it: the finger lifting, then the click. */
+  const press = (element: Element) => {
+    fireEvent.pointerUp(element);
+    fireEvent.click(element);
+  };
+
+  it("starts when the terms are accepted: that first press is the gesture the browser wants", async () => {
+    FakeContext.blocked = true;
+    setup(<TermsGate>dentro</TermsGate>);
+    await act(async () => {});
+    const ctx = created[0]!;
+    expect(ctx.state).toBe("suspended");
+    // The browser lets it start now that the visitor has pressed something.
+    FakeContext.blocked = false;
+    await act(async () => void press(screen.getByRole("button", { name: es.terms.accept })));
+    expect(ctx.state).toBe("running");
+    expect(created).toHaveLength(1);
+  });
+
+  it("starts with a key as well: Enter on the accept button", async () => {
+    FakeContext.blocked = true;
+    setup(<TermsGate>dentro</TermsGate>);
+    await act(async () => {});
+    FakeContext.blocked = false;
+    await act(
+      async () =>
+        void fireEvent.keyDown(screen.getByRole("button", { name: es.terms.accept }), {
+          key: "Enter",
+        }),
+    );
+    expect(created[0]!.state).toBe("running");
+  });
+
+  it("starts with a press in the first-visit tutorial, if the terms' press did not", async () => {
+    FakeContext.blocked = true;
+    setup(<TutorialDialog unlocksSound onClose={() => {}} />);
+    await act(async () => {});
+    FakeContext.blocked = false;
+    await act(async () => void press(screen.getByRole("button", { name: es.tutorial.next })));
+    expect(created[0]!.state).toBe("running");
+  });
+
+  it("starts with a press in the tutorial that opens by itself on a first visit", async () => {
+    localStorage.setItem("fogata:terms", "2");
+    FakeContext.blocked = true;
+    setup(
+      <TermsGate>
+        <TutorialGate />
+      </TermsGate>,
+    );
+    await act(async () => {});
+    FakeContext.blocked = false;
+    await act(async () => void press(screen.getByRole("button", { name: es.tutorial.next })));
+    expect(created[0]!.state).toBe("running");
+  });
+
+  it("does not start with a press in the terms read again, or in the tutorial opened from the settings", async () => {
+    FakeContext.blocked = true;
+    setup(
+      <>
+        <TermsDialog mode="read" onClose={() => {}} />
+        <TutorialDialog onClose={() => {}} />
+      </>,
+    );
+    await act(async () => {});
+    const ctx = created[0]!;
+    const tries = ctx.resume.mock.calls.length;
+    FakeContext.blocked = false;
+    await act(async () => {
+      for (const dialog of screen.getAllByRole("dialog")) {
+        for (const button of dialog.querySelectorAll("button")) press(button);
+      }
+    });
+    expect(ctx.resume.mock.calls.length).toBe(tries);
+    expect(ctx.state).toBe("suspended");
+  });
+
+  it("still starts with the first press outside a dialog, once the terms are behind", async () => {
+    localStorage.setItem("fogata:terms", "2");
+    FakeContext.blocked = true;
+    setup(<TermsGate>dentro</TermsGate>);
+    await act(async () => {});
+    FakeContext.blocked = false;
+    await act(async () => void press(screen.getByText("escena")));
+    expect(created[0]!.state).toBe("running");
   });
 });

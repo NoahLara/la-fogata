@@ -39,6 +39,8 @@ export function TermsDialog({
       labelledBy={titleId}
       onClose={onClose}
       className={PANEL}
+      // Accepting is the first press of a new visitor: it is what lets the fire be heard at once.
+      unlocksSound={accepting}
       // Escape must not skip the agreement.
       onCancel={accepting ? (event) => event.preventDefault() : undefined}
     >

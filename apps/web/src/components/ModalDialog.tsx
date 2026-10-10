@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { AUDIO_UNLOCK } from "@/sound/SoundProvider";
 
 const DEFAULT_CLASS =
   "m-auto w-[min(92vw,28rem)] rounded-sheet bg-bark-deep p-6 text-gold shadow-2xl ring-1 ring-ember/40 backdrop:bg-black/65";
@@ -18,6 +19,7 @@ export function ModalDialog({
   style,
   handing,
   onCancel,
+  unlocksSound,
 }: {
   labelledBy: string;
   describedBy?: string;
@@ -29,6 +31,8 @@ export function ModalDialog({
   handing?: boolean;
   /** Escape was pressed: call `preventDefault` to keep the dialog open. */
   onCancel?: (event: React.SyntheticEvent<HTMLDialogElement>) => void;
+  /** Pressing in this dialog starts the sound, as a press outside a dialog does (the terms, the first tutorial). */
+  unlocksSound?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -53,6 +57,7 @@ export function ModalDialog({
       className={className}
       style={style}
       data-handing={handing ? "" : undefined}
+      {...(unlocksSound ? { [AUDIO_UNLOCK]: "" } : {})}
     >
       {children}
     </dialog>

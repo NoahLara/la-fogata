@@ -18,6 +18,13 @@ import type { SoundEvent } from "./soundEvents";
 /** Marks something a visitor may press without that press starting the sound (the gear that opens the settings). */
 export const NO_AUDIO_UNLOCK = "data-no-audio-unlock";
 
+/**
+ * Marks a dialog whose presses do start the sound, though it is a dialog: the one that asks for the terms and the
+ * first-visit tutorial. Accepting the terms is the first thing a new visitor presses, and it is exactly the gesture
+ * a browser wants, so the fire can be heard from then on and not only after the first press inside the scene.
+ */
+export const AUDIO_UNLOCK = "data-audio-unlock";
+
 interface Sound {
   /** Turns sound on or off, saved. Call it straight from the press, so turning it on counts as the gesture. */
   setEnabled: (enabled: boolean) => void;
@@ -30,13 +37,19 @@ const SoundContext = createContext<Sound>(silent);
 /** The events a browser counts as the visitor having touched the page, so that it lets sound start. */
 const GESTURES = ["pointerup", "click", "touchend", "keydown"] as const;
 
-/** Whether a gesture happened somewhere that must not start the sound: inside a dialog (the settings, the card). */
+/**
+ * Whether a gesture happened somewhere that must not start the sound: inside a dialog (the settings, the card), unless
+ * the dialog asks for the sound to start (the terms and the first-visit tutorial).
+ */
 function isExempt(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(`dialog, [${NO_AUDIO_UNLOCK}]`) !== null;
+  if (!(target instanceof Element)) return false;
+  if (target.closest(`[${NO_AUDIO_UNLOCK}]`)) return true;
+  const dialog = target.closest("dialog");
+  return dialog !== null && !dialog.hasAttribute(AUDIO_UNLOCK);
 }
 
 /**
- * The soundscape, tied to the page: it starts on the first user gesture (a press or a key anywhere outside a dialog), follows the sound setting, rests while the tab is hidden, and follows the
+ * The soundscape, tied to the page: it starts on the first user gesture (a press or a key anywhere outside a dialog, except the terms and the first-visit tutorial), follows the sound setting, rests while the tab is hidden, and follows the
  * scene's events and how many people sit by the fire. Without it, everything here is silent.
  */
 export function SoundProvider({ scene, children }: { scene: FogataScene; children: ReactNode }) {

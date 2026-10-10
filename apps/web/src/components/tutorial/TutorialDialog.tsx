@@ -21,7 +21,14 @@ const SWIPE_SLACK = 40;
  * like. It can be gone through with the buttons, the arrow keys, a swipe or the dots, and skipped at any point.
  * The words are announced as they change; the drawings are decoration.
  */
-export function TutorialDialog({ onClose }: { onClose: () => void }) {
+export function TutorialDialog({
+  onClose,
+  unlocksSound = false,
+}: {
+  onClose: () => void;
+  /** The first-visit tutorial: pressing in it starts the sound, if the terms' press did not. */
+  unlocksSound?: boolean;
+}) {
   const { t } = useI18n();
   const { reportDialog } = useInteraction();
   const titleId = useId();
@@ -53,7 +60,12 @@ export function TutorialDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <ModalDialog labelledBy={titleId} onClose={onClose} className={PANEL}>
+    <ModalDialog
+      labelledBy={titleId}
+      onClose={onClose}
+      className={PANEL}
+      unlocksSound={unlocksSound}
+    >
       <div onKeyDown={onKeyDown} className="flex flex-col">
         <div className="flex items-center justify-between gap-3 px-5 pt-3">
           <h2 id={titleId} className="font-title text-sm text-ember-soft">
