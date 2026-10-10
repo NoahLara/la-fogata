@@ -49,7 +49,7 @@ function isExempt(target: EventTarget | null): boolean {
 }
 
 /**
- * The soundscape, tied to the page: it starts on the first user gesture (a press or a key anywhere outside a dialog, except the terms and the first-visit tutorial), follows the sound setting, rests while the tab is hidden, and follows the
+ * The soundscape, tied to the page: it starts on the first user gesture (a press or a key anywhere outside a dialog, except the terms and the first-visit tutorial), follows the sound setting, keeps going when the tab is hidden, and follows the
  * scene's events and how many people sit by the fire. Without it, everything here is silent.
  */
 export function SoundProvider({ scene, children }: { scene: FogataScene; children: ReactNode }) {
@@ -95,13 +95,6 @@ export function SoundProvider({ scene, children }: { scene: FogataScene; childre
     for (const type of GESTURES) document.addEventListener(type, onGesture, true);
     return stop;
   }, [engine, ready, sound]);
-
-  useEffect(() => {
-    const onVisibility = () => (document.hidden ? engine.suspend() : engine.resume());
-    document.addEventListener("visibilitychange", onVisibility);
-    if (document.hidden) engine.suspend();
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [engine]);
 
   useEffect(() => {
     engine.setPeople(presence.people().length);

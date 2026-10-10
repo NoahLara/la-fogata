@@ -31,8 +31,6 @@ describe("the sound engine", () => {
     engine.setEnabled(true);
     engine.setPeople(4);
     engine.play("wood");
-    engine.suspend();
-    engine.resume();
     expect(createContext).not.toHaveBeenCalled();
     expect(engine.started).toBe(false);
   });
@@ -85,30 +83,6 @@ describe("the sound engine", () => {
     engine.destroy();
   });
 
-  it("suspends while the tab is hidden and resumes when it is back", () => {
-    const { engine, contexts } = setup();
-    engine.setEnabled(true);
-    engine.start();
-    const ctx = contexts[0]!;
-    engine.suspend();
-    expect(ctx.suspend).toHaveBeenCalled();
-    ctx.resume.mockClear();
-    engine.resume();
-    expect(ctx.resume).toHaveBeenCalled();
-    engine.destroy();
-  });
-
-  it("does not wake a muted engine when the tab comes back", () => {
-    const { engine, contexts } = setup();
-    engine.setEnabled(true);
-    engine.start();
-    engine.setEnabled(false);
-    contexts[0]!.resume.mockClear();
-    engine.resume();
-    expect(contexts[0]!.resume).not.toHaveBeenCalled();
-    engine.destroy();
-  });
-
   it("caps the one-shots that sound together", () => {
     const { engine, contexts } = setup();
     engine.setEnabled(true);
@@ -156,8 +130,6 @@ describe("the sound engine", () => {
     engine.setEnabled(true);
     engine.start();
     engine.play("wood");
-    engine.suspend();
-    engine.resume();
     engine.destroy();
     vi.unstubAllGlobals();
     expect(touched).toEqual([]);
@@ -182,13 +154,10 @@ describe("the sound engine", () => {
     engine.destroy();
   });
 
-  it("pauses the music when sound is turned off or the tab is hidden, and carries on after", () => {
+  it("pauses the music when sound is turned off", () => {
     const { engine, audios } = setup();
     engine.setEnabled(true);
     engine.start();
-    engine.suspend();
-    expect(audios[0]!.playing).toBe(false);
-    engine.resume();
     expect(audios[0]!.playing).toBe(true);
     engine.setEnabled(false);
     vi.advanceTimersByTime(1000);
