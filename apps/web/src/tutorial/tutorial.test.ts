@@ -104,16 +104,12 @@ describe("what the tutorial says", () => {
   it.each([
     ["es", es],
     ["en", en],
-  ])(
-    "opens by saying it is a place to pray and to keep company, and that all are welcome, in %s",
-    (_language, messages) => {
-      const welcome = messages.tutorial.steps.forest.body;
-      expect(welcome).toMatch(/orar|pray/i);
-      expect(welcome).toMatch(/acompa[ñn]arse|keep company/i);
-      expect(welcome).toMatch(/presente|present/i);
-      expect(welcome).toMatch(/creas lo que creas|whatever you believe/i);
-    },
-  );
+  ])("opens by saying it is a place to pray and to keep company, in %s", (_language, messages) => {
+    const welcome = messages.tutorial.steps.forest.body;
+    expect(welcome).toMatch(/orar|pray/i);
+    expect(welcome).toMatch(/acompa[ñn]arse|keep company/i);
+    expect(welcome).toMatch(/presente|present/i);
+  });
 
   it.each([
     ["es", es],

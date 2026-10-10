@@ -215,7 +215,7 @@ export const es = {
     steps: {
       forest: {
         title: "¡Bienvenidos!",
-        body: "La Fogata es un lugar para orar y para acompañarse. Entra a orar por tus peticiones, o simplemente quédate: estar presente, acompañar y animarte con lo que otros piden y con las respuestas que reciben también es parte de esto. Todos son bienvenidos, creas lo que creas.",
+        body: "La Fogata es un lugar para orar y para acompañarse. Entra a orar por tus peticiones, o simplemente quédate: estar presente, acompañar y animarte con lo que otros piden y con las respuestas que reciben también es parte de esto.",
       },
       wood: {
         title: "Echa leña",

@@ -205,7 +205,7 @@ export const en = {
     steps: {
       forest: {
         title: "Welcome!",
-        body: "La Fogata is a place to pray and to keep company. Come in to pray for your asks, or simply stay: being present, keeping company and taking heart from what others ask and the answers they receive is part of this too. Everyone is welcome, whatever you believe.",
+        body: "La Fogata is a place to pray and to keep company. Come in to pray for your asks, or simply stay: being present, keeping company and taking heart from what others ask and the answers they receive is part of this too.",
       },
       wood: {
         title: "Throw wood",
