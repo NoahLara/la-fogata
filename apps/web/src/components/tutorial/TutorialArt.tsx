@@ -127,15 +127,6 @@ function Star({
   );
 }
 
-/** The soft white aura that says a star is the visitor's own. */
-function Aura({ x, y, r = 14 }: { x: number; y: number; r?: number }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <circle r={r * 1.5} className="t-aura" fill="url(#tutorial-halo)" />
-    </g>
-  );
-}
-
 /** A small spark rising from the fire. */
 function Spark({
   x,
@@ -296,28 +287,35 @@ function Petition() {
 }
 
 function Sky() {
-  // Your stars, joined by thin lines, with the soft aura; the others are alone and turn with the sky.
-  const mine: readonly [number, number][] = [
-    [62, 64],
-    [108, 40],
-    [150, 70],
-    [104, 100],
+  // The sky of everyone who has been by the fire: most stars wait, steady; the ones that twinkle have been answered.
+  const waiting: readonly [number, number, number][] = [
+    [34, 38, 0.6],
+    [76, 70, 0.55],
+    [92, 30, 0.5],
+    [150, 96, 0.6],
+    [196, 40, 0.55],
+    [212, 92, 0.5],
+    [48, 110, 0.5],
+    [128, 118, 0.45],
+  ];
+  const answered: readonly [number, number][] = [
+    [120, 58],
+    [172, 70],
+    [64, 92],
   ];
   return (
     <Stage>
       <g className="t-drift">
-        <Star x={26} y={36} size={0.5} className="fill-paper" />
-        <Star x={206} y={44} size={0.6} className="fill-paper" />
-        <Star x={196} y={104} size={0.5} className="fill-paper" />
-        <Star x={30} y={112} size={0.45} className="fill-paper" />
+        {waiting.map(([x, y, size]) => (
+          <Star key={`${x}-${y}`} x={x} y={y} size={size} className="fill-paper" />
+        ))}
       </g>
-      <g className="stroke-gold" strokeWidth="1.2" opacity="0.55" fill="none">
-        <path d="M62 64 L108 40 L150 70 M108 40 L104 100" />
-      </g>
-      {mine.map(([x, y]) => (
-        <g key={`${x}-${y}`}>
-          <Aura x={x} y={y} />
-          <Star x={x} y={y} size={0.62} className="fill-paper" />
+      {answered.map(([x, y], index) => (
+        <g key={`${x}-${y}`} transform={`translate(${x} ${y})`}>
+          <circle r="24" fill="url(#tutorial-halo)" />
+          <g className="t-twinkle" style={{ animationDelay: `${-index * 0.6}s` }}>
+            <Star x={0} y={0} size={0.85} className="fill-paper" />
+          </g>
         </g>
       ))}
     </Stage>

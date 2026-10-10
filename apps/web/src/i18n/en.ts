@@ -204,16 +204,16 @@ export const en = {
     stepsLabel: "Steps",
     steps: {
       forest: {
-        title: "A fire in the woods",
-        body: "Nobody talks here: you keep each other company. The people who sit with you are animals, with no name or face. And if you see another campfire glowing far off between the trees, it means there are more people in the woods.",
+        title: "Welcome!",
+        body: "This is a fire in the woods, at night. Nobody talks here: you keep each other company. The people who sit with you are characters, with no name or face. And if you see another campfire glowing far off between the trees, it means there are more people in the woods.",
       },
       wood: {
         title: "Throw wood",
-        body: "Tap the button in the middle and your animal throws a log. The fire grows and slowly dies down on its own, and everyone sitting with you sees when someone throws wood.",
+        body: "Tap the button in the middle and your character throws a log. The fire grows and slowly dies down on its own, and everyone sitting with you sees when someone throws wood.",
       },
       burden: {
         title: "Hand over a burden",
-        body: "Write what weighs on you and hand it to the fire: it burns. What you write never leaves your browser: it isn't sent or stored. The others see your animal carry it to the embers, but never what it says.",
+        body: "Write what weighs on you and hand it to the fire: it burns. What you write never leaves your browser: it isn't sent or stored. The others see your character carry it to the embers, but never what it says.",
       },
       petition: {
         title: "Leave an ask",
@@ -221,11 +221,11 @@ export const en = {
       },
       sky: {
         title: "Your sky",
-        body: "Your stars form your constellation, and a soft glow tells them apart from the rest. Tap one to read it. The sky turns slowly and brings stars from other people: no names, only light.",
+        body: "The sky is made of the asks of everyone who has been by the fire. The stars that twinkle are asks that have been answered: they are there to cheer you on. The ones that shine steady are still waiting for an answer.",
       },
       answered: {
         title: "When it comes true",
-        body: "If what you asked for comes true, come back, tap your star and mark it as answered. Tell in one line how it happened: the star will start to twinkle.",
+        body: "If what you asked for comes true, come back, tap your star and mark it as answered. Tell how it happened.",
       },
       company: {
         title: "Keep others company",
@@ -233,7 +233,7 @@ export const en = {
       },
       word: {
         title: "And a few words",
-        body: "Touch the fire and you will receive a few short words; tap them to see where they come from. La Fogata keeps you company but doesn't replace professional help: if you need it, please reach out to someone who can help.",
+        body: "Touch the fire and you will receive a few short words. La Fogata keeps you company but doesn't replace professional help: if you need it, please reach out to someone who can help.",
       },
     },
   },

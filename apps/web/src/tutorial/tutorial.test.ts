@@ -117,6 +117,46 @@ describe("what the tutorial says", () => {
     expect(messages.tutorial.steps.burden.body).toMatch(/navegador|browser/);
   });
 
+  // In the interface they are characters ("personaje" / "character"), never animals.
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])("calls them characters, never animals, in %s", (_language, messages) => {
+    expect(text(messages)).not.toMatch(/animal/i);
+    expect(text(messages)).toMatch(/personaje|character/i);
+  });
+
+  it.each([
+    ["es", es, /¡Bienvenidos!/],
+    ["en", en, /Welcome!/],
+  ])("begins by welcoming whoever arrives, in %s", (_language, messages, welcome) => {
+    expect(messages.tutorial.steps.forest.title).toMatch(welcome);
+  });
+
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])("says the sky is everyone's asks, and what twinkling means, in %s", (_language, messages) => {
+    const sky = messages.tutorial.steps.sky.body;
+    expect(sky).toMatch(/todas las personas|everyone/i);
+    expect(sky).toMatch(/titil|twinkl/i);
+    expect(sky).toMatch(/respondidas|answered/i);
+    expect(sky).toMatch(/esperan|waiting/i);
+  });
+
+  // Some things are for the visitor to find out: the tutorial does not spell them out.
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])(
+    "does not limit the answer to one line, nor explain where the words come from, in %s",
+    (_language, messages) => {
+      expect(messages.tutorial.steps.answered.body).not.toMatch(/una l[ií]nea|one line/i);
+      expect(messages.tutorial.steps.word.body).not.toMatch(/d[oó]nde vienen|come from/i);
+      expect(messages.tutorial.steps.sky.body).not.toMatch(/constelaci|constellation|halo|glow/i);
+    },
+  );
+
   it("says 'ask', never 'petition', in English", () => {
     expect(text(en)).not.toMatch(/petition/i);
     expect(en.tutorial.steps.petition.title).toMatch(/ask/i);
