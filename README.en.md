@@ -21,7 +21,7 @@ There are only three gestures, and that is on purpose.
 
 - **Throw wood.** The fire grows with every log and slowly dies down on its own. Everyone sitting with you sees it.
 - **Hand over a burden.** You write what weighs on you and the fire burns it. What you write never leaves your browser: it isn't sent, it isn't stored, and nobody reads it, not even me.
-- **Leave an ask.** It rises with the smoke and becomes a star in the sky. You can leave one a day. When it comes true, you go back to your star and tell how it happened.
+- **Leave an ask.** It rises with the smoke and becomes a star in the sky. Leave as many as you like. When it comes true, you go back to your star and tell how it happened.
 
 And two more things: touch the fire to receive a few short words, and touch someone else's star to tell them, with a fish, that you are with them. Without knowing who they are. Without them knowing who you are.
 

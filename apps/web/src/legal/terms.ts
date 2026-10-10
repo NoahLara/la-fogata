@@ -4,7 +4,7 @@ import { browserStorage, type StorageLike } from "@/preferences/preferences";
  * The version of the terms people agree to. Raise it when they change in a way that matters and everyone is asked
  * once more; a small fix to the wording does not need a new version.
  */
-export const TERMS_VERSION = "1";
+export const TERMS_VERSION = "2";
 
 export const TERMS_STORAGE_KEY = "fogata:terms";
 

@@ -3,13 +3,7 @@ import { createRandom } from "@/scene/random";
 import { MemoryFire } from "./memoryFire";
 import { TestDistantFires, TestPetitions, TestPresence } from "./testing";
 import { MemoryKeyStore } from "./keyStore";
-import {
-  DAY,
-  PETITION_ANSWER_MAX_LENGTH,
-  PETITION_MAX_LENGTH,
-  petitionAvailableAt,
-  PRAYERS_PER_SESSION,
-} from "./limits";
+import { PETITION_ANSWER_MAX_LENGTH, PETITION_MAX_LENGTH, PRAYERS_PER_SESSION } from "./limits";
 import type { PresenceEvent } from "./types";
 
 function presence(seatCount = 7) {
@@ -119,7 +113,6 @@ function petitions(
   overrides: {
     now?: () => number;
     prayersPerSession?: number;
-    petitionsPerDay?: number;
     keys?: MemoryKeyStore;
   } = {},
 ) {
@@ -131,7 +124,6 @@ function petitions(
     keys: overrides.keys ?? new MemoryKeyStore(),
     newId: () => `p${id++}`,
     newKey: () => "secret",
-    ...(overrides.petitionsPerDay ? { petitionsPerDay: overrides.petitionsPerDay } : {}),
     ...(overrides.prayersPerSession ? { prayersPerSession: overrides.prayersPerSession } : {}),
   });
   return { service, advance: (ms: number) => (clock += ms) };
@@ -179,35 +171,18 @@ describe("MemoryPetitions: writing", () => {
     expect((await service.create("quiero morir, todo es una mierda")).status).toBe("risk");
   });
 
-  it("allows one a day", async () => {
-    const { service, advance } = petitions();
-    await service.create("uno");
-    expect((await service.create("dos")).status).toBe("daily-limit");
-    advance(DAY + 1);
-    expect((await service.create("dos")).status).toBe("created");
+  it("has no limit on how many a person may leave, in a day or in all", async () => {
+    const { service } = petitions();
+    for (let n = 1; n <= 40; n++) {
+      expect((await service.create(`petición ${n}`)).status).toBe("created");
+    }
+    expect(await service.mine()).toHaveLength(40);
   });
 
   it("accepts two characters and rejects one", async () => {
     const { service } = petitions();
     expect((await service.create("a")).status).toBe("empty");
     expect((await service.create("Fe")).status).toBe("created");
-  });
-
-  it("says when the daily limit has been reached", async () => {
-    const { service, advance } = petitions();
-    expect(await service.dailyLimitReached()).toBe(false);
-    await service.create("uno");
-    expect(await service.dailyLimitReached()).toBe(true);
-    advance(DAY + 1);
-    expect(await service.dailyLimitReached()).toBe(false);
-  });
-
-  it("can be given another daily limit", async () => {
-    const { service } = petitions({ petitionsPerDay: Infinity });
-    for (const text of ["uno", "dos", "tres"]) {
-      expect((await service.create(text)).status).toBe("created");
-    }
-    expect(await service.dailyLimitReached()).toBe(false);
   });
 
   it("tells the visitor's petitions from others' by the key kept in the browser", async () => {
@@ -336,23 +311,20 @@ describe("MemoryPetitions: returning to the fire", () => {
     expect(await service.sky()).toHaveLength(1);
   });
 
-  it("keeps the day's petition used", async () => {
-    const { service, advance } = petitions();
+  it("lets the author leave another straight after returning one to the fire", async () => {
+    const { service } = petitions();
     const created = await service.create("uno");
     if (created.status !== "created") throw new Error("not created");
     await service.remove(created.petition.id);
-    expect(await service.dailyLimitReached()).toBe(true);
-    expect((await service.create("dos")).status).toBe("daily-limit");
-    advance(DAY + 1);
     expect((await service.create("dos")).status).toBe("created");
   });
 
-  it("can't remove an answered petition that has expired", async () => {
+  it("can remove its own petition however long ago it was written", async () => {
     const { service, advance } = petitions();
     const created = await service.create("uno");
     if (created.status !== "created") throw new Error("not created");
-    advance(31 * DAY);
-    expect((await service.remove(created.petition.id)).status).toBe("not-found");
+    advance(5 * 365 * 24 * 60 * 60 * 1000);
+    expect((await service.remove(created.petition.id)).status).toBe("removed");
   });
 });
 
@@ -381,42 +353,35 @@ describe("MemoryPetitions: prayers", () => {
   });
 });
 
-describe("MemoryPetitions: expiry", () => {
-  it("drops a petition after 30 days, but keeps an answered one 30 more", async () => {
+describe("MemoryPetitions: no expiry", () => {
+  const YEAR = 365 * 24 * 60 * 60 * 1000;
+
+  it("keeps every petition in the sky, and answered ones too, however much time goes by", async () => {
     const { service, advance } = petitions();
     const first = await service.create("una");
-    const old = service.seedOther("vieja");
+    const other = service.seedOther("ajena");
     if (first.status !== "created") throw new Error("not created");
-    advance(20 * DAY);
+    advance(40 * 24 * 60 * 60 * 1000);
     await service.answer(first.petition.id, "Se dio");
-    // 45 days after it was written, but only 25 after it was answered.
-    advance(25 * DAY);
-    const texts = (await service.sky()).map((petition) => petition.text);
-    expect(texts).toEqual(["una"]);
-    expect((await service.pray(old.id)).status).toBe("not-found");
-    advance(6 * DAY);
-    expect(await service.sky()).toHaveLength(0);
-  });
-});
-
-describe("petitionAvailableAt", () => {
-  const now = 10 * DAY;
-
-  it("is now when nothing was left in the last day", () => {
-    expect(petitionAvailableAt([], now)).toBe(now);
-    expect(petitionAvailableAt([now - DAY - 1], now)).toBe(now);
+    advance(3 * YEAR);
+    expect((await service.sky()).map((petition) => petition.text).sort()).toEqual(["ajena", "una"]);
+    expect((await service.mine()).map((petition) => petition.text)).toEqual(["una"]);
+    expect((await service.pray(other.id)).status).toBe("prayed");
   });
 
-  it("is a day after the one left", () => {
-    expect(petitionAvailableAt([now - 1000], now)).toBe(now - 1000 + DAY);
+  it("lets the author answer a petition long after it was written", async () => {
+    const { service, advance } = petitions();
+    const created = await service.create("uno");
+    if (created.status !== "created") throw new Error("not created");
+    advance(2 * YEAR);
+    expect((await service.answer(created.petition.id, "Se dio")).status).toBe("answered");
   });
 
-  it("never waits when there is no limit", () => {
-    expect(petitionAvailableAt([now - 1, now - 2, now - 3], now, Infinity)).toBe(now);
-  });
-
-  it("waits for the right one to age out when more are allowed", () => {
-    expect(petitionAvailableAt([now - 3000, now - 1000], now, 2)).toBe(now - 3000 + DAY);
+  it("lets someone else report an old petition", async () => {
+    const { service, advance } = petitions();
+    const other = service.seedOther("ajena");
+    advance(2 * YEAR);
+    expect((await service.report(other.id)).status).toBe("reported");
   });
 });
 

@@ -3,13 +3,13 @@
  * brings by itself. Nothing in the app imports this file, so none of it ships.
  */
 import { createRandom } from "@/scene/random";
-import { DAY } from "./limits";
+
+const DAY = 24 * 60 * 60 * 1000;
 import { MemoryDistantFires } from "./memoryDistantFires";
 import { MemoryFire } from "./memoryFire";
 import { MemoryPetitions } from "./memoryPetitions";
 import { MemoryPresence } from "./memoryPresence";
 import { MemoryRituals } from "./memoryRituals";
-import { isAlive } from "./sky";
 import type { DistantFire, Person, Petition, RitualKind } from "./types";
 import { BrowserKeyStore, type KeyStore } from "./keyStore";
 import { randomKey } from "./randomKey";
@@ -61,7 +61,7 @@ export class TestPetitions extends MemoryPetitions {
   /** Someone else is with one of the visitor's petitions. */
   simulateAccompany(id: string): boolean {
     const record = this.records.get(id);
-    if (!record || !isAlive(record, this.options.now()) || !this.isMine(record)) return false;
+    if (!record || !this.isMine(record)) return false;
     record.prayers++;
     const petition = this.view(record);
     this.events.emit({ type: "accompanied", petition });

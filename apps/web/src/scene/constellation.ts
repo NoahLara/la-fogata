@@ -301,24 +301,62 @@ export interface ConstellationStar extends ClusterStar {
 
 /**
  * The thin lines of the constellation: each star is joined to its nearest earlier star, so the lines form a tree, not a
- * chain. The first star has no line of its own, so a single petition has none (its glow identifies it). A star that
- * isn't in the sky (it went back to the fire) has no line, and its children are joined to the nearest star above them
- * that is. Other people's stars never get lines.
+ * chain. The first star has no line of its own, so a single petition has none (its glow identifies it). Other people's
+ * stars never get lines.
+ *
+ * A star that isn't in the sky (it went back to the fire) takes its lines with it, and the constellation must not
+ * fall apart: every line between stars that are still there stays as it was, and the pieces that are left (the
+ * children of a star that left, say) are joined to each other, each time by the shortest line that crosses no
+ * other (the shortest of all if every one crosses). However many stars leave, the ones that are left are always one
+ * constellation.
  */
 export function constellationLines(
   stars: readonly ConstellationStar[],
   present: ReadonlySet<string>,
 ): [Point, Point][] {
-  const lines: [Point, Point][] = [];
-  for (const star of stars) {
-    if (!present.has(star.id)) continue;
-    let parent = star.parent;
-    while (parent !== undefined && !present.has(stars[parent]?.id ?? ""))
-      parent = stars[parent]?.parent;
-    const from = parent === undefined ? undefined : stars[parent];
-    if (from) lines.push([from.spot, star.spot]);
+  const alive: number[] = [];
+  stars.forEach((star, index) => {
+    if (present.has(star.id)) alive.push(index);
+  });
+  const spot = (index: number) => (stars[index] as ConstellationStar).spot;
+
+  // 1. Each star keeps its line to its nearest earlier star, if that one is still in the sky.
+  const edges: [number, number][] = [];
+  for (const index of alive) {
+    const parent = stars[index]?.parent;
+    if (parent !== undefined && present.has(stars[parent]?.id ?? "")) edges.push([parent, index]);
   }
-  return lines;
+
+  // 2. The pieces that are left, joined one by one through the shortest line that crosses no other.
+  const piece = new Map<number, number>(alive.map((index) => [index, index]));
+  const rootOf = (index: number): number => {
+    let root = index;
+    while (piece.get(root) !== root) root = piece.get(root) as number;
+    return root;
+  };
+  for (const [from, to] of edges) piece.set(rootOf(from), rootOf(to));
+  const crossesAny = (a: number, b: number) =>
+    edges.some(([c, d]) => segmentsCross(spot(a), spot(b), spot(c), spot(d)));
+  for (let pieces = new Set(alive.map(rootOf)).size; pieces > 1; pieces--) {
+    let best: { a: number; b: number; crosses: boolean; length: number } | undefined;
+    for (const a of alive) {
+      for (const b of alive) {
+        if (b <= a || rootOf(a) === rootOf(b)) continue;
+        const candidate = { a, b, crosses: crossesAny(a, b), length: distance(spot(a), spot(b)) };
+        if (
+          !best ||
+          Number(candidate.crosses) < Number(best.crosses) ||
+          (candidate.crosses === best.crosses && candidate.length < best.length)
+        ) {
+          best = candidate;
+        }
+      }
+    }
+    if (!best) break;
+    edges.push([best.a, best.b]);
+    piece.set(rootOf(best.a), rootOf(best.b));
+  }
+  return edges.map(([from, to]) => [spot(from), spot(to)]);
 }
 
 /** The x of the middle of the constellation: where the sky is turned so it sits in the screen's middle. */

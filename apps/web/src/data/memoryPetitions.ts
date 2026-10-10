@@ -9,11 +9,9 @@ import {
   PETITION_ANSWER_MAX_LENGTH,
   PETITION_MAX_LENGTH,
   PETITION_MIN_LENGTH,
-  PETITIONS_PER_DAY,
-  petitionAvailableAt,
   PRAYERS_PER_SESSION,
 } from "./limits";
-import { isAlive, pickSky } from "./sky";
+import { pickSky } from "./sky";
 import type {
   AnswerPetitionResult,
   CreatePetitionResult,
@@ -34,8 +32,6 @@ export interface PetitionOptions {
   newId: () => string;
   newKey: () => string;
   prayersPerSession?: number;
-  /** Petitions a day. */
-  petitionsPerDay?: number;
 }
 
 export interface Stored {
@@ -50,7 +46,8 @@ export interface Stored {
 
 /**
  * Petitions and prayers kept in this browser, following the same rules the server will. There is no moderation
- * queue here: a petition that is not a risk is shown at once.
+ * queue here: a petition that is not a risk is shown at once. Petitions don't expire and there is no limit on how
+ * many a person may leave: one stays until its author returns it to the fire.
  */
 export class MemoryPetitions implements PetitionService, PrayerService {
   protected readonly records = new Map<string, Stored>();
@@ -59,26 +56,19 @@ export class MemoryPetitions implements PetitionService, PrayerService {
   /** What the visitor reported: kept for review (the database will hold them) and hidden from their sky. */
   private readonly reported = new Set<string>();
   private prayerTaps = 0;
-  /** When the visitor made each petition: only the moments, never the text, so returning one doesn't give the day's back. */
-  private readonly madeAt: number[] = [];
 
   constructor(protected readonly options: PetitionOptions) {}
 
   async sky(limit?: number): Promise<readonly Petition[]> {
-    const shown = this.living().filter((record) => !this.reported.has(record.id));
-    const alive = pickSky(shown, this.options.now(), this.options.rand, limit);
-    return alive.map((record) => this.view(record));
+    const shown = [...this.records.values()].filter((record) => !this.reported.has(record.id));
+    return pickSky(shown, this.options.rand, limit).map((record) => this.view(record));
   }
 
   async mine(): Promise<readonly Petition[]> {
-    return this.living()
+    return [...this.records.values()]
       .filter((record) => this.isMine(record))
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((record) => this.view(record));
-  }
-
-  async dailyLimitReached(): Promise<boolean> {
-    return this.limitReached();
   }
 
   async create(text: string): Promise<CreatePetitionResult> {
@@ -89,9 +79,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     if (hasRiskSignals(clean)) return { status: "risk" };
     const verdict = checkContent(clean);
     if (!verdict.ok) return { status: "rejected", reason: verdict.reason };
-    if (this.limitReached()) return { status: "daily-limit" };
     const record = this.add(clean, this.ownerKey());
-    this.madeAt.push(record.createdAt);
     const petition = this.view(record);
     this.events.emit({ type: "added", petition });
     return { status: "created", petition };
@@ -99,7 +87,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
 
   async answer(id: string, note: string): Promise<AnswerPetitionResult> {
     const record = this.records.get(id);
-    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (!record) return { status: "not-found" };
     if (!this.isMine(record)) return { status: "not-yours" };
     if (record.answered) return { status: "already-answered" };
     const line = note.trim();
@@ -116,7 +104,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
 
   async remove(id: string): Promise<RemovePetitionResult> {
     const record = this.records.get(id);
-    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (!record) return { status: "not-found" };
     if (!this.isMine(record)) return { status: "not-yours" };
     this.records.delete(id);
     this.prayedFor.delete(id);
@@ -126,7 +114,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
 
   async report(id: string): Promise<ReportPetitionResult> {
     const record = this.records.get(id);
-    if (!record || !isAlive(record, this.options.now())) return { status: "not-found" };
+    if (!record) return { status: "not-found" };
     if (this.isMine(record)) return { status: "own" };
     this.reported.add(id);
     this.events.emit({ type: "hidden", id });
@@ -140,8 +128,7 @@ export class MemoryPetitions implements PetitionService, PrayerService {
 
   async pray(petitionId: string): Promise<PrayResult> {
     const record = this.records.get(petitionId);
-    if (!record || !isAlive(record, this.options.now()) || this.reported.has(petitionId))
-      return { status: "not-found" };
+    if (!record || this.reported.has(petitionId)) return { status: "not-found" };
     if (this.isMine(record)) return { status: "own" };
     if (this.prayedFor.has(petitionId))
       return { status: "already-prayed", prayers: record.prayers };
@@ -169,17 +156,6 @@ export class MemoryPetitions implements PetitionService, PrayerService {
     };
     this.records.set(record.id, record);
     return record;
-  }
-
-  private limitReached(): boolean {
-    const now = this.options.now();
-    const perDay = this.options.petitionsPerDay ?? PETITIONS_PER_DAY;
-    return petitionAvailableAt(this.madeAt, now, perDay) > now;
-  }
-
-  private living(): Stored[] {
-    const now = this.options.now();
-    return [...this.records.values()].filter((record) => isAlive(record, now));
   }
 
   /** The visitor's secret key, made the first time it is needed. */

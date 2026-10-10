@@ -12,10 +12,9 @@ import { HelpScreen } from "../help/HelpScreen";
 import { BurdenDialog } from "./BurdenDialog";
 import { BurdenIcon, PetitionIcon, WoodIcon } from "./icons";
 import { PetitionDialog } from "./PetitionDialog";
-import { PetitionLimit } from "./PetitionLimit";
 import { useInteraction } from "../scene/Interaction";
 
-type Dialog = "burden" | "petition" | "limit" | "help" | undefined;
+type Dialog = "burden" | "petition" | "help" | undefined;
 
 const NOTICE_MS = 3000;
 /** How long "Ya brilla en tu cielo." stays on screen. */
@@ -38,7 +37,7 @@ function Gesture({
   disabled = false,
 }: {
   /** What the button is, so focus can be given back to it. */
-  name: Exclude<Dialog, undefined | "help" | "limit"> | "wood";
+  name: Exclude<Dialog, undefined | "help"> | "wood";
   icon: ReactNode;
   label: string;
   aria: string;
@@ -229,12 +228,11 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
     focusGesture(opener.current);
   };
 
-  const openPetition = async () => {
+  const openPetition = () => {
     if (ritual) return;
     opener.current = "petition";
     setSheetNotice(undefined);
-    // Already left one today: a gentle word instead of the form.
-    setDialog((await petitions.dailyLimitReached()) ? "limit" : "petition");
+    setDialog("petition");
   };
 
   /**
@@ -264,10 +262,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
       return false;
     }
     const result = await petitions.create(text);
-    if (result.status === "daily-limit") {
-      setDialog("limit");
-      return false;
-    }
     if (result.status === "rejected") {
       setSheetNotice(rejectionMessage(result.reason, t.moderation));
       return false;
@@ -381,7 +375,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
           onClose={close}
         />
       )}
-      {dialog === "limit" && <PetitionLimit onClose={close} />}
       {dialog === "help" && <HelpScreen kind={helpFor} onClose={close} />}
     </>
   );

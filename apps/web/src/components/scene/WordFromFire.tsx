@@ -1,19 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useServices } from "@/data/DataProvider";
 import { createPausableTimer, type PausableTimer } from "@/fire/pausableTimer";
 import { browserSeenStore, createWordBag, type WordBag } from "@/fire/wordBag";
 import { createTriggers, type Triggers } from "@/fire/triggers";
 import { TRIGGER_THEME, type TriggerEvent } from "@/fire/triggerPolicy";
-import {
-  contextualWordsFor,
-  fullVerseNumber,
-  textOf,
-  verseNumber,
-  wordsFor,
-  type Word,
-} from "@/fire/words";
+import { contextualWordsFor, fullVerseNumber, textOf, wordsFor, type Word } from "@/fire/words";
 import { format } from "@/i18n/format";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { FogataScene } from "@/scene/createScene";
@@ -60,8 +53,9 @@ function motionStyle(phase: Phase, rise: number, reduced: boolean): React.CSSPro
 
 /**
  * The fire as a button: an invisible target over the flames. Touching it flares the fire and a short word rises
- * from it, as real text floating in the sky above the trees. Only a tiny verse number shows; the full reference
- * and the translation notice appear when the visitor taps that number.
+ * from it, as real text floating in the sky above the trees. Only the words show, with no number. The words are a
+ * button too: tapping them shows where they come from (the reference and the translation notice), and tapping
+ * again hides it.
  */
 export function WordFromFire({ scene }: { scene: FogataScene }) {
   const { t, locale } = useI18n();
@@ -258,7 +252,8 @@ export function WordFromFire({ scene }: { scene: FogataScene }) {
     if (word && text === undefined) dismiss();
   }, [word, text, dismiss]);
 
-  const number = word ? verseNumber(word, locale) : "";
+  const hintId = useId();
+  const referenceId = useId();
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
@@ -290,25 +285,26 @@ export function WordFromFire({ scene }: { scene: FogataScene }) {
               aria-hidden="true"
               className="pointer-events-none absolute -inset-x-10 -inset-y-8 -z-10 bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--color-night)_75%,transparent)_35%,transparent)] blur-md"
             />
-            <p
-              data-testid="fire-word"
-              className={`font-title text-lg text-ember-soft italic sm:text-xl ${SHADOW}`}
-            >
-              {text}
-            </p>
             <button
               type="button"
               aria-expanded={revealed}
-              aria-label={format(revealed ? t.fire.hideReference : t.fire.showReference, {
-                number,
-              })}
+              aria-controls={revealed ? referenceId : undefined}
+              aria-describedby={hintId}
               onClick={() => setRevealed((open) => !open)}
-              className={`mt-1 min-h-6 min-w-6 cursor-pointer rounded-full px-2 text-xs text-ember-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${SHADOW}`}
+              className="cursor-pointer rounded-sm px-1 text-center decoration-ember-soft/50 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
             >
-              {number}
+              <span
+                data-testid="fire-word"
+                className={`font-title block text-lg text-ember-soft italic sm:text-xl ${SHADOW}`}
+              >
+                {text}
+              </span>
             </button>
+            <span id={hintId} className="sr-only">
+              {t.fire.referenceHint}
+            </span>
             {revealed && (
-              <div className={`mt-1 space-y-1 text-xs text-ember-soft ${SHADOW}`}>
+              <div id={referenceId} className={`mt-1 space-y-1 text-xs text-ember-soft ${SHADOW}`}>
                 <p>
                   {format(t.fire.reference, {
                     book: t.books[word.ref.book],
