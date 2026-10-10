@@ -214,16 +214,16 @@ export const es = {
     stepsLabel: "Pasos",
     steps: {
       forest: {
-        title: "Un fuego en el bosque",
-        body: "Aquí no se habla: se acompaña. Quienes se sientan contigo son animales, sin nombre ni rostro. Y si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
+        title: "¡Bienvenidos!",
+        body: "Esto es un fuego en el bosque, de noche. Aquí no se habla: se acompaña. Quienes se sientan contigo son personajes, sin nombre ni rostro. Y si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
       },
       wood: {
         title: "Echa leña",
-        body: "Toca el botón del centro y tu animal lanza un tronco. El fuego crece, se va apagando solo, y todos los que están contigo ven cuando alguien echa leña.",
+        body: "Toca el botón del centro y tu personaje lanza un tronco. El fuego crece, se va apagando solo, y todos los que están contigo ven cuando alguien echa leña.",
       },
       burden: {
         title: "Entrega una carga",
-        body: "Escribe lo que te pesa y entrégaselo al fuego: se quema. Lo que escribes nunca sale de tu navegador, ni se envía ni se guarda. Los demás ven a tu animal llevarla a las brasas, pero nunca lo que dice.",
+        body: "Escribe lo que te pesa y entrégaselo al fuego: se quema. Lo que escribes nunca sale de tu navegador, ni se envía ni se guarda. Los demás ven a tu personaje llevarla a las brasas, pero nunca lo que dice.",
       },
       petition: {
         title: "Deja una petición",
@@ -231,11 +231,11 @@ export const es = {
       },
       sky: {
         title: "Tu cielo",
-        body: "Tus estrellas forman tu constelación, y un halo suave las distingue de las demás. Tócalas para leerlas. El cielo gira despacio y trae estrellas de otras personas: sin nombres, solo luz.",
+        body: "El cielo está hecho de las peticiones de todas las personas que han pasado por la fogata. Las estrellas que titilan son peticiones ya respondidas: están ahí para darte ánimo. Las que brillan quietas todavía esperan una respuesta.",
       },
       answered: {
         title: "Cuando se cumple",
-        body: "Si lo que pediste se cumple, vuelve, toca tu estrella y márcala como respondida. Cuenta en una línea cómo ocurrió: la estrella empezará a titilar.",
+        body: "Si lo que pediste se cumple, vuelve, toca tu estrella y márcala como respondida. Cuenta cómo ocurrió.",
       },
       company: {
         title: "Acompaña a otros",
@@ -243,7 +243,7 @@ export const es = {
       },
       word: {
         title: "Y unas palabras",
-        body: "Toca el fuego y recibirás unas palabras breves; tócalas para ver de dónde vienen. La Fogata te acompaña, pero no reemplaza la ayuda profesional: si lo necesitas, busca a alguien que pueda ayudarte.",
+        body: "Toca el fuego y recibirás unas palabras breves. La Fogata te acompaña, pero no reemplaza la ayuda profesional: si lo necesitas, busca a alguien que pueda ayudarte.",
       },
     },
   },
