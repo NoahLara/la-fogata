@@ -13,17 +13,19 @@
 
 Hay noches en que lo que pesa no cabe en una conversación. No quieres explicarle nada a nadie, pero tampoco quieres estar solo. La Fogata es un lugar para esas noches.
 
-Te sientas junto a un fuego, de noche, en el bosque. Hay otras personas sentadas contigo, siempre de forma anónima: son animales, no perfiles. Nadie habla. Se acompañan.
+Te sientas junto a un fuego, de noche, en el bosque. Hay otras personas sentadas contigo, siempre de forma anónima: son personajes, no perfiles. Nadie habla. Se acompañan.
+
+**La Fogata es un lugar para orar y para acompañarse.** Puedes entrar a orar por tus peticiones, o simplemente estar presente: acompañar, quedarte aquí, animarte con lo que otros piden y con las respuestas que reciben. Orar es una invitación, nunca una obligación, y todos son bienvenidos, creas lo que creas.
 
 ## Qué puedes hacer
 
 Solo hay tres gestos, y a propósito no hay más.
 
 - **Echar leña.** El fuego crece con cada tronco y se va apagando solo. Todos los que están contigo lo ven.
-- **Entregar una carga.** Escribes lo que te pesa y el fuego lo quema. Lo que escribes nunca sale de tu navegador: no se envía, no se guarda y nadie lo lee, ni siquiera yo.
-- **Dejar una petición.** Se eleva con el humo y se vuelve una estrella en el cielo. Puedes dejar las que quieras. Cuando se cumple, vuelves a tu estrella y lo cuentas.
+- **Entregar una carga.** Escribes lo que te pesa y el fuego lo quema, como una oración que se suelta. Lo que escribes nunca sale de tu navegador: no se envía, no se guarda y nadie lo lee, ni siquiera yo.
+- **Dejar una petición.** Es tu oración: se eleva con el humo y se vuelve una estrella en el cielo. Puedes dejar las que quieras. Cuando se cumple, vuelves a tu estrella y lo cuentas, y tu historia anima a quien todavía espera.
 
-Y dos cosas más: tocar el fuego para recibir unas palabras breves, y tocar la estrella de otra persona para decirle, con un pez, que estás con ella. Sin saber quién es. Ella sin saber quién eres tú.
+Y dos cosas más: tocar el fuego para recibir unas palabras breves, y tocar la estrella de otra persona para orar por ella y decirle, con un pez, que estás con ella. Sin saber quién es. Ella sin saber quién eres tú.
 
 ## Lo que La Fogata nunca va a tener
 
@@ -40,7 +42,7 @@ No es una red social y no quiere serlo. Nada en ella te pide volver: está ahí 
 
 ## Por qué existe
 
-La hice porque creo que acompañarse no necesita palabras bonitas ni soluciones: a veces basta con saber que no eres la única persona despierta.
+La hice para que hubiera un lugar donde orar sin tener que explicarle nada a nadie, y donde nadie esté solo mientras lo hace. A veces no hacen falta palabras bonitas ni soluciones: basta con saber que no eres la única persona despierta, y que alguien más está ahí contigo.
 
 No reemplaza a un profesional ni a la gente que te quiere. Si estás pasando por algo muy duro, busca ayuda: en [findahelpline.com](https://findahelpline.com) hay líneas de apoyo en casi cualquier país.
 

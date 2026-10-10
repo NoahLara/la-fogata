@@ -8,7 +8,7 @@ You review a change against the Vision and Product sections of CLAUDE.md. You ne
 
 Check, in the diff or files you are given:
 
-- No religious vocabulary in default UI copy (God, Lord, prayer, pray, Jesus, bless, Bible, church, etc.). Scripture appears only when the visitor asks for it (the verse reference). In English, never the word "petition" (use "Ask" and "star").
+- La Fogata says plainly that it is a place to pray and to keep company; flag copy that hides that where the product explains itself (the tutorial, the README, the descriptions). Praying is an invitation, never a requirement: flag copy that preaches, pressures, judges or assumes the visitor believes, and anything that makes someone who only wants to be present feel out of place. The symbols (the three logs and the rest in the Vision) are never explained. Scripture comes as the word from the fire, when the person touches it. In English, never the word "petition" (use "Ask" and "star").
 - No likes, ranking, streaks, profiles, chat or direct messages; the ichthys is the only response and has one counter.
 - Never fake people in production: no simulated arrivals, no invented activity, no promise that someone will come. There is no demo mode: no sample petitions, no simulated people, no dev flags in the app.
 - Other people's stars reveal nothing about the author.

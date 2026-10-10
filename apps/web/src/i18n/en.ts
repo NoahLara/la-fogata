@@ -5,7 +5,7 @@ export const en = {
   meta: {
     title: "La Fogata",
     description:
-      "A free, anonymous campfire for hard nights. Throw wood, hand over what weighs on you, and leave an ask that becomes a star. No chat, no profiles.",
+      "A free, anonymous campfire to pray and keep company on hard nights. Throw wood, hand over what weighs on you, and leave an ask that becomes a star. No chat, no profiles.",
   },
   scene: {
     ariaLabel: "A campfire at night, with people sitting around it.",
@@ -205,31 +205,31 @@ export const en = {
     steps: {
       forest: {
         title: "Welcome!",
-        body: "This is a fire in the woods, at night. Nobody talks here: you keep each other company. The people who sit with you are characters, with no name or face. And if you see another campfire glowing far off between the trees, it means there are more people in the woods.",
+        body: "La Fogata is a place to pray and to keep company. Come in to pray for your asks, or simply stay: being present, keeping company and taking heart from what others ask and the answers they receive is part of this too. Everyone is welcome, whatever you believe.",
       },
       wood: {
         title: "Throw wood",
-        body: "Tap the button in the middle and your character throws a log. The fire grows and slowly dies down on its own, and everyone sitting with you sees when someone throws wood.",
+        body: "Tap the button in the middle and your character throws a log: your way of saying “I'm here”. The fire grows and slowly dies down on its own, and everyone sitting with you sees it. If you see another campfire glowing far off between the trees, it means there are more people in the woods.",
       },
       burden: {
         title: "Hand over a burden",
-        body: "Write what weighs on you and hand it to the fire: it burns. What you write never leaves your browser: it isn't sent or stored. The others see your character carry it to the embers, but never what it says.",
+        body: "Write what weighs on you and hand it to the fire, like a prayer you let go of: it burns. What you write never leaves your browser: it isn't sent or stored. The others see your character carry it to the embers, but never what it says.",
       },
       petition: {
         title: "Leave an ask",
-        body: "Tell the sky what you hope for: your ask rises with the smoke and becomes a star. Leave as many as you like.",
+        body: "Tell the sky what you hope for: your ask rises with the smoke and becomes a star. It is your prayer, in view of everyone who passes by the fire, and with no name. Leave as many as you like.",
       },
       sky: {
         title: "Your sky",
-        body: "The sky is made of the asks of everyone who has been by the fire. The stars that twinkle are asks that have been answered: they are there to cheer you on. The ones that shine steady are still waiting for an answer.",
+        body: "The sky is made of the asks of everyone who has been by the fire. The stars that twinkle are asks that have been answered: they are there to cheer you on and remind you that it is worth waiting. The ones that shine steady are still waiting for an answer: you can pray for them.",
       },
       answered: {
         title: "When it comes true",
-        body: "If what you asked for comes true, come back, tap your star and mark it as answered. Tell how it happened.",
+        body: "If what you asked for comes true, come back, tap your star and mark it as answered. Tell how it happened: your story encourages someone who is still waiting.",
       },
       company: {
-        title: "Keep others company",
-        body: "Tap someone else's star, then the fish: you let them know you are with them, without them knowing who you are. If something shouldn't be there, the little flag lets you say so.",
+        title: "Pray and keep company",
+        body: "Tap someone else's star, then the fish: it is your prayer for them, and it lets them know someone is with them, without them knowing who you are. If something shouldn't be there, the little flag lets you say so.",
       },
       word: {
         title: "And a few words",
@@ -242,7 +242,7 @@ export const en = {
     intro: "There are only a few rules, written plainly. Take your time.",
     company: {
       heading: "Company, not professional help",
-      body: "La Fogata keeps you company, but it isn't therapy, medical care or an emergency service, and it doesn't replace professional help. If you're in danger or thinking of hurting yourself, please reach out for help right now.",
+      body: "La Fogata is a place to pray and keep company, but it isn't therapy, medical care or an emergency service, and it doesn't replace professional help. If you're in danger or thinking of hurting yourself, please reach out for help right now.",
     },
     age: {
       heading: "Age",

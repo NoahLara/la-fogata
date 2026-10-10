@@ -100,14 +100,50 @@ describe("what the tutorial says", () => {
     expect(text(messages)).not.toMatch(/30|al día|por día|a day|per day|each day|expir|caduc/i);
   });
 
-  // The product is never explicit about where it comes from, and never preaches: the words stay neutral.
+  // La Fogata is a place to pray and to keep company, and the tutorial says so plainly, at the very start.
   it.each([
     ["es", es],
     ["en", en],
-  ])("uses no religious vocabulary in %s", (_language, messages) => {
+  ])(
+    "opens by saying it is a place to pray and to keep company, and that all are welcome, in %s",
+    (_language, messages) => {
+      const welcome = messages.tutorial.steps.forest.body;
+      expect(welcome).toMatch(/orar|pray/i);
+      expect(welcome).toMatch(/acompa[ñn]arse|keep company/i);
+      expect(welcome).toMatch(/presente|present/i);
+      expect(welcome).toMatch(/creas lo que creas|whatever you believe/i);
+    },
+  );
+
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])(
+    "speaks of prayer where it happens: the burden, the petition, the sky and the fish, in %s",
+    (_language, messages) => {
+      for (const step of ["burden", "petition", "sky", "company"] as const) {
+        expect(messages.tutorial.steps[step].body, step).toMatch(/oraci[oó]n|orar|\bora\b|pray/i);
+      }
+    },
+  );
+
+  // Praying is an invitation, never a requirement: being present is enough, and nothing preaches or pressures.
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])("invites and never preaches or demands, in %s", (_language, messages) => {
+    expect(messages.tutorial.steps.forest.body).toMatch(/simplemente|simply/i);
     expect(text(messages)).not.toMatch(
-      /\b(orar|oraci[oó]n|rezar|ruega|dios|se[ñn]or|jes[uú]s|cristo|trinidad|b[ií]blic|santo|pray|prayer|god|lord|jesus|christ|trinity|bible|holy)\b/i,
+      /\b(debes|tienes que|deber[ií]as|est[aá]s obligad|must|you have to|you should|have to)\b/i,
     );
+  });
+
+  // The symbols are never explained.
+  it.each([
+    ["es", es],
+    ["en", en],
+  ])("does not explain the symbols (the three logs, the Trinity), in %s", (_language, messages) => {
+    expect(text(messages)).not.toMatch(/trinidad|tres troncos|three logs|trinity/i);
   });
 
   it.each([

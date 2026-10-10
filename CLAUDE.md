@@ -1,6 +1,6 @@
 # La Fogata
 
-A nocturnal, anonymous web space where people sit around a campfire in real time. It is not a chat: people throw wood, hand over what weighs on them, and leave petitions that become stars. Built to keep people company on hard nights.
+A nocturnal, anonymous web space where people sit around a campfire in real time. It is not a chat: people throw wood, hand over what weighs on them, and leave petitions that become stars. Built to keep people company on hard nights, and to be a place to pray.
 
 Visual and interaction reference: `docs/prototype/la-fogata.html` (open it in a browser). Match its look and feel.
 
@@ -18,13 +18,17 @@ This file holds the core rules. Area guidance loads on demand from `.claude/rule
   - A petition rises from the fire and becomes a star in one shared sky: up to 2000 characters (a letter; a burden up to 3000, an answer up to 2000), dated with the day it was written and the day it was answered (only the day), moderated before it is shown. There is no limit on how many a person may leave and they do not expire: a star stays until its author returns it to the fire. Ownership is a secret key kept in the browser; no accounts.
   - Other people's stars show no author information, ever. The ichthys is the only response (one counter, no likes, no ranking).
 - Touch the fire for a short verse (TLA es / WEB en, curated list in `apps/web/src/fire/words.ts`). Only the words show, with no number; tapping the words shows where they come from.
-- The first time, after accepting the terms, a short tutorial (`components/tutorial/`, `tutorial/tutorial.ts`) says what La Fogata is and what can be done in it, one step at a time with a small drawing of each; it can be skipped, is remembered (`fogata:tutorial`), and can be opened again from the settings. It stays neutral: no religious vocabulary, no promise of rules that do not exist (a test guards both).
+- The first time, after accepting the terms, a short tutorial (`components/tutorial/`, `tutorial/tutorial.ts`) says what La Fogata is and what can be done in it, one step at a time with a small drawing of each; it can be skipped, is remembered (`fogata:tutorial`), and can be opened again from the settings. It says plainly that La Fogata is a place to pray and to keep company, and that everyone is welcome whatever they believe, and it promises no rules that do not exist (a test guards both).
 - No chat, no direct messages, no profiles, no likes, no streaks.
 - Never simulate fake people in production. When you are alone, the scene shows the stars and any real distant fires, and never says anyone will come.
 
-## Vision (never shown explicitly in the UI)
+## Vision
 
-La Fogata is quietly inspired by Christian faith. It never says so; the meaning lives in symbols for those who look:
+La Fogata is a place to pray and to keep company, and it says so plainly. It is for coming in and praying for your petitions, or for simply being present: accompanying, being here, taking heart from other people's petitions and from the answers they receive. It is inspired by Christian faith, and that is no secret kept from the visitor: the tutorial, the README, the release notes and the descriptions all say what it is for.
+
+Praying is an invitation, never a requirement. Everyone is welcome whatever they believe, and being present is as much a part of La Fogata as praying.
+
+The symbols still live quietly; they are not explained:
 
 - The teepee's three main logs: the Trinity
 - Throwing wood to keep the fire alive: drawing near to God (Leviticus 6:13)
@@ -37,7 +41,7 @@ La Fogata is quietly inspired by Christian faith. It never says so; the meaning 
 - Matthew 7:7: Pídelo (ask and it will be given to you)
 - The shooting star: an answered prayer, and a burden that has burned
 
-Rules: never preach, no religious vocabulary in the default UI, everyone is welcome whatever they believe, Scripture only when the user asks for it.
+Rules: say clearly that it is a place to pray and to keep company; never preach (no sermons, no pressure, no judging, no assuming belief); everyone is welcome whatever they believe; do not explain the symbols; Scripture comes as the word from the fire, when the person touches it.
 
 ## Safety (non-negotiable)
 

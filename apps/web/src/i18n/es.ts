@@ -3,7 +3,7 @@ export const es = {
   meta: {
     title: "La Fogata",
     description:
-      "Una fogata anónima y gratuita para las noches difíciles. Echa leña, entrega lo que te pesa y deja una petición que se vuelve estrella. Sin chat, sin perfiles.",
+      "Una fogata anónima y gratuita para orar y acompañarse en las noches difíciles. Echa leña, entrega lo que te pesa y deja una petición que se vuelve estrella. Sin chat, sin perfiles.",
   },
   scene: {
     ariaLabel: "Una fogata de noche con personas sentadas alrededor.",
@@ -215,31 +215,31 @@ export const es = {
     steps: {
       forest: {
         title: "¡Bienvenidos!",
-        body: "Esto es un fuego en el bosque, de noche. Aquí no se habla: se acompaña. Quienes se sientan contigo son personajes, sin nombre ni rostro. Y si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
+        body: "La Fogata es un lugar para orar y para acompañarse. Entra a orar por tus peticiones, o simplemente quédate: estar presente, acompañar y animarte con lo que otros piden y con las respuestas que reciben también es parte de esto. Todos son bienvenidos, creas lo que creas.",
       },
       wood: {
         title: "Echa leña",
-        body: "Toca el botón del centro y tu personaje lanza un tronco. El fuego crece, se va apagando solo, y todos los que están contigo ven cuando alguien echa leña.",
+        body: "Toca el botón del centro y tu personaje lanza un tronco: es tu manera de decir «aquí estoy». El fuego crece y se va apagando solo, y todos los que están contigo lo ven. Si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
       },
       burden: {
         title: "Entrega una carga",
-        body: "Escribe lo que te pesa y entrégaselo al fuego: se quema. Lo que escribes nunca sale de tu navegador, ni se envía ni se guarda. Los demás ven a tu personaje llevarla a las brasas, pero nunca lo que dice.",
+        body: "Escribe lo que te pesa y entrégaselo al fuego, como una oración que se suelta: se quema. Lo que escribes nunca sale de tu navegador, ni se envía ni se guarda. Los demás ven a tu personaje llevarla a las brasas, pero nunca lo que dice.",
       },
       petition: {
         title: "Deja una petición",
-        body: "Cuéntale al cielo lo que esperas: tu petición sube con el humo y se vuelve una estrella. Puedes dejar todas las que quieras.",
+        body: "Cuéntale al cielo lo que esperas: tu petición sube con el humo y se vuelve una estrella. Es tu oración, a la vista de quienes pasan por la fogata y sin tu nombre. Puedes dejar todas las que quieras.",
       },
       sky: {
         title: "Tu cielo",
-        body: "El cielo está hecho de las peticiones de todas las personas que han pasado por la fogata. Las estrellas que titilan son peticiones ya respondidas: están ahí para darte ánimo. Las que brillan quietas todavía esperan una respuesta.",
+        body: "El cielo está hecho de las peticiones de todas las personas que han pasado por la fogata. Las estrellas que titilan son peticiones ya respondidas: están ahí para darte ánimo y recordarte que vale la pena esperar. Las que brillan quietas todavía esperan una respuesta: puedes orar por ellas.",
       },
       answered: {
         title: "Cuando se cumple",
-        body: "Si lo que pediste se cumple, vuelve, toca tu estrella y márcala como respondida. Cuenta cómo ocurrió.",
+        body: "Si lo que pediste se cumple, vuelve, toca tu estrella y márcala como respondida. Cuenta cómo ocurrió: tu historia anima a quien aún espera.",
       },
       company: {
-        title: "Acompaña a otros",
-        body: "Toca la estrella de otra persona y luego el pez: le haces saber que estás con ella, sin que sepa quién eres. Si algo no debería estar ahí, la banderita sirve para avisar.",
+        title: "Ora y acompaña",
+        body: "Toca la estrella de otra persona y luego el pez: es tu oración por ella, y le haces saber que alguien está con ella, sin que sepa quién eres. Si algo no debería estar ahí, la banderita sirve para avisar.",
       },
       word: {
         title: "Y unas palabras",
@@ -252,7 +252,7 @@ export const es = {
     intro: "Son pocas reglas, escritas claras. Léelas con calma.",
     company: {
       heading: "Compañía, no ayuda profesional",
-      body: "La Fogata te acompaña, pero no es terapia, ni atención médica, ni un servicio de emergencia, y no reemplaza la ayuda profesional. Si estás en peligro o piensas en hacerte daño, busca ayuda ahora mismo.",
+      body: "La Fogata es un lugar para orar y acompañarse, pero no es terapia, ni atención médica, ni un servicio de emergencia, y no reemplaza la ayuda profesional. Si estás en peligro o piensas en hacerte daño, busca ayuda ahora mismo.",
     },
     age: {
       heading: "Edad",

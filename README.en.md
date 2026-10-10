@@ -13,17 +13,19 @@
 
 There are nights when what weighs on you doesn't fit into a conversation. You don't want to explain it to anyone, but you don't want to be alone either. La Fogata is a place for those nights.
 
-You sit by a fire, at night, in the woods. Other people sit with you, always anonymous: they are animals, not profiles. Nobody talks. They keep each other company.
+You sit by a fire, at night, in the woods. Other people sit with you, always anonymous: they are characters, not profiles. Nobody talks. They keep each other company.
+
+**La Fogata is a place to pray and to keep company.** Come in to pray for your asks, or simply be present: keep company, stay here, take heart from what others ask and from the answers they receive. Praying is an invitation, never an obligation, and everyone is welcome, whatever you believe.
 
 ## What you can do
 
 There are only three gestures, and that is on purpose.
 
 - **Throw wood.** The fire grows with every log and slowly dies down on its own. Everyone sitting with you sees it.
-- **Hand over a burden.** You write what weighs on you and the fire burns it. What you write never leaves your browser: it isn't sent, it isn't stored, and nobody reads it, not even me.
-- **Leave an ask.** It rises with the smoke and becomes a star in the sky. Leave as many as you like. When it comes true, you go back to your star and tell how it happened.
+- **Hand over a burden.** You write what weighs on you and the fire burns it, like a prayer you let go of. What you write never leaves your browser: it isn't sent, it isn't stored, and nobody reads it, not even me.
+- **Leave an ask.** It is your prayer: it rises with the smoke and becomes a star in the sky. Leave as many as you like. When it comes true, you go back to your star and tell how it happened, and your story encourages someone who is still waiting.
 
-And two more things: touch the fire to receive a few short words, and touch someone else's star to tell them, with a fish, that you are with them. Without knowing who they are. Without them knowing who you are.
+And two more things: touch the fire to receive a few short words, and touch someone else's star to pray for them and tell them, with a fish, that you are with them. Without knowing who they are. Without them knowing who you are.
 
 ## What La Fogata will never have
 
@@ -40,7 +42,7 @@ It is not a social network and doesn't want to be one. Nothing in it asks you to
 
 ## Why it exists
 
-I made it because I believe keeping someone company doesn't need pretty words or solutions: sometimes it is enough to know you are not the only person awake.
+I made it so there would be a place to pray without having to explain yourself to anyone, and where nobody is alone while they do. Sometimes pretty words and solutions aren't needed: it is enough to know you are not the only person awake, and that someone else is there with you.
 
 It doesn't replace a professional or the people who love you. If you are going through something very hard, please reach out: [findahelpline.com](https://findahelpline.com) lists support lines in almost every country.
 
