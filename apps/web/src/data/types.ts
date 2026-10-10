@@ -106,7 +106,6 @@ export type CreatePetitionResult =
   | { status: "created"; petition: Petition }
   | { status: "empty" }
   | { status: "too-long" }
-  | { status: "daily-limit" }
   /** Signs of self-harm: never published. The UI shows the help screen. */
   | { status: "risk" }
   /** Insults, swearing or nothing readable: never published. The UI says La Fogata is not for this. */
@@ -149,10 +148,8 @@ export interface PetitionService {
    * the panorama (about `SKY_SIZE` per screen). Petitions the visitor reported are never among them.
    */
   sky(limit?: number): Promise<readonly Petition[]>;
-  /** The visitor's own petitions that are still alive. */
+  /** The visitor's own petitions. */
   mine(): Promise<readonly Petition[]>;
-  /** Whether the visitor has already left all the petitions a day allows. */
-  dailyLimitReached(): Promise<boolean>;
   create(text: string): Promise<CreatePetitionResult>;
   /** The author marks it answered, with one line that says how it happened: it is required. */
   answer(id: string, note: string): Promise<AnswerPetitionResult>;

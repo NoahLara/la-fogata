@@ -64,7 +64,6 @@ export const es = {
     // Said, and shown, when the star has settled in the sky.
     afterglow: "Ya brilla en tu cielo.",
     // Instead of the form, when they have already left one today.
-    alreadyToday: "Ya elevaste una hoy. Mañana podrás pedir otra.",
   },
   sky: {
     // The two buttons at the edges of the sky, an alternative to dragging it.
@@ -158,9 +157,8 @@ export const es = {
   fire: {
     // The name of the invisible button over the flames.
     listen: "Escuchar al fuego",
-    // The tiny verse number under the word; it reveals the reference. {number} is like "41:10".
-    showReference: "Ver la referencia de {number}",
-    hideReference: "Ocultar la referencia de {number}",
+    // Read out with the words, which are a button: tapping them shows where they come from. Nothing is shown for it.
+    referenceHint: "Toca las palabras para ver de dónde vienen.",
     // The full reference. {book} {number}, for example "Isaías 41:10".
     reference: "{book} {number}",
     // Credit for the Spanish text. Exactly as the publisher asks; the About page shows it too.
@@ -218,7 +216,7 @@ export const es = {
     },
     petitions: {
       heading: "Lo que dejas en una petición",
-      body: "Antes de mostrarse, una petición se revisa. Luego se ve como una estrella, sin nombre, para todas las personas del bosque. Al dejarla nos permites mostrarla así mientras dura (30 días, y 30 más si la marcas como respondida). Sigue siendo tuya: si la devuelves al fuego, deja de mostrarse. No escribas datos tuyos ni de otras personas, como nombres, teléfonos o direcciones.",
+      body: "Antes de mostrarse, una petición se revisa. Luego se ve como una estrella, sin nombre, para todas las personas del bosque. Al dejarla nos permites mostrarla así mientras siga en el cielo: no caduca. Sigue siendo tuya: si la devuelves al fuego, deja de mostrarse. No escribas datos tuyos ni de otras personas, como nombres, teléfonos o direcciones.",
     },
     respect: {
       heading: "Convivencia",

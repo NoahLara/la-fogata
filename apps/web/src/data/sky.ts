@@ -1,37 +1,17 @@
-import { PETITION_LIFETIME_MS, ANSWERED_LIFETIME_MS, SKY_SIZE } from "./limits";
+import { SKY_SIZE } from "./limits";
 import { shuffled, type Random } from "@/scene/random";
 
-/** What the lifetime rules need of a petition: when it was written and when it was answered. */
-interface Lifetime {
-  createdAt: number;
-  answered?: { at: number } | undefined;
-}
-
-/** When a petition stops being shown: 30 days after it was written, or 30 after it was answered. */
-export function expiresAt(petition: Lifetime): number {
-  return petition.answered
-    ? petition.answered.at + ANSWERED_LIFETIME_MS
-    : petition.createdAt + PETITION_LIFETIME_MS;
-}
-
-export function isAlive(petition: Lifetime, now: number): boolean {
-  return now < expiresAt(petition);
-}
-
 /**
- * The petitions a sky shows: the living ones with the fewest prayers first, so none goes unprayed, and in a
- * random order among those with the same count so different stars pass over time.
+ * The petitions a sky shows: the ones with the fewest prayers first, so none goes unprayed, and in a random order
+ * among those with the same count so different stars pass over time. Petitions don't expire: a star stays until its
+ * author returns it to the fire.
  */
-export function pickSky<T extends Lifetime & { prayers: number }>(
+export function pickSky<T extends { prayers: number }>(
   petitions: readonly T[],
-  now: number,
   rand: Random,
   size = SKY_SIZE,
 ): T[] {
-  return shuffled(
-    petitions.filter((petition) => isAlive(petition, now)),
-    rand,
-  )
+  return shuffled(petitions, rand)
     .sort((a, b) => a.prayers - b.prayers)
     .slice(0, size);
 }

@@ -21,7 +21,7 @@ Solo hay tres gestos, y a propósito no hay más.
 
 - **Echar leña.** El fuego crece con cada tronco y se va apagando solo. Todos los que están contigo lo ven.
 - **Entregar una carga.** Escribes lo que te pesa y el fuego lo quema. Lo que escribes nunca sale de tu navegador: no se envía, no se guarda y nadie lo lee, ni siquiera yo.
-- **Dejar una petición.** Se eleva con el humo y se vuelve una estrella en el cielo. Puedes dejar una al día. Cuando se cumple, vuelves a tu estrella y lo cuentas.
+- **Dejar una petición.** Se eleva con el humo y se vuelve una estrella en el cielo. Puedes dejar las que quieras. Cuando se cumple, vuelves a tu estrella y lo cuentas.
 
 Y dos cosas más: tocar el fuego para recibir unas palabras breves, y tocar la estrella de otra persona para decirle, con un pez, que estás con ella. Sin saber quién es. Ella sin saber quién eres tú.
 

@@ -393,11 +393,6 @@ export function versesOf(word: Word, locale: Locale): string {
   return typeof word.ref.verses === "string" ? word.ref.verses : word.ref.verses[locale];
 }
 
-/** The tiny number that shows by itself, such as "41:10": the chapter and verse, without the a or b of a fragment. */
-export function verseNumber(word: Word, locale: Locale): string {
-  return `${word.ref.chapter}:${versesOf(word, locale).replace(/[ab]$/, "")}`;
-}
-
 /** The number in the full reference, which keeps the a or b of a fragment, such as "41:10b". */
 export function fullVerseNumber(word: Word, locale: Locale): string {
   return `${word.ref.chapter}:${versesOf(word, locale)}`;

@@ -6,7 +6,6 @@ import {
   contextualWordsFor,
   fullVerseNumber,
   textOf,
-  verseNumber,
   WORDS,
   wordsFor,
   type WordTheme,
@@ -128,16 +127,15 @@ describe("WORDS", () => {
   });
 });
 
-describe("verse numbers", () => {
+describe("the verse number of the reference", () => {
   const find = (id: string) => {
     const word = WORDS.find((entry) => entry.id === id);
     if (!word) throw new Error(`missing word ${id}`);
     return word;
   };
 
-  it("hides the a or b of a fragment on the tiny number but keeps it in the full one", () => {
+  it("keeps the a or b of a fragment in the number of the reference", () => {
     const word = find("peace-isaiah-43-1");
-    expect(verseNumber(word, "es")).toBe("43:1");
     expect(fullVerseNumber(word, "es")).toBe("43:1b");
   });
 
@@ -145,11 +143,10 @@ describe("verse numbers", () => {
     const word = find("asking-isaiah-65-24");
     expect(fullVerseNumber(word, "es")).toBe("65:24");
     expect(fullVerseNumber(word, "en")).toBe("65:24b");
-    expect(verseNumber(word, "en")).toBe("65:24");
   });
 
   it("keeps a range whole", () => {
-    expect(verseNumber(find("night-psalms-126-5"), "es")).toBe("126:5–6");
+    expect(fullVerseNumber(find("night-psalms-126-5"), "es")).toBe("126:5–6");
   });
 });
 

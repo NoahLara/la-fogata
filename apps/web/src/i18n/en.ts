@@ -60,7 +60,6 @@ export const en = {
     // Said, and shown, when the star has settled in the sky.
     afterglow: "It's shining in your sky now.",
     // Instead of the form, when they have already left one today.
-    alreadyToday: "You've already lifted one up today. Tomorrow you can ask again.",
   },
   sky: {
     // The two buttons at the edges of the sky, an alternative to dragging it.
@@ -149,9 +148,8 @@ export const en = {
   fire: {
     // The name of the invisible button over the flames.
     listen: "Listen to the fire",
-    // The tiny verse number under the word; it reveals the reference. {number} is like "41:10".
-    showReference: "Show the reference for {number}",
-    hideReference: "Hide the reference for {number}",
+    // Read out with the words, which are a button: tapping them shows where they come from. Nothing is shown for it.
+    referenceHint: "Tap the words to see where they come from.",
     // The full reference. {book} {number}, for example "Isaiah 41:10".
     reference: "{book} {number}",
     // Credit for the English text; the About page shows it too.
@@ -208,7 +206,7 @@ export const en = {
     },
     petitions: {
       heading: "What you leave in a star",
-      body: "Before it's shown, what you write is reviewed. Then it appears as a star, with no name, for everyone in the forest. By leaving it you let us show it that way for as long as it lasts (30 days, and 30 more if you mark it answered). It stays yours: if you send it back to the fire, it stops being shown. Please don't write personal details about yourself or others, like names, phone numbers or addresses.",
+      body: "Before it's shown, what you write is reviewed. Then it appears as a star, with no name, for everyone in the forest. By leaving it you let us show it that way for as long as it stays in the sky: it doesn't expire. It stays yours: if you send it back to the fire, it stops being shown. Please don't write personal details about yourself or others, like names, phone numbers or addresses.",
     },
     respect: {
       heading: "Living together",

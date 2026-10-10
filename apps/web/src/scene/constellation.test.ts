@@ -324,10 +324,11 @@ describe("constellationLines", () => {
     expect(constellationLines(stars.slice(0, 2), new Set(["a", "b"]))).toHaveLength(1);
   });
 
-  it("skips a star that is gone and joins its children to the star above it", () => {
+  it("skips a star that is gone, keeps the lines that are left, and joins what hung from it to the nearest star", () => {
+    // `b` is gone: `a` and `d` keep their line, and `c`, left alone, joins `d` (60 px away), not `a` (114 px).
     expect(constellationLines(stars, new Set(["a", "c", "d"]))).toEqual([
-      [stars[0]?.spot, stars[2]?.spot],
       [stars[0]?.spot, stars[3]?.spot],
+      [stars[2]?.spot, stars[3]?.spot],
     ]);
   });
 
@@ -448,5 +449,93 @@ describe("segmentsCross", () => {
     expect(segmentsCross(p(0, 0), p(10, 0), p(0, 5), p(10, 5))).toBe(false);
     expect(segmentsCross(p(0, 0), p(10, 10), p(10, 10), p(20, 0))).toBe(false);
     expect(segmentsCross(p(0, 0), p(4, 4), p(6, 0), p(10, 10))).toBe(false);
+  });
+});
+
+describe("a constellation when a star goes back to the fire", () => {
+  const { area } = setup(1280, 720);
+
+  /** Whether the lines join every star in `ids` into one piece. */
+  const connected = (stars: ConstellationStar[], ids: string[], lines: [Point, Point][]) => {
+    const spots = new Map(stars.map((star) => [star.id, star.spot]));
+    const group = new Map(ids.map((id) => [id, id]));
+    const find = (id: string): string => {
+      let root = id;
+      while (group.get(root) !== root) root = group.get(root) as string;
+      return root;
+    };
+    const idAt = (p: Point) => ids.find((id) => spots.get(id) === p) as string;
+    for (const [a, b] of lines) group.set(find(idAt(a)), find(idAt(b)));
+    return new Set(ids.map(find)).size === 1;
+  };
+  const named = (count: number) => grow(area, count).map((s, i) => ({ ...s, id: `p${i}` }));
+  const without = (stars: ConstellationStar[], gone: string[]) =>
+    stars.map((star) => star.id).filter((id) => !gone.includes(id));
+
+  it("keeps the first star's children joined when the first star is the one that leaves", () => {
+    const stars = named(6);
+    const present = without(stars, ["p0"]);
+    const lines = constellationLines(stars, new Set(present));
+    expect(lines).toHaveLength(present.length - 1);
+    expect(connected(stars, present, lines)).toBe(true);
+  });
+
+  it("stays one piece whichever single star leaves, for any number of petitions", () => {
+    for (const count of [4, 5, 8, 12, 20]) {
+      const stars = named(count);
+      for (const star of stars) {
+        const present = without(stars, [star.id]);
+        const lines = constellationLines(stars, new Set(present));
+        expect(lines, `${count} stars, ${star.id} left`).toHaveLength(present.length - 1);
+        expect(connected(stars, present, lines), `${count} stars, ${star.id} left`).toBe(true);
+      }
+    }
+  });
+
+  it("stays one piece when several leave, the pivots first, and when only two are left", () => {
+    const stars = named(14);
+    // The stars most others hang from, in turn.
+    const children = (id: string) => stars.filter((s) => stars[s.parent ?? -1]?.id === id).length;
+    const pivots = [...stars].sort((a, b) => children(b.id) - children(a.id)).map((s) => s.id);
+    for (let leave = 1; leave <= stars.length - 2; leave++) {
+      const present = without(stars, pivots.slice(0, leave));
+      const lines = constellationLines(stars, new Set(present));
+      expect(lines).toHaveLength(present.length - 1);
+      expect(connected(stars, present, lines)).toBe(true);
+    }
+  });
+
+  it("draws no line across another when a single star leaves, however many petitions there are", () => {
+    for (const count of [5, 8, 12, 20, 30]) {
+      const stars = named(count);
+      for (const star of stars) {
+        const lines = constellationLines(stars, new Set(without(stars, [star.id])));
+        for (let i = 0; i < lines.length; i++) {
+          for (let j = 0; j < i; j++) {
+            const [a, b] = lines[i] as [Point, Point];
+            const [c, d] = lines[j] as [Point, Point];
+            expect(segmentsCross(a, b, c, d), `${count} stars, ${star.id} left`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("changes nothing for the stars that did not lose a link, and draws no line for one star alone", () => {
+    const stars = named(8);
+    const all = new Set(stars.map((s) => s.id));
+    const before = constellationLines(stars, all);
+    // The last star is a leaf: when it leaves, the rest keep every line they had.
+    const last = stars[stars.length - 1] as ConstellationStar;
+    const after = constellationLines(stars, new Set(without(stars, [last.id])));
+    expect(after).toEqual(before.filter(([, to]) => to !== last.spot));
+    expect(constellationLines(stars, new Set(["p3"]))).toEqual([]);
+    expect(constellationLines(stars, new Set())).toEqual([]);
+  });
+
+  it("is the same every time it is drawn", () => {
+    const stars = named(10);
+    const present = new Set(without(stars, ["p0", "p4"]));
+    expect(constellationLines(stars, present)).toEqual(constellationLines(stars, present));
   });
 });
