@@ -26,15 +26,15 @@ describe("aloneLine", () => {
     expect(aloneLine("en", en.company, 12)).toBe("There are 12 other fires burning right now.");
   });
 
-  it("says the fire keeps company when there are no other fires", () => {
-    expect(aloneLine("es", es.company, 0)).toBe("El fuego te acompaña.");
-    expect(aloneLine("en", en.company, 0)).toBe("The fire keeps you company.");
+  it("says nothing when there are no other fires", () => {
+    expect(aloneLine("es", es.company, 0)).toBeUndefined();
+    expect(aloneLine("en", en.company, 0)).toBeUndefined();
   });
 
   it("never promises that someone will come", () => {
     for (const count of [0, 1, 4]) {
-      expect(aloneLine("es", es.company, count)).not.toMatch(/llegar|vendr|pronto|alguien/i);
-      expect(aloneLine("en", en.company, count)).not.toMatch(/will|soon|someone|arrive/i);
+      expect(aloneLine("es", es.company, count) ?? "").not.toMatch(/llegar|vendr|pronto|alguien/i);
+      expect(aloneLine("en", en.company, count) ?? "").not.toMatch(/will|soon|someone|arrive/i);
     }
   });
 });

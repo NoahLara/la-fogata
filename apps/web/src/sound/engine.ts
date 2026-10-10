@@ -44,9 +44,6 @@ export interface SoundEngine {
   /** Everyone around the fire, the visitor included: the crackle follows. */
   setPeople(count: number): void;
   play(event: SoundEvent): void;
-  /** The tab is hidden: nothing keeps running. */
-  suspend(): void;
-  resume(): void;
   /** Whether the AudioContext exists yet. */
   readonly started: boolean;
   destroy(): void;
@@ -81,7 +78,6 @@ export function createSoundEngine({
 } = {}): SoundEngine {
   let parts: Parts | undefined;
   let enabled = false;
-  let hidden = false;
   let people = 0;
   let crackle = CRACKLE_DEFAULT;
   let musicLevel = MUSIC_DEFAULT;
@@ -118,7 +114,7 @@ export function createSoundEngine({
     return { ctx, master, ambienceDuck, oneShots, ambience, noise, music };
   };
 
-  const running = () => (enabled && !hidden ? parts : undefined);
+  const running = () => (enabled ? parts : undefined);
 
   const wake = async (): Promise<boolean> => {
     const built = running();
@@ -209,17 +205,6 @@ export function createSoundEngine({
       built.ambienceDuck.gain.setTargetAtTime(DUCK_LEVEL, now, 0.06);
       built.ambienceDuck.gain.setTargetAtTime(1, now + cue.duration, 0.5);
       setTimeout(() => voices.delete(admission.id), cue.duration * 1000 + 200);
-    },
-    suspend() {
-      hidden = true;
-      parts?.music?.pause();
-      if (parts) void parts.ctx.suspend();
-    },
-    resume() {
-      hidden = false;
-      if (parts && enabled) {
-        void wake();
-      }
     },
     destroy() {
       clearTimeout(offTimer);

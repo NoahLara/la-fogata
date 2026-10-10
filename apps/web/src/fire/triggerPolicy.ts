@@ -10,7 +10,7 @@ export const TRIGGER_THEME: Record<TriggerEvent, WordTheme> = {
   alone: "presence",
 };
 
-/** How long after the event the word comes, so it follows the afterglow line instead of landing on it. */
+/** How long after the event the word comes, so it does not land on top of the ritual that has just ended. */
 export const TRIGGER_DELAY_MS = 1500;
 /** How long a word that had to wait keeps waiting for the way to clear before it is let go. */
 export const QUEUE_LIMIT_MS = 10_000;

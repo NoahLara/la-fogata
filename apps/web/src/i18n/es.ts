@@ -63,7 +63,6 @@ export const es = {
     unavailable: "No pudimos guardar tu petición ahora mismo. Inténtalo de nuevo en un momento.",
     cancel: "Cancelar",
     // Said, and shown, when the star has settled in the sky.
-    afterglow: "Ya brilla en tu cielo.",
     // Instead of the form, when they have already left one today.
   },
   sky: {
@@ -220,7 +219,7 @@ export const es = {
       },
       wood: {
         title: "Echa leña",
-        body: "Toca el botón del centro y tu personaje lanza un tronco: es tu manera de decir «aquí estoy». El fuego crece y se va apagando solo, y todos los que están contigo lo ven. Si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
+        body: "Toca el botón del centro y tu personaje lanza un tronco: es tu manera de decir «aquí estoy». El fuego crece y se va apagando solo, y todos los que están contigo lo ven. Cada personaje sentado junto al fuego es otra persona, conectada desde alguna parte, que llegó para orar por sus peticiones o para acompañarte. Si ves otra fogata brillando a lo lejos entre los árboles, es porque hay más personas en el bosque.",
       },
       burden: {
         title: "Entrega una carga",
@@ -291,8 +290,6 @@ export const es = {
       other: "Hay {count} fogatas más encendidas ahora.",
     },
     noOtherFires: "No hay otras fogatas encendidas ahora.",
-    // Alone, with no other fires: company without promising anyone will come.
-    keepsCompany: "El fuego te acompaña.",
     joined: "Alguien se sentó junto al fuego.",
     left: "Alguien se fue.",
     // One summary when several changes came within ten seconds. {count} is everyone by the fire now, the visitor included.

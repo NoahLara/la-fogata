@@ -90,6 +90,16 @@ describe("the sound in the page", () => {
     expect(created[0]!.state).toBe("running");
   });
 
+  it("keeps playing when the tab is hidden", async () => {
+    setup();
+    await act(async () => {});
+    const ctx = created[0]!;
+    vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    expect(ctx.suspend).not.toHaveBeenCalled();
+    expect(ctx.state).toBe("running");
+  });
+
   it("when the browser holds it back, the first press, tap or key starts it, once", async () => {
     FakeContext.blocked = true;
     setup();
