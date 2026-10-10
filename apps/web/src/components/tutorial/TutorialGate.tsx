@@ -22,6 +22,7 @@ export function TutorialGate() {
   if (!open) return null;
   return (
     <TutorialDialog
+      unlocksSound
       onClose={() => {
         saveTutorialSeen();
         setOpen(false);
