@@ -15,7 +15,7 @@ Hay noches en que lo que pesa no cabe en una conversación. No quieres explicarl
 
 Te sientas junto a un fuego, de noche, en el bosque. Hay otras personas sentadas contigo, siempre de forma anónima: son personajes, no perfiles. Nadie habla. Se acompañan.
 
-**La Fogata es un lugar para orar y para acompañarse.** Puedes entrar a orar por tus peticiones, o simplemente estar presente: acompañar, quedarte aquí, animarte con lo que otros piden y con las respuestas que reciben. Orar es una invitación, nunca una obligación, y todos son bienvenidos, creas lo que creas.
+**La Fogata es un lugar para orar y para acompañarse.** Puedes entrar a orar por tus peticiones, o simplemente estar presente: acompañar, quedarte aquí, animarte con lo que otros piden y con las respuestas que reciben. Orar es una invitación, nunca una obligación, y todos son bienvenidos.
 
 ## Qué puedes hacer
 
@@ -37,7 +37,7 @@ No es una red social y no quiere serlo. Nada en ella te pide volver: está ahí 
 
 - No hay cuentas, ni correo, ni nombre. La aplicación no guarda tu IP.
 - Las **cargas** se quedan en tu navegador y desaparecen al quemarse.
-- Una **petición** es distinta: es una estrella que otras personas pueden ver. Por eso va a guardarse en el servidor (hoy todavía vive solo en tu navegador, mientras la página está abierta). Será pública y anónima: quien administre el servidor podrá leer su texto, pero no sabrá quién la escribió. Solo se guardará una huella de la llave secreta que tu navegador conserva para reconocer tus estrellas; la llave en sí nunca saldrá de él.
+- Una **petición** es distinta: es una estrella que otras personas pueden ver. Por eso se guarda en el servidor y sigue ahí cuando vuelves. Es pública y anónima: quien administra el servidor puede leer su texto, pero no sabe quién la escribió. Solo se guarda una huella de la llave secreta que tu navegador conserva para reconocer tus estrellas; la llave en sí nunca sale de él.
 - Todo texto pasa por un filtro antes de mostrarse. Y si lo que escribes muestra señales de que estás en peligro, no se publica nada: aparece una pantalla de ayuda.
 
 ## Por qué existe
@@ -48,9 +48,9 @@ No reemplaza a un profesional ni a la gente que te quiere. Si estás pasando por
 
 ## Cómo está hoy
 
-Es la primera versión. Lo que ya funciona: la fogata, los animales, la leña y las cargas que todos ven, las estrellas, el cielo que gira, la palabra del fuego y el sonido. Cada fogata admite hasta siete personas, y cuando se llena entras a otra: nadie espera.
+Lo que ya funciona: la fogata, los personajes, la leña y las cargas que todos ven, las peticiones guardadas, un cielo que es el mismo para todos, la palabra del fuego y el sonido. Cada fogata admite hasta siete personas, y cuando se llena entras a otra: nadie espera.
 
-Lo que viene: que las peticiones queden guardadas, que el cielo sea el mismo para todos (hoy cada quien ve solo el suyo) y que veas, lejos entre los árboles, las otras fogatas del bosque.
+Lo que viene: que veas, lejos entre los árboles, las otras fogatas del bosque.
 
 ## Correrla en tu computador
 
