@@ -59,7 +59,6 @@ export const en = {
     unavailable: "We couldn't keep your ask just now. Please try again in a moment.",
     cancel: "Cancel",
     // Said, and shown, when the star has settled in the sky.
-    afterglow: "It's shining in your sky now.",
     // Instead of the form, when they have already left one today.
   },
   sky: {
@@ -210,7 +209,7 @@ export const en = {
       },
       wood: {
         title: "Throw wood",
-        body: "Tap the button in the middle and your character throws a log: your way of saying “I'm here”. The fire grows and slowly dies down on its own, and everyone sitting with you sees it. If you see another campfire glowing far off between the trees, it means there are more people in the woods.",
+        body: "Tap the button in the middle and your character throws a log: your way of saying “I'm here”. The fire grows and slowly dies down on its own, and everyone sitting with you sees it. Every character by the fire is another real person, connected from somewhere, who came to pray for their own requests or to keep you company. And if you're on your own for a while, the fire keeps you company: it is always here. If you see another campfire glowing far off between the trees, it means there are more people in the woods.",
       },
       burden: {
         title: "Hand over a burden",

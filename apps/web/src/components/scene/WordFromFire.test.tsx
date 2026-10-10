@@ -131,7 +131,6 @@ describe("the fire answers a burden and a petition", () => {
     await writeAndSubmit("petition", es.petition.submit);
     expect(finish.petition).toBeDefined();
     act(() => finish.petition?.());
-    expect(screen.getByText(es.petition.afterglow)).toBeTruthy();
     await advance(TRIGGER_DELAY_MS + 300);
     expect(wordsOf("asking")).toContain(shown());
   });

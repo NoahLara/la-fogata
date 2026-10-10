@@ -16,8 +16,6 @@ import { useInteraction } from "../scene/Interaction";
 type Dialog = "burden" | "petition" | "help" | undefined;
 
 const NOTICE_MS = 3000;
-/** How long "Ya brilla en tu cielo." stays on screen. */
-const STAR_AFTERGLOW_MS = 4000;
 
 /** One round piece of the hearth: the wood in the middle is bigger and lit, the other two are dark wood. */
 const GESTURE_BASE =
@@ -73,8 +71,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
   const { fire, presence, petitions, rituals } = useServices();
   const [dialog, setDialog] = useState<Dialog>();
   const [notice, setNotice] = useState<string>();
-  // The soft line after a burden has burned or a petition has become a star.
-  const [afterglow, setAfterglow] = useState<string>();
   // Nothing else can be done while a ritual runs, from pressing the button to sitting down again, or while a
   // star turns golden or goes back to the fire.
   const { busy: ritual, hold, message, notifyFire, reportDialog } = useInteraction();
@@ -185,7 +181,6 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
             // Someone whose words showed signs of risk is shown the help screen next: the fire stays quiet.
             risky = atRisk.current;
             later(() => {
-              setAfterglow(undefined);
               if (atRisk.current) {
                 setHelpFor("burden");
                 setDialog("help");
@@ -286,10 +281,8 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
             onDone: () => {
               pending.current = undefined;
               setRitual(false);
-              setAfterglow(t.petition.afterglow);
               notifyFire("petition");
               focusGesture("petition");
-              later(() => setAfterglow(undefined), STAR_AFTERGLOW_MS);
             },
           })
         : undefined;
@@ -349,14 +342,14 @@ export function GestureBar({ scene }: { scene: FogataScene }) {
           />
         </div>
       </div>
-      {/* One polite live region for notices and for the line after a burden burns. */}
+      {/* One polite live region for notices and for the words that come from the fire. */}
       <p
         role="status"
         className={`pointer-events-none absolute inset-x-0 bottom-20 z-10 px-6 text-center text-base text-gold transition-opacity duration-1000 motion-reduce:transition-none ${
-          afterglow || notice || message ? "opacity-100" : "opacity-0"
+          notice || message ? "opacity-100" : "opacity-0"
         }`}
       >
-        {afterglow ?? notice ?? message}
+        {notice ?? message}
       </p>
       {dialog === "burden" && (
         <BurdenDialog
